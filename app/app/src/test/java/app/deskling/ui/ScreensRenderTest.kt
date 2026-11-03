@@ -56,7 +56,10 @@ class ScreensRenderTest {
         s.engine.st.streak = 3
         s.saveCare()
         s.stepsDay = s.engine.dateOf(now); s.stepsToday = 5234
-        s.stepsHistory = JSONObject().put("20261027", 7400).put("20261028", 9100).put("20261029", 4300).put("20261030", 8800).put("20261031", 11200).put("20261101", 6100).put(s.engine.dateOf(now).toString(), 5234)
+        s.stepsHistory = JSONObject().also { h ->
+            listOf(7400, 9100, 4300, 8800, 11200, 6100).forEachIndexed { i, v -> h.put(s.engine.dateOf(now - (6 - i) * 86_400_000L).toString(), v) }
+            h.put(s.engine.dateOf(now).toString(), 5234)
+        }
         s.dial = DialInfo("Deskling-3456", "0123456789abcdef0123456789abcdef", "192.168.1.42")
         s.dialState = JSONObject().put("wifi", JSONObject().put("up", true).put("ssid", "Home Wi-Fi").put("ip", "192.168.1.42"))
         s.dialSettings = JSONObject().put("remind", JSONArray(listOf(45, 20, 50, 60))).put("hourStart", 8).put("hourEnd", 20).put("tz", 0)
@@ -77,5 +80,13 @@ class ScreensRenderTest {
         compose.onNodeWithText("Settings").performClick(); shot("3_settings")
         compose.onNodeWithText("Wisp").performClick()
         compose.onNodeWithText("Eyes").performClick(); shot("5_eye_break")
+        compose.onNodeWithText("Stop").performClick()
+        // a phone with one day of steps, as on a fresh install
+        s.stepsHistory = JSONObject().put(s.engine.dateOf(now).toString(), 995); s.stepsToday = 995
+        s.engine.st.today.fill(0); s.engine.st.today[Need.WATER.ordinal] = 1; s.engine.st.streak = 0; s.saveCare()
+        compose.onNodeWithText("Stats").performClick(); shot("6_stats_fresh")
+        compose.onNodeWithText("Settings").performClick()
+        compose.onNodeWithText("Forget this dial").performClick()
+        compose.onNodeWithText("Pair a dial").performClick(); shot("4_pair")
     }
 }

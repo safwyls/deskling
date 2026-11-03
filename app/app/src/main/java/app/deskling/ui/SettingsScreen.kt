@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -87,7 +88,7 @@ fun SettingsScreen(app: AppState) {
         }
         AppSettings(app)
         Header("About")
-        Text("Deskling 1.0  •  Wisp and the care game, shared with your dial over Bluetooth or Wi-Fi.", color = Dim, fontSize = 13.sp)
+        Text("Deskling 1.2  •  Wisp and the care game, shared with your dial over Bluetooth or Wi-Fi.", color = Dim, fontSize = 13.sp)
         Spacer(Modifier.height(24.dp))
     }
 }
@@ -224,25 +225,36 @@ private fun PairScreen(app: AppState, close: () -> Unit) {
         }
         launch { runCatching { withTimeoutOrNull(20_000) { discoverOnWifi(app.ctx).collect { p -> if (p !in onLan) onLan.add(p) } } } }
     }
+    var showIp by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Pair a dial", color = TextC, fontSize = 22.sp, modifier = Modifier.weight(1f))
             TextButton(onClick = close) { Text("Cancel") }
         }
-        Text("On the dial: Settings > Phone app > Pair a phone. It shows a 6-digit code.", color = Dim, fontSize = 14.sp)
-        if (!Sync.hasBlePermission(app.ctx)) Text("Allow Bluetooth in Settings to find dials nearby.", color = Bad, fontSize = 13.sp, modifier = Modifier.padding(top = 6.dp))
-        Header("Nearby (Bluetooth)")
-        if (found.isEmpty()) Text("Looking...", color = Dim)
-        for (d in found) Item(d.name, "signal ${d.rssi} dBm", if (pick?.second == "ble:${d.address}") "Picked" else "Pick") { pick = d.name to "ble:${d.address}" }
-        Header("On your network")
-        if (onLan.isEmpty()) Text("None found yet", color = Dim)
-        for ((n, ip) in onLan) Item(n, ip, if (pick?.second == "ip:$ip") "Picked" else "Pick") { pick = n to "ip:$ip" }
-        OutlinedTextField(manualIp, { manualIp = it; pick = "Deskling" to "ip:$it" }, label = { Text("or type its IP address") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-        Spacer(Modifier.height(16.dp))
-        OutlinedTextField(code, { code = it.filter { c -> c.isDigit() }.take(6) }, label = { Text("Code from the dial") }, singleLine = true,
+        Text("The dial's code is needed whichever way the phone connects.", color = Dim, fontSize = 14.sp)
+
+        PairStep(1, "Enter the code from the dial")
+        Text("On the dial: Settings > Phone app > Pair a phone.", color = Dim, fontSize = 14.sp)
+        Spacer(Modifier.height(8.dp))
+        OutlinedTextField(code, { code = it.filter { c -> c.isDigit() }.take(6) }, label = { Text("6-digit code") }, singleLine = true,
+            textStyle = androidx.compose.ui.text.TextStyle(fontSize = 22.sp, letterSpacing = 6.sp, color = TextC),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
-        Spacer(Modifier.height(12.dp))
-        Button(enabled = !busy && pick != null && code.length == 6, onClick = {
+
+        PairStep(2, "Pick your dial")
+        Text("Bluetooth or Wi-Fi: either works.", color = Dim, fontSize = 14.sp)
+        if (!Sync.hasBlePermission(app.ctx)) Text("Allow Bluetooth in Settings to find dials nearby.", color = Bad, fontSize = 13.sp, modifier = Modifier.padding(top = 6.dp))
+        SubHead("Nearby over Bluetooth")
+        if (found.isEmpty()) Text("Looking...", color = Dim, fontSize = 14.sp)
+        for (d in found) Item(d.name, "signal ${d.rssi} dBm", if (pick?.second == "ble:${d.address}") "Picked" else "Pick") { pick = d.name to "ble:${d.address}" }
+        SubHead("On this Wi-Fi network")
+        if (onLan.isEmpty()) Text("None found yet", color = Dim, fontSize = 14.sp)
+        for ((n, ip) in onLan) Item(n, ip, if (pick?.second == "ip:$ip") "Picked" else "Pick") { pick = n to "ip:$ip" }
+        if (!showIp) TextButton(onClick = { showIp = true }, contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)) { Text("Not listed? Enter its IP address") }
+        else OutlinedTextField(manualIp, { manualIp = it; pick = if (it.isBlank()) null else "Deskling" to "ip:$it" }, label = { Text("IP address (on the dial: Settings > About)") },
+            singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri), modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+
+        Spacer(Modifier.height(20.dp))
+        Button(enabled = !busy && pick != null && code.length == 6, modifier = Modifier.fillMaxWidth(), onClick = {
             val (name, where) = pick ?: return@Button
             busy = true; msg = null
             scope.launch {
@@ -251,9 +263,31 @@ private fun PairScreen(app: AppState, close: () -> Unit) {
                 busy = false
                 if (err == null) { Sync.sync(app.ctx); app.say("Paired with ${app.store.dial?.name}"); close() } else msg = err
             }
-        }) { Text(if (busy) "Pairing..." else "Pair") }
+        }) { Text(if (busy) "Pairing..." else pick?.let { "Pair with ${it.first}" } ?: "Pair") }
+        val missing = listOfNotNull(if (code.length < 6) "the code" else null, if (pick == null) "a dial" else null)
+        if (!busy && missing.isNotEmpty()) Text("Needs ${missing.joinToString(" and ")}", color = Dim, fontSize = 13.sp, modifier = Modifier.padding(top = 6.dp))
         msg?.let { Text(it, color = Bad, modifier = Modifier.padding(top = 8.dp)) }
     }
+}
+
+@Composable
+private fun PairStep(n: Int, title: String) {
+    Spacer(Modifier.height(24.dp))
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.size(26.dp).background(Accent, androidx.compose.foundation.shape.CircleShape), contentAlignment = Alignment.Center) {
+            Text("$n", color = Bg, fontSize = 14.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
+        }
+        Spacer(Modifier.width(10.dp))
+        Text(title, color = TextC, fontSize = 17.sp)
+    }
+    Spacer(Modifier.height(6.dp))
+}
+
+@Composable
+private fun SubHead(t: String) {
+    Spacer(Modifier.height(14.dp))
+    Text(t, color = Accent, fontSize = 14.sp)
+    HorizontalDivider(color = Line, modifier = Modifier.padding(vertical = 4.dp))
 }
 
 // ---------------------------------------------------------------- the dial's Wi-Fi, set from the phone

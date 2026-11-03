@@ -151,6 +151,8 @@ class CareEngine(
 
     fun happiness() = (st.happy + 0.5).toInt()
     fun level(): Int { var l = 1; var need = 100L; var xp = st.xp; while (xp >= need) { xp -= need; l++; need += 100 }; return l }
+    /** (xp into this level, xp this level takes). */
+    fun levelXp(): Pair<Long, Long> { var need = 100L; var xp = st.xp; while (xp >= need) { xp -= need; need += 100 }; return xp to need }
     fun levelProgress(): Int { var need = 100L; var xp = st.xp; while (xp >= need) { xp -= need; need += 100 }; return (xp * 100 / need).toInt() }
 
     // ---------- time passing ----------

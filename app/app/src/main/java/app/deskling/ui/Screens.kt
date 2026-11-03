@@ -6,9 +6,11 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -65,6 +67,16 @@ import app.deskling.care.Need
 import app.deskling.steps.Steps
 import app.deskling.sync.Sync
 import kotlinx.coroutines.delay
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import java.time.LocalDate
+import java.time.format.TextStyle
+import java.util.Locale
 import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.sin
@@ -196,12 +208,13 @@ private fun StepsRow(app: AppState) {
 @Composable
 private fun Pill(text: String, color: Long, modifier: Modifier, onClick: () -> Unit) {
     OutlinedButton(onClick = onClick, modifier = modifier, shape = RoundedCornerShape(10.dp),
+        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
         colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(color))) { Text(text, fontSize = 14.sp, maxLines = 1) }
 }
 
 @Composable
 private fun IconPill(text: String, icon: ImageVector, modifier: Modifier, onClick: () -> Unit) {
-    OutlinedButton(onClick = onClick, modifier = modifier, shape = RoundedCornerShape(10.dp)) {
+    OutlinedButton(onClick = onClick, modifier = modifier, shape = RoundedCornerShape(10.dp), contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)) {
         Icon(icon, null, modifier = Modifier.size(16.dp)); Spacer(Modifier.width(4.dp)); Text(text, fontSize = 13.sp, maxLines = 1)
     }
 }
@@ -307,38 +320,160 @@ private fun CatchGame(app: AppState) {
 fun StatsScreen(app: AppState) {
     val v by app.store.version.collectAsState()
     v.hashCode()
-    val e = app.store.engine
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
-        Text("Level ${e.level()}", color = TextC, fontSize = 24.sp, fontWeight = FontWeight.SemiBold)
-        LinearProgressIndicator(progress = { e.levelProgress() / 100f }, color = Accent, trackColor = Line, strokeCap = StrokeCap.Round,
-            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).height(8.dp))
-        Text("${e.mood(app.now).title}  •  ${e.happiness()}% happy", color = Dim, fontSize = 15.sp)
-        LinearProgressIndicator(progress = { e.happiness() / 100f }, color = Ok, trackColor = Line, strokeCap = StrokeCap.Round,
-            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).height(8.dp))
-        Text(if (e.st.streak > 0) "${e.st.streak}-day streak (4+ breaks a day)" else "No streak yet: 4 breaks in a day starts one", color = Dim, fontSize = 14.sp)
-        Spacer(Modifier.height(16.dp))
-        Text("Today", color = TextC, fontSize = 18.sp)
-        for (n in Need.entries) Row(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-            Box(Modifier.size(12.dp).background(Color(n.color), CircleShape).align(Alignment.CenterVertically))
-            Spacer(Modifier.width(10.dp))
-            Text(n.title, color = TextC, modifier = Modifier.weight(1f))
-            Text("${e.st.today[n.ordinal]}", color = TextC)
-        }
-        Spacer(Modifier.height(16.dp))
-        Text("Steps, last 7 days", color = TextC, fontSize = 18.sp)
-        val hist = Steps.history(app.ctx)
-        val max = (hist.maxOfOrNull { it.second } ?: 0L).coerceAtLeast(app.store.stepGoal.toLong())
-        Row(Modifier.fillMaxWidth().height(140.dp).padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.Bottom) {
-            if (hist.isEmpty()) Text("No steps recorded yet", color = Dim)
-            for ((day, s) in hist) Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(if (s >= 1000) "${s / 1000}k" else "$s", color = Dim, fontSize = 11.sp)
-                Box(Modifier.fillMaxWidth().height((100f * s / max).dp.coerceAtLeast(2.dp)).background(Color(Need.MOVE.color), RoundedCornerShape(4.dp)))
-                Text("${day % 100}", color = Dim, fontSize = 11.sp)
-            }
-        }
-        Spacer(Modifier.height(16.dp))
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 18.dp)) {
+        GrowthBlock(app)
+        Spacer(Modifier.height(32.dp))
+        TodayBlock(app)
+        Spacer(Modifier.height(32.dp))
+        StepsWeek(app)
+        Spacer(Modifier.height(28.dp))
         val last = app.store.lastSync
-        Text(if (last == 0L) "Not synced with a dial yet" else "Last synced ${mmss((System.currentTimeMillis() - last) / 1000)} ago over ${app.store.lastLink}",
-            color = Dim, fontSize = 13.sp, modifier = Modifier.border(0.dp, Color.Transparent))
+        Text(if (last == 0L) "Not synced with a dial yet" else "Synced with the dial ${mmss((System.currentTimeMillis() - last) / 1000)} ago over ${app.store.lastLink}",
+            color = Dim, fontSize = 12.sp)
     }
 }
+
+/** Level with xp in real numbers, then mood with its own bar, each bar captioned so they can't be confused. */
+@Composable
+private fun GrowthBlock(app: AppState) {
+    val e = app.store.engine
+    val lvl = e.level()
+    val (into, need) = e.levelXp()
+    Row(verticalAlignment = Alignment.Bottom) {
+        Text("Level $lvl", color = TextC, fontSize = 30.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+        Text("${need - into} xp to level ${lvl + 1}", color = Dim, fontSize = 13.sp, modifier = Modifier.padding(bottom = 5.dp))
+    }
+    Spacer(Modifier.height(8.dp))
+    Meter(into.toFloat() / need, Accent)
+    Spacer(Modifier.height(18.dp))
+    Row(verticalAlignment = Alignment.Bottom) {
+        Text("Wisp is ${e.mood(app.now).title.lowercase()}", color = TextC, fontSize = 16.sp, modifier = Modifier.weight(1f))
+        Text("${e.happiness()}% happy", color = Dim, fontSize = 13.sp)
+    }
+    Spacer(Modifier.height(8.dp))
+    Meter(e.happiness() / 100f, Ok)
+}
+
+@Composable
+private fun Meter(f: Float, color: Color) {
+    Box(Modifier.fillMaxWidth().height(6.dp).background(Line, RoundedCornerShape(3.dp))) {
+        Box(Modifier.fillMaxWidth(f.coerceIn(0f, 1f)).height(6.dp).background(color, RoundedCornerShape(3.dp)))
+    }
+}
+
+/** One pip per break taken today, in the need's colour: the count is something you can see, not just read. */
+@Composable
+private fun TodayBlock(app: AppState) {
+    val e = app.store.engine
+    val total = e.st.today.sum()
+    Row(verticalAlignment = Alignment.Bottom) {
+        Text("Breaks today", color = TextC, fontSize = 18.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
+        Text(when (e.st.streak) { 0 -> "No streak yet"; 1 -> "1-day streak"; else -> "${e.st.streak}-day streak" }, color = Dim, fontSize = 13.sp)
+    }
+    Spacer(Modifier.height(10.dp))
+    for (n in Need.entries) {
+        val c = e.st.today[n.ordinal]
+        Row(Modifier.fillMaxWidth().padding(vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(n.title, color = TextC, fontSize = 15.sp, modifier = Modifier.width(88.dp))
+            Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
+                if (c == 0) Box(Modifier.size(10.dp).border(1.5.dp, Line, CircleShape))
+                for (i in 0 until min(c, 12)) Box(Modifier.size(10.dp).background(Color(n.color), CircleShape))
+                if (c > 12) Text("+${c - 12}", color = Color(n.color), fontSize = 12.sp)
+            }
+            Text("$c", color = if (c > 0) TextC else Dim, fontSize = 15.sp, textAlign = TextAlign.End, modifier = Modifier.width(32.dp))
+        }
+    }
+    Spacer(Modifier.height(6.dp))
+    val left = 4 - total
+    Text(when {
+        left <= 0 -> "Today counts toward the streak"
+        e.st.streak > 0 -> "$left more ${if (left == 1) "break" else "breaks"} today to keep the streak"
+        else -> "$left more ${if (left == 1) "break" else "breaks"} today to start a streak"
+    }, color = if (left <= 0) Ok else Dim, fontSize = 13.sp)
+}
+
+/** The last seven days, always seven slots ending today, with the goal drawn as a line. Tap a bar to read that day. */
+@Composable
+private fun StepsWeek(app: AppState) {
+    val goal = app.store.stepGoal.toLong()
+    val today = LocalDate.now()
+    val days = (6 downTo 0).map { today.minusDays(it.toLong()) }
+    val hist = Steps.history(app.ctx, 14).toMap()
+    val (todayKey, todaySteps) = Steps.today(app.ctx)
+    val steps = days.map { d -> val k = d.year * 10000 + d.monthValue * 100 + d.dayOfMonth; if (k == todayKey) maxOf(todaySteps, hist[k] ?: 0L) else hist[k] ?: 0L }
+    var sel by remember { mutableIntStateOf(6) }
+    val move = Color(Need.MOVE.color)
+    val s = steps[sel]
+    val dayName = days[sel].dayOfWeek.getDisplayName(TextStyle.FULL, Locale.getDefault())
+
+    Text("Steps", color = TextC, fontSize = 18.sp, fontWeight = FontWeight.Medium)
+    Spacer(Modifier.height(8.dp))
+    Row(verticalAlignment = Alignment.Bottom) {
+        Text("%,d".format(s), color = TextC, fontSize = 30.sp, fontWeight = FontWeight.SemiBold)
+        Text(when (sel) { 6 -> " today"; 5 -> " yesterday"; else -> " on $dayName" }, color = Dim, fontSize = 15.sp, modifier = Modifier.padding(bottom = 5.dp))
+    }
+    Text(when {
+        s >= goal -> "Reached the %,d goal".format(goal)
+        sel == 6 -> "%,d to go for the %,d goal".format(goal - s, goal)
+        else -> "%,d short of the %,d goal".format(goal - s, goal)
+    }, color = if (s >= goal) Ok else Dim, fontSize = 13.sp)
+    Spacer(Modifier.height(16.dp))
+
+    val top = maxOf(goal * 6 / 5, (steps.maxOrNull() ?: 0L) * 21 / 20).toFloat()
+    val label = if (goal % 1000 == 0L) "${goal / 1000}k goal" else "%.1fk goal".format(goal / 1000f)
+    val summary = days.indices.joinToString { i -> "${days[i].dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault())} ${steps[i]}" }
+    Row(Modifier.fillMaxWidth().height(150.dp)) {
+        Canvas(Modifier.weight(1f).fillMaxHeight().semantics { contentDescription = "Steps for the last 7 days, goal $goal: $summary" }
+            .pointerInput(Unit) { detectTapGestures { o -> sel = (o.x / (size.width / 7f)).toInt().coerceIn(0, 6) } }) {
+            val slot = size.width / 7f
+            val bw = slot * 0.56f
+            val gy = size.height * (1f - goal / top)
+            for (i in 0 until 7) {
+                val x = slot * i + (slot - bw) / 2f
+                val v = steps[i]
+                if (v <= 0L) {
+                    drawRoundRect(Line, Offset(x, size.height - 4.dp.toPx()), Size(bw, 4.dp.toPx()), CornerRadius(2.dp.toPx()))
+                    continue
+                }
+                val h = maxOf(4.dp.toPx(), size.height * v / top)
+                val a = if (i == sel) 1f else if (v >= goal) 0.75f else 0.4f
+                drawRoundRect(move.copy(alpha = a), Offset(x, size.height - h), Size(bw, h), CornerRadius(4.dp.toPx()))
+            }
+            drawLine(Dim, Offset(0f, gy), Offset(size.width, gy), strokeWidth = 1.dp.toPx(),
+                pathEffect = PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 4.dp.toPx())))
+        }
+        Box(Modifier.width(44.dp).fillMaxHeight()) {
+            Text(label, color = Dim, fontSize = 11.sp, maxLines = 1,
+                modifier = Modifier.padding(start = 6.dp, top = ((150f * (1f - goal / top)).dp - 8.dp).coerceAtLeast(0.dp)))
+        }
+    }
+    Row(Modifier.fillMaxWidth().padding(top = 6.dp)) {
+        for (i in 0 until 7) Text(if (i == 6) "Today" else days[i].dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault()),
+            color = if (i == sel) TextC else Dim, fontSize = 12.sp, fontWeight = if (i == sel) FontWeight.Medium else FontWeight.Normal,
+            textAlign = TextAlign.Center, maxLines = 1, modifier = Modifier.weight(1f).clickable { sel = i })
+        Spacer(Modifier.width(44.dp))
+    }
+    Spacer(Modifier.height(16.dp))
+    val counted = steps.filter { it > 0 }
+    Row(Modifier.fillMaxWidth()) {
+        Fact("%,d".format(steps.sum()), "this week", Modifier.weight(1f))
+        Fact(if (counted.isEmpty()) "–" else "%,d".format(counted.sum() / counted.size), "a day on average", Modifier.weight(1f))
+        Fact("${steps.count { it >= goal }} of 7", "days at goal", Modifier.weight(1f))
+    }
+    when {
+        !Steps.available(app.ctx) -> Note("This phone has no step counter")
+        !Steps.permitted(app.ctx) -> Note("Allow physical activity in Settings to count steps")
+        counted.isEmpty() -> Note("Steps appear here once the phone has counted some")
+    }
+}
+
+@Composable
+private fun Fact(value: String, what: String, modifier: Modifier) {
+    Column(modifier) {
+        Text(value, color = TextC, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+        Text(what, color = Dim, fontSize = 12.sp)
+    }
+}
+
+@Composable
+private fun Note(t: String) = Text(t, color = Dim, fontSize = 13.sp, modifier = Modifier.padding(top = 12.dp))
