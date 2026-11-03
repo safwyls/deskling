@@ -1,0 +1,15 @@
+# firmware
+firmware/.pio/
+# app
+app/.gradle/
+app/build/
+app/app/build/
+app/.kotlin/
+app/local.properties
+app/.idea/
+*.iml
+# outputs
+*.apk
+*.elf
+*.bin
+.DS_Store
