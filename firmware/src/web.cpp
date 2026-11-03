@@ -9,6 +9,8 @@
 #include <WiFi.h>
 #include <DNSServer.h>
 #include <esp_http_server.h>
+#include <lwip/sockets.h>
+#include <esp_heap_caps.h>
 
 int clockface_style_count();            // clockface.h pulls in LVGL; these two are all the page needs
 const char *clockface_style_name(int style);
@@ -16,6 +18,107 @@ const char *clockface_style_name(int style);
 static httpd_handle_t srv = nullptr;
 static volatile bool saved = false;
 static Settings S;                    // only touched by the server task
+
+// ---------- connection log, for chasing browser trouble: GET /log ----------
+// Everything here runs on the server task (open/close callbacks and handlers alike), so no locking.
+// The question it answers: does the dial close connections a browser opened but hasn't used yet?
+// Chrome sends its next request down such a spare connection, finds it closed, retries, and after
+// a few of those shows ERR_TOO_MANY_RETRIES.
+struct LogEv { uint32_t ms; int16_t fd; uint16_t port; char kind; uint8_t peer; uint16_t ramK; char what[44]; };
+static const int LOG_N = 64;
+static LogEv *logv = nullptr;            // in PSRAM: internal RAM is what the setup network runs short of
+static int logHead = 0, logCount = 0;
+struct Conn { int fd; uint32_t openMs, lastMs; uint16_t reqs, port; uint8_t peer; };
+static Conn conns[16];
+static uint32_t nOpen = 0, nIdleClosed = 0, nPeerClosed = 0, nReqs = 0;
+
+static Conn *conn_of(int fd) { for (auto &c : conns) if (c.fd == fd) return &c; return nullptr; }
+
+static void log_ev(char kind, int fd, const char *fmt, ...) {
+  if (!logv) logv = (LogEv *)heap_caps_calloc(LOG_N, sizeof(LogEv), MALLOC_CAP_SPIRAM);
+  if (!logv) return;
+  LogEv &e = logv[logHead];
+  logHead = (logHead + 1) % LOG_N;
+  if (logCount < LOG_N) logCount++;
+  e.ms = millis(); e.kind = kind; e.fd = fd;
+  Conn *c = conn_of(fd);
+  e.port = c ? c->port : 0; e.peer = c ? c->peer : 0;
+  e.ramK = heap_caps_get_free_size(MALLOC_CAP_INTERNAL) / 1024;
+  va_list a; va_start(a, fmt); vsnprintf(e.what, sizeof(e.what), fmt, a); va_end(a);
+}
+
+static esp_err_t on_open(httpd_handle_t, int fd) {
+  struct sockaddr_storage ss; socklen_t sl = sizeof(ss);
+  uint8_t peer = 0; uint16_t port = 0;
+  if (getpeername(fd, (struct sockaddr *)&ss, &sl) == 0) {
+    if (ss.ss_family == AF_INET) { auto *a = (struct sockaddr_in *)&ss; peer = ntohl(a->sin_addr.s_addr) & 0xff; port = ntohs(a->sin_port); }
+    else if (ss.ss_family == AF_INET6) { auto *a = (struct sockaddr_in6 *)&ss; peer = a->sin6_addr.s6_addr[15]; port = ntohs(a->sin6_port); }
+  }
+  for (auto &c : conns) if (c.fd <= 0) { c = { fd, millis(), millis(), 0, port, peer }; break; }
+  nOpen++;
+  int n = 0; for (auto &c : conns) n += c.fd > 0;
+  log_ev('O', fd, "open (%d open)", n);
+  return ESP_OK;
+}
+
+static void on_close(httpd_handle_t, int fd) {
+  // Who's closing? If the browser already sent its FIN, a peek reads 0 bytes. If it would block,
+  // the browser still has it open and it's the dial dropping it.
+  char b; int r = recv(fd, &b, 1, MSG_PEEK | MSG_DONTWAIT);
+  bool peerGone = r == 0;
+  Conn *c = conn_of(fd);
+  uint16_t reqs = c ? c->reqs : 0;
+  uint32_t idle = c ? (millis() - c->lastMs) : 0;
+  if (peerGone) nPeerClosed++;
+  else if (!reqs) nIdleClosed++;
+  log_ev(reqs ? 'C' : (peerGone ? 'c' : '!'), fd, "%s, %u req, idle %lu ms",
+         peerGone ? "closed by phone" : (reqs ? "closed by dial" : "UNUSED, closed by dial"), reqs, (unsigned long)idle);
+  if (c) c->fd = 0;
+  close(fd);
+}
+
+static void log_req(httpd_req_t *req) {
+  int fd = httpd_req_to_sockfd(req);
+  char host[40] = "";
+  httpd_req_get_hdr_value_str(req, "Host", host, sizeof(host));
+  Conn *c = conn_of(fd);
+  if (c) { c->reqs++; c->lastMs = millis(); }
+  nReqs++;
+  log_ev('R', fd, "%s %.20s%.20s", req->method == HTTP_POST ? "POST" : "GET", strcmp(host, "192.168.4.1") ? host : "", req->uri);
+}
+
+// The server answers these itself and drops the connection: worth seeing, a timeout most of all.
+static esp_err_t on_http_err(httpd_req_t *req, httpd_err_code_t err) {
+  log_ev('E', httpd_req_to_sockfd(req), "server error %d (408 = request timed out)", (int)err);
+  httpd_resp_send_err(req, err, nullptr);
+  return ESP_FAIL;
+}
+
+static esp_err_t log_get(httpd_req_t *req) {
+  httpd_resp_set_hdr(req, "Connection", "close");
+  httpd_sess_trigger_close(req->handle, httpd_req_to_sockfd(req));
+  httpd_resp_set_type(req, "text/plain; charset=utf-8");
+  httpd_resp_set_hdr(req, "Cache-Control", "no-store");
+  String o;
+  o.reserve(6000);
+  char ln[120];
+  snprintf(ln, sizeof(ln), "Deskling connection log, up %lu s, internal RAM %u KB free (lowest %u KB)\n",
+           (unsigned long)(millis() / 1000), (unsigned)(heap_caps_get_free_size(MALLOC_CAP_INTERNAL) / 1024),
+           (unsigned)(heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL) / 1024));
+  o += ln;
+  snprintf(ln, sizeof(ln), "%lu connections, %lu requests, %lu closed by the phone, %lu closed by the dial unused\n\n",
+           (unsigned long)nOpen, (unsigned long)nReqs, (unsigned long)nPeerClosed, (unsigned long)nIdleClosed);
+  o += ln;
+  o += "  seconds  conn            RAM  event\n";
+  int first = (logHead - logCount + LOG_N) % LOG_N;
+  for (int i = 0; logv && i < logCount; i++) {
+    const LogEv &e = logv[(first + i) % LOG_N];
+    snprintf(ln, sizeof(ln), "%9.3f  %c .%u:%-5u fd%-2d %3uK  %s\n", e.ms / 1000.0, e.kind, e.peer, e.port, e.fd, e.ramK, e.what);
+    o += ln;
+  }
+  o += "\nO open  R request  C/c closed after use (by dial/by phone)  ! closed by the dial before any request\n";
+  return httpd_resp_send(req, o.c_str(), o.length());
+}
 
 static String esc(const char *s) {
   String o;
@@ -72,11 +175,13 @@ small{color:#8a94a8}a{color:#9fd8f7}
 // server's slots, it drops the oldest (often one Chrome is about to reuse), and Chrome gives up with
 // ERR_TOO_MANY_RETRIES. Closing after each response keeps slots free and nothing stale to reuse.
 static void one_shot(httpd_req_t *req) {
+  log_req(req);
   httpd_resp_set_hdr(req, "Connection", "close");
   httpd_sess_trigger_close(req->handle, httpd_req_to_sockfd(req));   // runs once this handler has returned
 }
 
 static esp_err_t closed_page(httpd_req_t *req) {
+  log_ev('>', httpd_req_to_sockfd(req), "403, setup closed");
   httpd_resp_set_status(req, "403 Forbidden");
   httpd_resp_set_type(req, "text/html; charset=utf-8");
   return httpd_resp_sendstr(req, "<!doctype html><meta name=viewport content='width=device-width'>"
@@ -199,6 +304,7 @@ static esp_err_t root_get(httpd_req_t *req) {
     if (httpd_req_get_hdr_value_str(req, "Host", host, sizeof(host)) == ESP_OK)
       for (const char *c = host; *c && *c != ':'; c++) name |= isalpha((unsigned char)*c);
     if (name) {
+      log_ev('>', httpd_req_to_sockfd(req), "302 to the page");
       httpd_resp_set_status(req, "302 Found");
       httpd_resp_set_hdr(req, "Location", "http://192.168.4.1/");
       httpd_resp_set_hdr(req, "Cache-Control", "no-store");
@@ -449,8 +555,11 @@ void web_begin() {
   cfg.lru_purge_enable = true;          // reuse the oldest socket rather than refuse a new one
   cfg.uri_match_fn = httpd_uri_match_wildcard;
   cfg.core_id = 0;                      // keep it off the UI core
+  cfg.open_fn = on_open;
+  cfg.close_fn = on_close;
   if (httpd_start(&srv, &cfg) != ESP_OK) { srv = nullptr; return; }
   httpd_uri_t u[] = {
+    { .uri = "/log", .method = HTTP_GET, .handler = log_get, .user_ctx = nullptr },
     { .uri = "/favicon.ico", .method = HTTP_GET, .handler = favicon_get, .user_ctx = nullptr },
     { .uri = "/save", .method = HTTP_POST, .handler = save_post, .user_ctx = nullptr },
     { .uri = "/nets", .method = HTTP_GET, .handler = nets_get, .user_ctx = nullptr },
@@ -461,6 +570,9 @@ void web_begin() {
     { .uri = "/*", .method = HTTP_GET, .handler = root_get, .user_ctx = nullptr },   // anything else: the page
   };
   for (auto &x : u) httpd_register_uri_handler(srv, &x);
+  for (httpd_err_code_t e : { HTTPD_400_BAD_REQUEST, HTTPD_408_REQ_TIMEOUT, HTTPD_411_LENGTH_REQUIRED, HTTPD_414_URI_TOO_LONG,
+                              HTTPD_431_REQ_HDR_FIELDS_TOO_LARGE, HTTPD_500_INTERNAL_SERVER_ERROR, HTTPD_505_VERSION_NOT_SUPPORTED })
+    httpd_register_err_handler(srv, e, on_http_err);
 }
 
 bool web_ap_start(uint8_t channel, char *ssid, size_t ssidLen, char *pass, size_t passLen) {

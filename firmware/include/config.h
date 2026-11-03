@@ -5,7 +5,7 @@
 // erased board, or after Settings > Reset settings, so leaving them empty is fine.
 #pragma once
 
-#define FW_VERSION "5.13"
+#define FW_VERSION "5.14"
 
 // ---- Wi-Fi ----
 #define DEFAULT_WIFI_SSID ""
