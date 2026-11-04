@@ -90,7 +90,7 @@ fun SettingsScreen(app: AppState) {
         }
         AppSettings(app)
         Header("About")
-        Text("Deskling 1.6  •  ${app.store.pet.title} and the care game, shared with your dial over Bluetooth or Wi-Fi.", color = Dim, fontSize = 13.sp)
+        Text("Deskling 1.7  •  ${app.store.pet.title} and the care game, shared with your dial over Bluetooth or Wi-Fi.", color = Dim, fontSize = 13.sp)
         Spacer(Modifier.height(24.dp))
     }
 }

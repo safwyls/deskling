@@ -113,5 +113,9 @@ class ScreensRenderTest {
         s.engine.st.elapsed[Need.WATER.ordinal] = 60 * 60; s.saveCare(); compose.mainClock.advanceTimeBy(2000); shot("8_crumb_thirsty")
         tap("Stats"); shot("9_crumb_stats")
         tap("Settings"); shot("10_crumb_settings")
+        // the third pet, thirsty: its clip has no bubble, so it gets the water one
+        s.pet = Pet.SPRIG
+        tap("Stats"); tap("Sprig"); shot("11_sprig_thirsty")
+        tap("Stats"); shot("12_sprig_stats")
     }
 }

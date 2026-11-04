@@ -72,7 +72,7 @@ Everything is set on the device and kept in flash (NVS), so one build works for 
 
 **Building:** one firmware per pet. Open the folder in VS Code with the PlatformIO extension, or use the CLI: `pio run -e wisp -t upload` (or `-e crumb`), then `pio device monitor`. The environment sets the pet's name (`PET_NAME`, `PET_ID`) and compiles only that pet's frames from `src/anims/<pet>/`; the dial reports `pet` in the phone API's `hello` and `state` so the app shows the same one.
 
-**Themes:** each pet has its own colours, in `include/theme.h`: Wisp's night sky (navy, ice blue) and Crumb's pond at dusk (moss, loam, shell amber, cream). They cover the screens, clock faces, LED ring at rest and the setup page (as CSS variables). The four need colours are shared. The app's matching palettes are in `ui/AppState.kt`. App logs go to the UART0 header pins at 115200; boot messages and crash dumps also appear on the USB-C port.
+**Themes:** each pet has its own colours, in `include/theme.h`: Wisp's night sky (navy, ice blue), Crumb's pond at dusk (moss, loam, shell amber, cream) and Sprig's blossom at dusk (plum, leaf green, cream, mauve). They cover the screens, clock faces, LED ring at rest and the setup page (as CSS variables). The four need colours are shared. The app's matching palettes are in `ui/AppState.kt`. App logs go to the UART0 header pins at 115200; boot messages and crash dumps also appear on the USB-C port.
 
 ### Build notes
 
@@ -127,6 +127,21 @@ python3 tools/export_app_assets.py --gap 0 ../app/app/src/main/assets/pets/crumb
   tired=$C/tired.js stretch=$C/jump.js move=$C/walk.js
 ```
 
+Sprig stands on the ground too. Its Stretch clip isn't made yet (the first one changed backdrop mid-clip): it stands
+in with the bounce, and Move uses the run (`src/anims/sprig/stand_ins.cpp`). Its thirsty clip has no bubble of its
+own, so it gets the water bubble like the other moods (`POSES` in `pet.cpp`, `Pet.thirstyClipHasBubble` in the app).
+
+```
+S=assets/loops/sprig
+python3 tools/make_assets.py --gap 0 --shadow 10,4,14,150 src/anims/sprig pet_walk=$S/walk.js pet_run=$S/run.js \
+  pet_jump=$S/jump.js pet_sleep=$S/sleep.js pet_happy=$S/happy.js pet_sad=$S/sad.js pet_mad=$S/mad.js \
+  pet_thirsty=$S/thirsty.js pet_tired=$S/tired.js
+(cd src/anims/sprig && for f in pet_*.c; do mv $f ${f#pet_}; done; rm -f *_preview.png)
+python3 tools/export_app_assets.py --gap 0 ../app/app/src/main/assets/pets/sprig walk=$S/walk.js run=$S/run.js \
+  jump=$S/jump.js sleep=$S/sleep.js happy=$S/happy.js sad=$S/sad.js mad=$S/mad.js thirsty=$S/thirsty.js \
+  tired=$S/tired.js stretch=$S/jump.js move=$S/run.js
+```
+
 To add a loop:
 1. Declare it in `src/anims/anims.h`, and give every pet's folder a `.c` (or a stand-in) for it.
 2. Put it in the first column of its row in the `POSES` table in `src/pet.cpp`, with its bubble (or `nullptr` if the clip draws its own, like Thirsty).
@@ -149,7 +164,7 @@ Clips work best:
 
 On the device, every loop is stored as 8-bit indexed images with a transparent palette: one shared palette per loop, so colours don't flicker between frames. Measured on the walk loop: 39.8 dB PSNR against the original.
 - **Transparency** lets the clock sit behind Wisp.
-- **Size:** about half of RGB565. Wisp's firmware with all eleven loops is 11.9 MB of the 14 MB app space (81%); Crumb's is 8.4 MB.
+- **Size:** about half of RGB565. Wisp's firmware with all eleven loops is 11.9 MB of the 14 MB app space (81%); Crumb's is 8.0 MB and Sprig's 9.6 MB.
 - **Decoding:** LVGL decodes each frame once into a 2 MB PSRAM cache (`LV_CACHE_DEF_SIZE`).
 - **Old format:** `make_assets.py --rgb565` still writes the old opaque frames.
 

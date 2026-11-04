@@ -35,7 +35,11 @@ val WispPalette = Palette(Color(0xFF111A2C), Color(0xFF0B1220), Color(0xFF1E2A42
 val CrumbPalette = Palette(Color(0xFF1A2C20), Color(0xFF101B13), Color(0xFF26392D), Color(0xFF3A5644), Color(0xFFF3B54A),
     Color(0xFFF2ECDA), Color(0xFF9AA88F), Color(0xFF9ED98A), Color(0xFFFF9A85), Color(4, 9, 5, 150))
 
-fun paletteOf(pet: Pet) = when (pet) { Pet.WISP -> WispPalette; Pet.CRUMB -> CrumbPalette }
+/** Sprig: blossom at dusk. Plum shade, the green of its leaves, the cream of its face. */
+val SprigPalette = Palette(Color(0xFF32223A), Color(0xFF21152A), Color(0xFF412F4B), Color(0xFF56405F), Color(0xFFA9DB7F),
+    Color(0xFFF5F1E3), Color(0xFFAB9AAE), Color(0xFF9FE3B0), Color(0xFFFF8FA3), Color(10, 4, 14, 150))
+
+fun paletteOf(pet: Pet) = when (pet) { Pet.WISP -> WispPalette; Pet.CRUMB -> CrumbPalette; Pet.SPRIG -> SprigPalette }
 
 /** The palette on screen now; the names below read it, so everything recolours when the pet changes. */
 object Theme { var palette by mutableStateOf(WispPalette) }

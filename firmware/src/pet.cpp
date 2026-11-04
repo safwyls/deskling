@@ -33,7 +33,11 @@ struct Pose { const char *name; const PetAnim *anim; const PetAnim *fallback; co
 static const Pose POSES[P_COUNT] = {
   { "Content",  &pet_walk,     nullptr, &emote_content, "all needs met" },
   { "Happy",    &pet_happy,    nullptr, &emote_happy,   "very happy (no bubble), and after a break or a pat (heart)" },
+#if defined(PET_SPRIG)
+  { "Thirsty",  &pet_thirsty,  nullptr, &emote_water,   "water is due" },          // Sprig's clip has no bubble of its own
+#else
   { "Thirsty",  &pet_thirsty,  nullptr, nullptr,        "water is due (the bubble is part of the clip)" },
+#endif
   { "Tired",    &pet_tired,    nullptr, &emote_eyes,    "an eye break is due" },
   { "Stretch",  &pet_restless, nullptr, &emote_stretch, "a stretch is due" },
   { "Move",     &pet_move,     nullptr, &emote_move,    "time to get up and move" },

@@ -1,6 +1,6 @@
 # Deskling
 
-A desk pet that looks after you. Wisp (or Crumb, the turtle) lives on an Elecrow CrowPanel 1.46" rotary display (ESP32-S3) and gets
+A desk pet that looks after you. Wisp (or Crumb the turtle, or Sprig the sprout) lives on an Elecrow CrowPanel 1.46" rotary display (ESP32-S3) and gets
 thirsty, tired or restless when it's time for water, an eye break, a stretch or a walk. Do the thing, log it on
 the dial (or the phone), and Wisp perks up. An Android app shares the same Wisp, counts your steps, and reminds
 you when you're away from the desk.
@@ -9,7 +9,7 @@ you when you're away from the desk.
 | --- | --- |
 | [`firmware/`](firmware/) | The dial: PlatformIO project (Arduino-ESP32 3.3, LVGL 9, LovyanGFX), the care game, settings on the knob, phone setup, Bluetooth and Wi-Fi sync. |
 | [`app/`](app/) | Deskling for Android: Kotlin and Jetpack Compose. |
-| [`firmware/assets/loops/`](firmware/assets/loops/) | The pets' processed animation loops (Wisp's at the top, Crumb's in `crumb/`), the source both the dial's frames and the app's assets are generated from. |
+| [`firmware/assets/loops/`](firmware/assets/loops/) | The pets' processed animation loops (Wisp's at the top, Crumb's in `crumb/`, Sprig's in `sprig/`), the source both the dial's frames and the app's assets are generated from. |
 | [`firmware/tools/`](firmware/tools/) | Clip processing, asset generation for the dial and the app, thought bubbles, clock digits. |
 
 ## Flashing the dial
@@ -20,7 +20,7 @@ In Chrome or Edge, https://espressif.github.io/esptool-js/:
 - **Updates:** `firmware.bin` at 0x10000, without erasing (keeps settings). When the partition table changes, add
   `partitions.bin` at 0x8000 to the same flash.
 
-Each pet is its own firmware: build with PlatformIO in `firmware/`, `pio run -e wisp` or `pio run -e crumb`; see [`firmware/README.md`](firmware/README.md).
+Each pet is its own firmware: build with PlatformIO in `firmware/`, `pio run -e wisp`, `pio run -e crumb` or `pio run -e sprig`; see [`firmware/README.md`](firmware/README.md).
 
 ## The app
 

@@ -1,4 +1,4 @@
-// Colours, one set per pet (the build environment defines PET_CRUMB for Crumb; Wisp is the default).
+// Colours, one set per pet (the build environment defines PET_CRUMB or PET_SPRIG; Wisp is the default).
 // The setup page uses the same colours (the _CSS strings). The four need colours (care.cpp) are shared:
 // they mean the same thing whichever pet is on the dial.
 #pragma once
@@ -35,6 +35,36 @@
 #define TH_SUB_CSS    "#9aa88f"
 #define TH_OK_CSS     "#9ed98a"
 #define TH_BAD_CSS    "#ff9a85"
+#elif defined(PET_SPRIG)
+// Sprig: blossom at dusk. Plum shade, the green of its leaves, the cream of its face, mauve for quiet text.
+#define TH_BG       0x32223a
+#define TH_PANEL    0x21152a
+#define TH_RAISED   0x412f4b
+#define TH_LINE     0x56405f
+#define TH_ACCENT   0xa9db7f
+#define TH_TEXT     0xf5f1e3
+#define TH_SUB      0xab9aae
+#define TH_DIM      0x655269
+#define TH_SOFT_OK  0x9fe3b0
+#define TH_SOFT_BAD 0xff8fa3
+#define TH_CLK_BIG   0x45324f
+#define TH_CLK_SPLIT 0x55405f
+#define TH_CLK_HAND  0x4d3a58
+#define TH_CLK_TICK  0x624c6c
+#define TH_CLK_WORD  0x664f70
+#define TH_CLK_WORDHI 0xa58cae
+#define TH_LED_IDLE  0x7cff4a
+#define TH_LED_NIGHT 0x2a4a14
+#define TH_BG_CSS     "#32223a"
+#define TH_PANEL_CSS  "#21152a"
+#define TH_RAISED_CSS "#412f4b"
+#define TH_LINE_CSS   "#56405f"
+#define TH_ROW_CSS    "#3a2943"
+#define TH_ACCENT_CSS "#a9db7f"
+#define TH_TEXT_CSS   "#f5f1e3"
+#define TH_SUB_CSS    "#ab9aae"
+#define TH_OK_CSS     "#9fe3b0"
+#define TH_BAD_CSS    "#ff8fa3"
 #else
 // Wisp: night sky. Navy, ice blue.
 #define TH_BG       0x111a2c

@@ -125,7 +125,7 @@ fun WispScreen(app: AppState) {
     val mood = e.mood(now)
     val urgent = if (e.paused(now)) null else e.mostUrgent()
     val postureDue = e.postureDue() && !e.paused(now)
-    val pose = poseFor(mood, urgent, now < app.reactUntil, postureDue)
+    val pose = poseFor(mood, urgent, now < app.reactUntil, postureDue, app.store.pet)
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(mood.title, color = TextC, fontSize = 22.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
