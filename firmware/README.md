@@ -32,7 +32,7 @@ From anywhere, holding repeatedly gets back to Wisp. A randomised test of 30,000
 **Care (src/care.cpp)**
 - **Needs:** water, eye break, stretch and move, every 45 / 20 / 50 / 60 min by default (Settings > Reminders). The timers only run during active hours (default 8:00 to 20:00, network time) and not while paused or at bedtime. Each day starts fresh.
 - **When one falls due:** Wisp's mood changes, a thought bubble shows the need, the LED ring breathes in that need's colour, and a dozing screen wakes for a minute. It re-cues every 15 minutes while anything stays overdue.
-- **Happiness** drifts down about 10 points an hour, plus 15 an hour while something has been ignored for 10+ minutes. Breaks done on time give the most back; very early ones give a little, so they can't be farmed.
+- **Happiness** drifts down about 10 points an hour, plus 15 an hour while something has been ignored for 10+ minutes. Breaks done on time give the most back; very early ones give a little, so they can't be farmed. Some breaks include others: Move also checks off Stretch and the eye break (`COVERS` in `care.cpp`).
 - **XP** levels Wisp up. A day with 4+ breaks logged extends the streak.
 - **Moods:** content, happy, thirsty, tired, restless, sad, mad, asleep. Restless shows the Stretch clip when a stretch is the most urgent need and the Move clip when moving is. Every mood has a thought bubble that floats with Wisp; Thirsty's is part of its clip. Happy shows its heart only right after a pat or a finished break, not while Wisp is simply very happy. Everything is kept in flash across reboots.
 

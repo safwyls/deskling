@@ -35,6 +35,13 @@ queues what you log until they meet again.
 - **Bluetooth:** service `6d7a0001-5f2b-4b6c-9e2d-3a1f0c0d5e11`; write requests to `...0002`, answers arrive as
   notifications on `...0003`; one JSON message per line.
 - **Pairing:** on the dial, Settings > Phone app > Pair a phone shows a 6-digit code; enter it in the app.
+- **Instant sync:** while near the dial the app keeps that Bluetooth connection open (`sync/Held.kt`, run by a
+  foreground service, with a quiet notification; Settings > Stay connected to the dial turns it off). What you log
+  in the app is sent at once, and the dial sends `{"event":"changed"}` the moment something happens on the knob,
+  so the phone syncs straight away. Android reconnects by itself when you come back in range. The header chip
+  reads "in sync" while linked with nothing left to send. The dial shows a Bluetooth icon in its status row.
+- **Overlapping breaks:** logging Move also checks off Stretch and the eye break, on both sides
+  (`CareEngine.COVERS`, the firmware's `COVERS` in `care.cpp`).
 
 The protocol is described in the firmware's `src/api.h`.
 

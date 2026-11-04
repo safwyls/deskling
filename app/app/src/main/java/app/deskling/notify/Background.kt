@@ -130,6 +130,7 @@ class BootReceiver : BroadcastReceiver() {
         if (intent.action != Intent.ACTION_BOOT_COMPLETED) return
         Reminders.check(ctx)
         SyncWorker.schedule(ctx)
+        app.deskling.sync.LinkService.update(ctx)
     }
 }
 

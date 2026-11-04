@@ -65,6 +65,7 @@ import androidx.compose.ui.unit.sp
 import app.deskling.care.Mood
 import app.deskling.care.Need
 import app.deskling.steps.Steps
+import app.deskling.sync.Held
 import app.deskling.sync.Sync
 import kotlinx.coroutines.delay
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -164,16 +165,21 @@ fun WispScreen(app: AppState) {
 @Composable
 private fun LinkChip(app: AppState, link: Sync.Link) {
     val dial = app.store.dial
+    val held by Held.state.collectAsState()
+    val pending = app.store.pending().isNotEmpty()
     val (icon, text) = when {
         dial == null -> Icons.Filled.CloudOff to "no dial"
+        // the held link: what's logged here is on the dial within a second or two
+        held == Held.State.LINKED -> Icons.Filled.Bluetooth to if (pending) "syncing" else "in sync"
         link == Sync.Link.BLUETOOTH -> Icons.Filled.Bluetooth to dial.name
         link == Sync.Link.WIFI -> Icons.Filled.Wifi to dial.name
         else -> Icons.Filled.CloudOff to "dial away"
     }
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.background(Panel, RoundedCornerShape(50)).padding(horizontal = 10.dp, vertical = 4.dp)) {
-        Icon(icon, null, tint = if (link == Sync.Link.NONE) Dim else Accent, modifier = Modifier.size(16.dp))
+        val on = held == Held.State.LINKED || link != Sync.Link.NONE
+        Icon(icon, null, tint = if (on) Accent else Dim, modifier = Modifier.size(16.dp))
         Spacer(Modifier.width(6.dp))
-        Text(text, color = if (link == Sync.Link.NONE) Dim else TextC, fontSize = 13.sp)
+        Text(text, color = if (on) TextC else Dim, fontSize = 13.sp)
     }
 }
 
@@ -264,7 +270,7 @@ fun ActivityScreen(app: AppState, a: Activity) {
                 when (a) {
                     Activity.EYES -> if (el >= 15_000) { app.stop(); app.done(Need.EYES, "Eyes rested") } else app.stop("Eye break stopped")
                     Activity.STRETCH -> if (el >= 30_000) { app.stop(); app.done(Need.STRETCH, "Nice stretch") } else app.stop("Stretch stopped")
-                    Activity.MOVE -> if (el >= MOVE_MIN_MS) { app.stop(); app.done(Need.MOVE, "Welcome back") } else app.stop("Back already? Not counted")
+                    Activity.MOVE -> if (el >= MOVE_MIN_MS) { app.stop(); app.done(Need.MOVE, "Welcome back: stretch and eyes too") } else app.stop("Back already? Not counted")
                     else -> {}
                 }
             }) { Text(if (a == Activity.MOVE) "I'm back" else "Done") }

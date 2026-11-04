@@ -12,6 +12,7 @@
 #include "app.h"
 #include "config.h"
 #include "settings.h"
+#include "ble.h"
 #include "leds.h"
 #include "care.h"
 #include "crashlog.h"
@@ -435,7 +436,7 @@ static void act_press() {
       else { act_end(); say("Stretch stopped"); }
       break;
     case A_MOVE:
-      if (el >= MOVE_MIN_MS) act_finish(NEED_MOVE, "Welcome back");
+      if (el >= MOVE_MIN_MS) act_finish(NEED_MOVE, "Welcome back: stretch and eyes too");
       else { act_end(); say("Back already? Not counted"); }
       break;
     case A_PLAY: {
@@ -489,7 +490,7 @@ void pet_open_ring() {
 
 // ============================================================ status (clock, date, icons, next break)
 static ClockFace *clockFace;
-static lv_obj_t *stLayer, *stRow, *stDate, *stWifi, *stFlag, *stNext;
+static lv_obj_t *stLayer, *stRow, *stDate, *stWifi, *stPhone, *stFlag, *stNext;
 static Settings stCfg;
 static uint32_t stCfgVer = 0;
 
@@ -522,6 +523,8 @@ static void status_render() {
     int rssi = up ? WiFi.RSSI() : -100;
     st_set(stWifi, LV_SYMBOL_WIFI, !up ? C_BAD : rssi < -75 ? 0xffc457 : C_SUB);
   } else st_set(stWifi, nullptr, 0);
+  // the phone app holding its Bluetooth link: what you do here reaches it straight away
+  st_set(stPhone, stCfg.show_status && !strcmp(ble_status(), "connected") ? LV_SYMBOL_BLUETOOTH : nullptr, C_ACCENT);
   if (stCfg.show_status && care_paused()) st_set(stFlag, LV_SYMBOL_PAUSE, C_ACCENT);
   else if (stCfg.show_status && care_bedtime()) st_set(stFlag, LV_SYMBOL_EYE_CLOSE, C_ACCENT);
   else st_set(stFlag, nullptr, 0);
@@ -594,7 +597,7 @@ void pet_create() {
   lv_obj_set_style_pad_column(stRow, 10, 0);
   lv_obj_remove_flag(stRow, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_remove_flag(stRow, LV_OBJ_FLAG_CLICKABLE);    // taps fall through to the screen (a pat)
-  lv_obj_t **rowItems[] = { &stDate, &stWifi, &stFlag };
+  lv_obj_t **rowItems[] = { &stDate, &stWifi, &stPhone, &stFlag };
   for (auto pp : rowItems) {
     *pp = lv_label_create(stRow);
     lv_obj_set_style_text_font(*pp, &lv_font_montserrat_14, 0);

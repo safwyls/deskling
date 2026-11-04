@@ -214,21 +214,36 @@ class CareEngine(
         }
     }
 
+    /** You did [n], and whatever it covers ([covers]). */
     fun done(n: Need, now: Long = System.currentTimeMillis()) {
         advanceTo(now)
-        score(n, st.elapsed[n.ordinal])
-        st.elapsed[n.ordinal] = 0
-        if (st.today[n.ordinal] < 999) st.today[n.ordinal]++
+        for (m in listOf(n) + covers(n)) {
+            score(m, st.elapsed[m.ordinal])
+            st.elapsed[m.ordinal] = 0
+            if (st.today[m.ordinal] < 999) st.today[m.ordinal]++
+        }
     }
 
-    /** A break done [ageS] seconds ago (from a notification action or a walk spotted late). */
+    /** A break done [ageS] seconds ago (from a notification action or a walk spotted late), and what it covers. */
     fun doneAt(n: Need, ageS: Long, now: Long = System.currentTimeMillis()) {
         advanceTo(now)
         if (ageS < 5) { done(n, now); return }
-        val i = n.ordinal
-        if (ageS >= st.elapsed[i]) { addHappy(3.0); st.xp += 2 }
-        else { score(n, st.elapsed[i] - ageS); st.elapsed[i] = ageS }
-        if (dateOf(now - ageS * 1000) == st.day && st.today[i] < 999) st.today[i]++
+        for (m in listOf(n) + covers(n)) {
+            val i = m.ordinal
+            if (ageS >= st.elapsed[i]) { addHappy(3.0); st.xp += 2 }
+            else { score(m, st.elapsed[i] - ageS); st.elapsed[i] = ageS }
+            if (dateOf(now - ageS * 1000) == st.day && st.today[i] < 999) st.today[i]++
+        }
+    }
+
+    companion object {
+        /**
+         * Breaks that include others: a walk gets you out of your chair and your eyes off the screen, so Move
+         * also checks off Stretch and the eye break, each scored as if done on its own. Same table as the dial's
+         * (care.cpp COVERS); the dial applies it itself, so only the break you did is sent.
+         */
+        val COVERS: Map<Need, List<Need>> = mapOf(Need.MOVE to listOf(Need.STRETCH, Need.EYES))
+        fun covers(n: Need): List<Need> = COVERS[n].orEmpty()
     }
 
     /** A pat; false while on its one-minute cooldown. */

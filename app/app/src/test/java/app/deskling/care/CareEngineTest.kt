@@ -17,6 +17,33 @@ class CareEngineTest {
     private fun engine(start: Long = at(9)) = CareEngine(CareConfig(intArrayOf(45, 20, 50, 60), 8, 20), CareState(), { ZoneId.of("UTC") })
         .also { it.advanceTo(start) }
 
+    @Test fun moveAlsoChecksOffStretchAndEyes() {
+        val e = engine()
+        e.advanceTo(at(10, 5))                    // everything due by now
+        e.done(Need.MOVE, at(10, 5))
+        for (n in listOf(Need.MOVE, Need.STRETCH, Need.EYES)) {
+            assertEquals(n.name, 0L, e.st.elapsed[n.ordinal])
+            assertEquals(n.name, 1, e.st.today[n.ordinal])
+        }
+        assertTrue(e.st.elapsed[Need.WATER.ordinal] > 0)    // water is not covered
+        assertEquals(0, e.st.today[Need.WATER.ordinal])
+    }
+
+    @Test fun moveLoggedLateCoversTheOthersAtTheSameTime() {
+        val e = engine()
+        e.advanceTo(at(10, 5))
+        e.doneAt(Need.MOVE, 10 * 60, at(10, 5))   // walked 10 minutes ago
+        for (n in listOf(Need.MOVE, Need.STRETCH, Need.EYES)) assertEquals(n.name, 600L, e.st.elapsed[n.ordinal])
+    }
+
+    @Test fun stretchAloneCoversNothingElse() {
+        val e = engine()
+        e.advanceTo(at(10, 5))
+        e.done(Need.STRETCH, at(10, 5))
+        assertTrue(e.st.elapsed[Need.EYES.ordinal] > 0)
+        assertTrue(e.st.elapsed[Need.MOVE.ordinal] > 0)
+    }
+
     @Test fun timersRunOnlyInActiveHours() {
         val e = engine(at(19, 50))
         e.advanceTo(at(21))                       // 10 active minutes, then outside hours

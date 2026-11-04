@@ -22,6 +22,7 @@ import app.deskling.data.Store
 import app.deskling.notify.Reminders
 import app.deskling.notify.SyncWorker
 import app.deskling.steps.Steps
+import app.deskling.sync.LinkService
 import app.deskling.sync.Sync
 import app.deskling.ui.AppState
 import app.deskling.ui.DesklingTheme
@@ -82,6 +83,7 @@ class MainActivity : ComponentActivity() {
         // while the app is open: stay in step with the dial and count steps live
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                LinkService.update(this@MainActivity)      // the held Bluetooth link (needs the app in front to start)
                 val sm = getSystemService(SENSOR_SERVICE) as SensorManager
                 val sensor = sm.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
                 if (sensor != null && Steps.permitted(this@MainActivity)) sm.registerListener(stepListener, sensor, SensorManager.SENSOR_DELAY_NORMAL)

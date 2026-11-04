@@ -45,6 +45,7 @@ bool care_in_hours();
 bool care_paused();
 uint32_t care_pause_left_s();
 bool care_bedtime();
+uint32_t care_change();                 // bumps on anything you did, and on a new day (for the phone link)
 uint32_t care_event();                  // bumps when a need falls due, and again every 15 min it stays overdue
 uint32_t care_last_done_ms();           // millis() of the last logged break (for a happy reaction)
 
@@ -60,7 +61,8 @@ const char *care_tz_name(int i);
 int care_tz_count();
 
 // actions
-void care_done(Need n);                 // you did it
+void care_done(Need n);                 // you did it (and whatever it covers, see care_covers)
+uint8_t care_covers(Need n);            // a bit per need that doing n also checks off (Move: Stretch and Eyes)
 bool care_pet();                        // a pat on the screen; false while on cooldown
 void care_played(int hits, int rounds);
 void care_pause(int minutes);           // 0 = resume

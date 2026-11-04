@@ -103,6 +103,8 @@ class BleLink private constructor(private val gatt: BluetoothGatt, private val c
     override val kind = "Bluetooth"
     private val lock = Mutex()
     val connected get() = cb.connected
+    /** This connection has said hello with the phone's key (the dial asks again on every new connection). */
+    @Volatile var authed = false
 
     override suspend fun request(op: JSONObject): JSONObject = lock.withLock {
         if (!cb.connected) throw LinkError("Bluetooth disconnected")
@@ -129,28 +131,42 @@ class BleLink private constructor(private val gatt: BluetoothGatt, private val c
         try { JSONObject(text) } catch (e: Exception) { throw LinkError("garbled answer") }
     }
 
-    override fun close() { runCatching { gatt.disconnect(); gatt.close() } }
+    override fun close() { cb.keep = false; runCatching { gatt.disconnect(); gatt.close() } }
 
     class Callback : BluetoothGattCallback() {
         @Volatile var connected = false
         @Volatile var mtu = 23
         var rx: BluetoothGattCharacteristic? = null
-        var ready = CompletableDeferred<Boolean>()
+        @Volatile var ready = CompletableDeferred<Boolean>()
         var write: CompletableDeferred<Boolean>? = null
         var reply: CompletableDeferred<String>? = null
         private val buf = ByteArrayOutputStream()
-        private var step: CompletableDeferred<Boolean>? = null
+        /** For a held link: each time a (re)connection is set up and can take requests. */
+        var onReady: (() -> Unit)? = null
+        var onDown: (() -> Unit)? = null
+        /** Held links: after any drop, ask Android to reconnect whenever the dial is in range again. */
+        @Volatile var keep = false
+        /** Messages the dial sends unasked ({"event":"changed"}): they have "event" and never "ok". */
+        var onEvent: ((JSONObject) -> Unit)? = null
 
         override fun onConnectionStateChange(g: BluetoothGatt, status: Int, newState: Int) {
             if (newState == BluetoothProfile.STATE_CONNECTED && status == BluetoothGatt.GATT_SUCCESS) {
+                if (ready.isCompleted) ready = CompletableDeferred()      // a held link reconnecting
                 connected = true
                 g.requestMtu(247)
             } else {
+                val was = connected
                 connected = false
                 ready.complete(false)
                 write?.complete(false)
                 reply?.completeExceptionally(LinkError("Bluetooth disconnected"))
+                if (was) onDown?.invoke()
+                if (keep) runCatching { g.connect() }     // background reconnect: waits for the dial to come back in range
             }
+        }
+        private fun setUp(ok: Boolean) {
+            ready.complete(ok)
+            if (ok) onReady?.invoke()
         }
         override fun onMtuChanged(g: BluetoothGatt, m: Int, status: Int) {
             if (status == BluetoothGatt.GATT_SUCCESS) mtu = m
@@ -160,15 +176,15 @@ class BleLink private constructor(private val gatt: BluetoothGatt, private val c
             val svc = g.getService(DialUuids.SERVICE)
             val tx = svc?.getCharacteristic(DialUuids.TX)
             rx = svc?.getCharacteristic(DialUuids.RX)
-            if (tx == null || rx == null) { ready.complete(false); return }
+            if (tx == null || rx == null) { setUp(false); return }
             g.setCharacteristicNotification(tx, true)
             val d = tx.getDescriptor(DialUuids.CCCD)
-            if (d == null) { ready.complete(true); return }
+            if (d == null) { setUp(true); return }
             if (Build.VERSION.SDK_INT >= 33) g.writeDescriptor(d, BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)
             else @Suppress("DEPRECATION") run { d.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE; g.writeDescriptor(d) }
         }
         override fun onDescriptorWrite(g: BluetoothGatt, d: BluetoothGattDescriptor, status: Int) {
-            ready.complete(status == BluetoothGatt.GATT_SUCCESS)
+            setUp(status == BluetoothGatt.GATT_SUCCESS)
         }
         override fun onCharacteristicWrite(g: BluetoothGatt, c: BluetoothGattCharacteristic, status: Int) {
             write?.complete(status == BluetoothGatt.GATT_SUCCESS)
@@ -182,14 +198,20 @@ class BleLink private constructor(private val gatt: BluetoothGatt, private val c
         @Synchronized private fun received(v: ByteArray) {
             for (b in v) {
                 if (b == '\n'.code.toByte()) {
-                    reply?.complete(buf.toString(Charsets.UTF_8.name()))
+                    val line = buf.toString(Charsets.UTF_8.name())
                     buf.reset()
+                    val ev = eventOf(line)
+                    if (ev != null) onEvent?.invoke(ev) else reply?.complete(line)
                 } else buf.write(b.toInt())
             }
         }
     }
 
     companion object {
+        /** A line the dial sent unasked ({"event":...}, never "ok"), or null for a reply to a request. */
+        fun eventOf(line: String): JSONObject? =
+            if (!line.contains("\"event\"")) null else runCatching { JSONObject(line) }.getOrNull()?.takeIf { it.has("event") && !it.has("ok") }
+
         suspend fun connect(ctx: Context, address: String): BleLink {
             val adapter = (ctx.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager).adapter
                 ?: throw LinkError("no Bluetooth")
@@ -200,6 +222,20 @@ class BleLink private constructor(private val gatt: BluetoothGatt, private val c
                 ?: throw LinkError("couldn't connect")
             val ok = withTimeoutOrNull(12_000) { cb.ready.await() } == true
             if (!ok) { runCatching { gatt.close() }; throw LinkError("couldn't reach the dial over Bluetooth") }
+            return BleLink(gatt, cb)
+        }
+
+        /**
+         * A connection kept for as long as it's open: a direct connect first (autoConnect's first attempt can take
+         * minutes), then after any drop Android reconnects by itself whenever the dial is in range again.
+         * Returns at once; [Callback.onReady] says when it can take requests.
+         */
+        fun hold(ctx: Context, address: String, cb: Callback): BleLink {
+            val adapter = (ctx.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager).adapter
+                ?: throw LinkError("no Bluetooth")
+            cb.keep = true
+            val gatt = adapter.getRemoteDevice(address).connectGatt(ctx, false, cb, BluetoothDevice.TRANSPORT_LE)
+                ?: throw LinkError("couldn't connect")
             return BleLink(gatt, cb)
         }
     }

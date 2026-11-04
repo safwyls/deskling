@@ -204,12 +204,17 @@ int care_level_progress() { uint32_t need = 100, xp = st.xp; while (xp >= need) 
 int care_today(Need n) { return st.today[n]; }
 int care_streak() { return st.streak; }
 uint32_t care_event() { return eventCount; }
+// Bumps on anything you did (a break, a pat, a game, pause, bedtime) and on a new day: the Bluetooth link
+// tells a connected phone, so it fetches the new state at once.
+static volatile uint32_t changeCount = 0;
+static void changed() { changeCount = changeCount + 1; }
+uint32_t care_change() { return changeCount; }
 uint32_t care_last_done_ms() { return lastDone; }
 
 // ---------- actions ----------
 static void add_happy(float d) { st.happy = constrain(st.happy + d, 0.0f, 100.0f); }
 
-void care_done(Need n) {
+static void done_one(Need n) {
   uint32_t iv = interval_s(n);
   bool due = care_need_due(n);
   uint32_t over = care_need_overdue_s(n);
@@ -223,13 +228,9 @@ void care_done(Need n) {
   st.elapsed[n] = 0;
   wasDue[n] = false;
   if (st.today[n] < 999) st.today[n]++;
-  lastDone = millis();
-  save();
 }
 
-void care_done_at(Need n, uint32_t age) {
-  if (n >= NEED_COUNT) return;
-  if (age < 5) { care_done(n); return; }
+static void done_at_one(Need n, uint32_t age) {
   // only count it in today's tally if it happened today (local time)
   bool today = true;
   if (care_clock_valid()) {
@@ -250,7 +251,31 @@ void care_done_at(Need n, uint32_t age) {
     wasDue[n] = care_need_due(n);
   }
   if (today && st.today[n] < 999) st.today[n]++;
+}
+
+// Breaks that include others: a walk gets you out of your chair and your eyes off the screen, so logging
+// Move also checks off Stretch and the eye break. Each is scored as if done on its own (early ones give
+// little, so this can't be farmed). The app has the same table (CareEngine.COVERS).
+static const uint8_t COVERS[NEED_COUNT] = { 0, 0, 0, (1 << NEED_STRETCH) | (1 << NEED_EYES) };
+
+uint8_t care_covers(Need n) { return n < NEED_COUNT ? COVERS[n] : 0; }
+
+void care_done(Need n) {
+  if (n >= NEED_COUNT) return;
+  done_one(n);
+  for (int m = 0; m < NEED_COUNT; m++) if (COVERS[n] & (1 << m)) done_one((Need)m);
   lastDone = millis();
+  changed();
+  save();
+}
+
+void care_done_at(Need n, uint32_t age) {
+  if (n >= NEED_COUNT) return;
+  if (age < 5) { care_done(n); return; }
+  done_at_one(n, age);
+  for (int m = 0; m < NEED_COUNT; m++) if (COVERS[n] & (1 << m)) done_at_one((Need)m, age);
+  lastDone = millis();
+  changed();
   save();
 }
 
@@ -277,6 +302,7 @@ bool care_pet() {
   add_happy(2);
   st.xp += 1;
   dirty = true;
+  changed();
   return true;
 }
 
@@ -284,14 +310,16 @@ void care_played(int hits, int rounds) {
   add_happy(min(20, hits * 4));
   st.xp += hits;
   (void)rounds;
+  changed();
   save();
 }
 
-void care_pause(int minutes) { pauseUntil = minutes > 0 ? millis() + (uint32_t)minutes * 60000UL : 0; }
+void care_pause(int minutes) { pauseUntil = minutes > 0 ? millis() + (uint32_t)minutes * 60000UL : 0; changed(); }
 
 void care_set_bedtime(bool on) {
   if (st.bedtime == on) return;
   st.bedtime = on;
+  changed();
   save();
 }
 
@@ -310,6 +338,7 @@ static void new_day(int32_t today) {
   st.day = today;
   memset(st.today, 0, sizeof(st.today));
   dirty = true;
+  changed();
 }
 
 void care_tick() {

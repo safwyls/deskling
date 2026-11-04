@@ -49,12 +49,13 @@ object Sync {
 
     /** A working link to the paired dial: Wi-Fi first (when the phone is on Wi-Fi), then Bluetooth. */
     private suspend fun open(ctx: Context, d: DialInfo, allowBle: Boolean): DialLink? {
+        Held.current()?.let { return it }                 // the link held open to the dial: quickest, both ways
         if (d.ip.isNotBlank() && onWifi(ctx)) {
             val w = WifiLink(d.ip, d.key)
             val ok = runCatching { w.request(JSONObject().put("op", "hello").put("key", d.key)).optBoolean("ok") }.getOrDefault(false)
             if (ok) return w
         }
-        if (!allowBle || !hasBlePermission(ctx)) return null
+        if (!allowBle || !hasBlePermission(ctx) || Held.active) return null     // the held link is waiting for the dial: don't compete with it
         ble?.let { if (it.connected) return it }
         ble = null
         var address = d.bleAddress
@@ -64,7 +65,7 @@ object Sync {
         val b = runCatching { BleLink.connect(ctx, address) }.getOrNull() ?: return null
         val hello = runCatching { b.request(JSONObject().put("op", "hello").put("key", d.key).put("now", System.currentTimeMillis() / 1000)) }.getOrNull()
         if (hello?.optBoolean("ok") != true) { b.close(); _message.value = hello?.optString("err") ?: "Bluetooth hello failed"; return null }
-        if (address != d.bleAddress) Store.get(ctx).dial = d.copy(bleAddress = address)
+        if (address != d.bleAddress) { Store.get(ctx).dial = d.copy(bleAddress = address); LinkService.update(ctx) }
         hello.optString("ip").takeIf { it.isNotBlank() }?.let { ip -> Store.get(ctx).dial?.let { if (it.ip != ip) Store.get(ctx).dial = it.copy(ip = ip) } }
         ble = b
         return b
@@ -109,7 +110,7 @@ object Sync {
             return true
         } catch (e: LinkError) {
             _message.value = e.message ?: "lost the dial"
-            if (l is BleLink) { l.close(); ble = null }
+            if (l === ble) { l.close(); ble = null }          // a one-off connection; the held link mends itself
             _link.value = Link.NONE
             return false
         }
@@ -144,13 +145,16 @@ object Sync {
             ble = link
             runCatching { link.request(JSONObject().put("op", "hello").put("key", key)) }.getOrNull()?.optString("ip")?.let { if (it.isNotBlank()) dialIp = it }
         }
+        if (link is BleLink) { link.close(); ble = null }      // the held link takes over from here
         Store.get(ctx).dial = DialInfo(r.optString("name", name), key, dialIp, address)
+        LinkService.update(ctx)
         null
     }
 
     fun forget(ctx: Context) {
         ble?.close(); ble = null
         Store.get(ctx).dial = null
+        LinkService.update(ctx)
         _link.value = Link.NONE
     }
 }

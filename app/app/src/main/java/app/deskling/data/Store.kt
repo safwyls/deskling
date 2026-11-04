@@ -110,6 +110,10 @@ class Store private constructor(ctx: Context) {
     var pet: Pet
         get() = Pet.of(p.getString("pet", null)) ?: Pet.WISP
         set(v) { if (v != pet) { p.edit().putString("pet", v.id).apply(); changed() } }
+    /** Keep a Bluetooth link open to the dial while near it, so both sync at once (a foreground service). */
+    var holdLink: Boolean
+        get() = p.getBoolean("holdLink", true)
+        set(v) { p.edit().putBoolean("holdLink", v).apply(); changed() }
     var notifyMode: NotifyMode
         get() = NotifyMode.entries.getOrElse(p.getInt("notifyMode", 0)) { NotifyMode.AWAY }
         set(v) { p.edit().putInt("notifyMode", v.ordinal).apply(); changed() }

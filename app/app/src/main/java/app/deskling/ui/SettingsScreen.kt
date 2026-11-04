@@ -49,6 +49,7 @@ import app.deskling.data.Pet
 import app.deskling.data.NotifyMode
 import app.deskling.steps.Steps
 import app.deskling.sync.FoundDial
+import app.deskling.sync.LinkService
 import app.deskling.sync.Sync
 import app.deskling.sync.discoverOnWifi
 import app.deskling.sync.scanDials
@@ -89,7 +90,7 @@ fun SettingsScreen(app: AppState) {
         }
         AppSettings(app)
         Header("About")
-        Text("Deskling 1.4  •  ${app.store.pet.title} and the care game, shared with your dial over Bluetooth or Wi-Fi.", color = Dim, fontSize = 13.sp)
+        Text("Deskling 1.5  •  ${app.store.pet.title} and the care game, shared with your dial over Bluetooth or Wi-Fi.", color = Dim, fontSize = 13.sp)
         Spacer(Modifier.height(24.dp))
     }
 }
@@ -199,6 +200,11 @@ private fun AppSettings(app: AppState) {
     Header("This phone")
     if (s.dial == null) Choice("Pet", Pet.entries.map { it.title }, s.pet.ordinal) { s.pet = Pet.entries[it] }
     else Item("Pet", "${s.pet.title}: the paired dial's firmware decides")
+    if (s.dial != null) {
+        Toggle("Stay connected to the dial", s.holdLink) { s.holdLink = it; LinkService.update(app.ctx) }
+        Text(if (s.holdLink) "Breaks sync the moment you log them, here or on the dial, while you're nearby. Android shows a quiet notification while it's on."
+             else "Syncs every few minutes instead, and when you open the app.", color = Dim, fontSize = 12.sp, modifier = Modifier.padding(bottom = 6.dp))
+    }
     Choice("Reminders on the phone", NotifyMode.entries.map { it.title }, s.notifyMode.ordinal) { s.notifyMode = NotifyMode.entries[it] }
     SliderRow("A walk is", s.walkSteps, 100..1000, { "$it steps in 10 min" }) { s.walkSteps = (it / 50) * 50 }
     SliderRow("Daily step goal", s.stepGoal, 2000..20000, { "%,d".format(it) }) { s.stepGoal = (it / 500) * 500 }

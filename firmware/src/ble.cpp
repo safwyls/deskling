@@ -1,6 +1,8 @@
 #include "ble.h"
 #include "api.h"
 #include "crashlog.h"
+#include "care.h"
+#include "settings.h"
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLE2902.h>
@@ -42,25 +44,44 @@ class RxCB : public BLECharacteristicCallbacks {
   }
 };
 
+static void send_line(String out) {
+  out += '\n';
+  size_t chunk = peerMtu > 23 ? min<size_t>(peerMtu - 3, 240) : 20;
+  for (size_t p = 0; p < out.length() && connected && started && tx; p += chunk) {
+    size_t n = min(chunk, out.length() - p);
+    tx->setValue((uint8_t *)out.c_str() + p, n);
+    tx->notify();
+    vTaskDelay(pdMS_TO_TICKS(6));      // keep the stack's buffers from running dry on long replies
+  }
+}
+
 // Answers requests one at a time: waits for the main loop, then sends the reply in MTU-sized notifications.
+// Between requests it watches for changes made on the dial (a break, a pat, a setting) and tells a paired,
+// connected phone with {"event":"changed"}, so the phone fetches the new state straight away instead of on
+// its next scheduled sync. Replies always carry "ok"; events never do, which is how the phone tells them apart.
 static void worker(void *) {
   bool authed = false;
+  uint32_t seenChange = 0, seenSettings = 0;
   for (;;) {
     char *m;
-    if (xQueueReceive(lines, &m, portMAX_DELAY) != pdTRUE) continue;
+    bool got = xQueueReceive(lines, &m, pdMS_TO_TICKS(250)) == pdTRUE;
     if (fresh) { authed = false; fresh = false; }      // a new connection proves its key again
+    if (!got) {
+      if (authed && connected && started && tx && (care_change() != seenChange || settings_version() != seenSettings)) {
+        seenChange = care_change(); seenSettings = settings_version();
+        send_line("{\"event\":\"changed\"}");
+      }
+      continue;
+    }
+    // a state request brings the phone up to date: nothing before it needs announcing
+    bool state = strstr(m, "\"op\":\"state\"") != nullptr;
+    uint32_t c = care_change(), sv = settings_version();
     String out;
     api_call(m, authed, out);
     free(m);
+    if (state) { seenChange = c; seenSettings = sv; }
     if (!connected || !started || !tx) continue;
-    out += '\n';
-    size_t chunk = peerMtu > 23 ? min<size_t>(peerMtu - 3, 240) : 20;
-    for (size_t p = 0; p < out.length() && connected && started && tx; p += chunk) {
-      size_t n = min(chunk, out.length() - p);
-      tx->setValue((uint8_t *)out.c_str() + p, n);
-      tx->notify();
-      vTaskDelay(pdMS_TO_TICKS(6));      // keep the stack's buffers from running dry on long replies
-    }
+    send_line(out);
   }
 }
 

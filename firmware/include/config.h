@@ -5,7 +5,7 @@
 // erased board, or after Settings > Reset settings, so leaving them empty is fine.
 #pragma once
 
-#define FW_VERSION "5.16"
+#define FW_VERSION "5.17"
 
 // Which pet this firmware is (set per build environment in platformio.ini)
 #ifndef PET_ID
