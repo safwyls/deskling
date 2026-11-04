@@ -332,6 +332,12 @@ static esp_err_t root_get(httpd_req_t *req) {
     h += "<label>"; h += NEED[i]; h += "</label>";
     every_select(h, nm, S.remind_min[i]);
   }
+  check(h, "po", S.posture_on, "Sit/stand reminders <small>for a standing desk</small>");
+  h += "<div class=row><div><label>Sit for</label><select name=sit>";
+  { char b[16]; for (int v = 15; v <= 120; v += 5) { snprintf(b, sizeof(b), "%d min", v); opt(h, v, b, S.sit_min); } }
+  h += "</select></div><div><label>Stand for</label><select name=stand>";
+  { char b[16]; for (int v = 5; v <= 90; v += 5) { snprintf(b, sizeof(b), "%d min", v); opt(h, v, b, S.stand_min); } }
+  h += "</select></div></div>";
   h += "<label>Active hours <small>reminders only run between these</small></label><div class=row>";
   hour_select(h, "hs", 0, 23, S.hour_start);
   h += "<span style='flex:0'>to</span>";
@@ -432,6 +438,9 @@ static esp_err_t save_post(httpd_req_t *req) {
     S.show_status = form_int(body, "ss", v);
     S.show_next = form_int(body, "sn", v);
     S.enc_invert = form_int(body, "inv", v);
+    S.posture_on = form_int(body, "po", v);
+    if (form_int(body, "sit", v)) S.sit_min = constrain(v, 15, 120);
+    if (form_int(body, "stand", v)) S.stand_min = constrain(v, 5, 90);
   }
   free(body); free(val);
   settings_put(S);

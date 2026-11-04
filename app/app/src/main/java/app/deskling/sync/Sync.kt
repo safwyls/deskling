@@ -99,7 +99,8 @@ object Sync {
             val se = l.request(JSONObject().put("op", "settings"))
             if (se.optBoolean("ok")) {
                 store.dialSettings = se
-                store.engine.config = store.engine.config.copy(hourStart = se.optInt("hourStart", 8), hourEnd = se.optInt("hourEnd", 20))
+                store.engine.config = store.engine.config.copy(hourStart = se.optInt("hourStart", 8), hourEnd = se.optInt("hourEnd", 20),
+                    postureOn = se.optBoolean("postureOn", false), sitMin = se.optInt("sitMin", 45), standMin = se.optInt("standMin", 15))
             }
             store.saveCare()
             store.lastSync = System.currentTimeMillis()

@@ -122,6 +122,22 @@ def move():
     return im
 
 
+def arrows(d, col, s, w):
+    """Sit/stand: an arrow up beside an arrow down (switch between the two). s scales, w is the line width."""
+    for x, up in ((16, True), (36, False)):
+        y0, y1 = (34, 10) if up else (10, 34)
+        d.line([P(x * s / 1, y0 * s), P(x * s, (y1 + (5 if up else -5)) * s)], fill=col, width=w)
+        tip = y1 * s
+        back = (y1 + (9 if up else -9)) * s
+        d.polygon([P(x * s - 7 * s, back), P(x * s, tip), P(x * s + 7 * s, back)], fill=col)
+
+
+def posture():
+    im, d = canvas()
+    arrows(d, (40, 175, 160, 255), 1, 3 * K)
+    return im
+
+
 def content():
     im, d = canvas()
     col = (40, 150, 220, 255)
@@ -246,6 +262,12 @@ def i_pause():
     return im
 
 
+def i_posture():
+    im, d = icanvas()
+    arrows(d, W, 1.45, 6 * K)
+    return im
+
+
 def i_back():
     im, d = icanvas()
     w = 7 * K
@@ -259,12 +281,12 @@ def i_back():
 
 ICONS = [("icon_water", i_water), ("icon_eyes", i_eyes), ("icon_stretch", i_stretch), ("icon_move", i_move),
          ("icon_play", i_play), ("icon_stats", i_stats), ("icon_moon", i_moon), ("icon_pause", i_pause),
-         ("icon_back", i_back)]
+         ("icon_back", i_back), ("icon_posture", i_posture)]
 
 
 EMOTES = [("emote_water", water), ("emote_eyes", eyes), ("emote_stretch", stretch), ("emote_move", move),
           ("emote_happy", happy), ("emote_sad", sad), ("emote_mad", mad), ("emote_asleep", asleep),
-          ("emote_content", content)]
+          ("emote_content", content), ("emote_posture", posture)]
 
 
 def to_c(name, im):

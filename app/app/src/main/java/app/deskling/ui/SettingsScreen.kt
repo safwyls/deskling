@@ -90,7 +90,7 @@ fun SettingsScreen(app: AppState) {
         }
         AppSettings(app)
         Header("About")
-        Text("Deskling 1.5  •  ${app.store.pet.title} and the care game, shared with your dial over Bluetooth or Wi-Fi.", color = Dim, fontSize = 13.sp)
+        Text("Deskling 1.6  •  ${app.store.pet.title} and the care game, shared with your dial over Bluetooth or Wi-Fi.", color = Dim, fontSize = 13.sp)
         Spacer(Modifier.height(24.dp))
     }
 }
@@ -164,6 +164,12 @@ private fun DialSettings(app: AppState) {
             val a = JSONArray(); for (j in 0 until 4) a.put(if (j == i) every[pick] else rem.optInt(j)); set("remind", a)
         }
     }
+    Toggle("Sit/stand reminders", s.optBoolean("postureOn")) { set("postureOn", it) }
+    if (s.optBoolean("postureOn")) {
+        val sit = (15..120 step 5).toList(); val stand = (5..90 step 5).toList()
+        Choice("Sit for", sit.map { "$it min, then stand" }, sit.indexOf(s.optInt("sitMin", 45)).coerceAtLeast(0)) { set("sitMin", sit[it]) }
+        Choice("Stand for", stand.map { "$it min, then sit" }, stand.indexOf(s.optInt("standMin", 15)).coerceAtLeast(0)) { set("standMin", stand[it]) }
+    }
     val hours = (0..24).map { if (it == 24) "midnight" else "%02d:00".format(it) }
     Choice("Active from", hours.take(24), s.optInt("hourStart")) { set("hourStart", it) }
     Choice("Active until", hours.drop(1), s.optInt("hourEnd") - 1) { set("hourEnd", it + 1) }
@@ -198,7 +204,18 @@ private fun AppSettings(app: AppState) {
     }
     val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { s.changed() }
     Header("This phone")
-    if (s.dial == null) Choice("Pet", Pet.entries.map { it.title }, s.pet.ordinal) { s.pet = Pet.entries[it] }
+    if (s.dial == null) {
+        Choice("Pet", Pet.entries.map { it.title }, s.pet.ordinal) { s.pet = Pet.entries[it] }
+        // no dial to hold the setting: the app's own
+        val cfg = s.engine.config
+        fun put(c: app.deskling.care.CareConfig) { s.engine.config = c; s.saveCare(); s.changed() }
+        Toggle("Sit/stand reminders", cfg.postureOn) { put(cfg.copy(postureOn = it)) }
+        if (cfg.postureOn) {
+            val sit = (15..120 step 5).toList(); val stand = (5..90 step 5).toList()
+            Choice("Sit for", sit.map { "$it min, then stand" }, sit.indexOf(cfg.sitMin).coerceAtLeast(0)) { put(cfg.copy(sitMin = sit[it])) }
+            Choice("Stand for", stand.map { "$it min, then sit" }, stand.indexOf(cfg.standMin).coerceAtLeast(0)) { put(cfg.copy(standMin = stand[it])) }
+        }
+    }
     else Item("Pet", "${s.pet.title}: the paired dial's firmware decides")
     if (s.dial != null) {
         Toggle("Stay connected to the dial", s.holdLink) { s.holdLink = it; LinkService.update(app.ctx) }

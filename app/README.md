@@ -40,6 +40,9 @@ queues what you log until they meet again.
   in the app is sent at once, and the dial sends `{"event":"changed"}` the moment something happens on the knob,
   so the phone syncs straight away. Android reconnects by itself when you come back in range. The header chip
   reads "in sync" while linked with nothing left to send. The dial shows a Bluetooth icon in its status row.
+- **Sit/stand:** the same optional posture timer as the dial (`CareEngine.setPosture`, `postureDue`), a row on
+  the pet screen to switch, "Stood up" on the stats screen, and a notification with a "Standing now"/"Sitting
+  now" button when you're away from the dial.
 - **Overlapping breaks:** logging Move also checks off Stretch and the eye break, on both sides
   (`CareEngine.COVERS`, the firmware's `COVERS` in `care.cpp`).
 

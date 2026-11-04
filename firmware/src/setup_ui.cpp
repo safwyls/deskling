@@ -934,7 +934,7 @@ static void phone_open(Fn back) {
 }
 
 // ============================================================ reminders
-enum { RM_WATER, RM_EYES, RM_STRETCH, RM_MOVE, RM_START, RM_END, RM_TZ, RM_BACK, RM_COUNT };
+enum { RM_WATER, RM_EYES, RM_STRETCH, RM_MOVE, RM_POSTURE, RM_SIT, RM_STAND, RM_START, RM_END, RM_TZ, RM_BACK, RM_COUNT };
 static const char *const REM_LABEL[4] = { LV_SYMBOL_TINT "  Water", LV_SYMBOL_EYE_CLOSE "  Eye breaks",
                                           LV_SYMBOL_SHUFFLE "  Stretch", LV_SYMBOL_GPS "  Move" };
 static int remSel = 0, remIdx = 0;
@@ -951,6 +951,16 @@ static void remind_row(int i, Row &r) {
     return;
   }
   switch (i) {
+    case RM_POSTURE: snprintf(r.text, sizeof(r.text), LV_SYMBOL_UP LV_SYMBOL_DOWN "  Sit / stand");
+                     if (S.posture_on) snprintf(r.detail, sizeof(r.detail), "on" SEP "press to turn off");
+                     else snprintf(r.detail, sizeof(r.detail), "off" SEP "nudges to switch, for a standing desk");
+                     break;
+    case RM_SIT:   snprintf(r.text, sizeof(r.text), "      Sit for");
+                   snprintf(r.detail, sizeof(r.detail), "%d min, then stand", S.sit_min);
+                   if (!S.posture_on) r.color = C_SUB; break;
+    case RM_STAND: snprintf(r.text, sizeof(r.text), "      Stand for");
+                   snprintf(r.detail, sizeof(r.detail), "%d min, then sit", S.stand_min);
+                   if (!S.posture_on) r.color = C_SUB; break;
     case RM_START: snprintf(r.text, sizeof(r.text), LV_SYMBOL_BELL "  Active from");
                    snprintf(r.detail, sizeof(r.detail), "%d:00" SEP PET_NAME " wakes up", S.hour_start); break;
     case RM_END:   snprintf(r.text, sizeof(r.text), LV_SYMBOL_BELL "  Active until");
@@ -970,6 +980,15 @@ static void fmt_every(int v, char *m, size_t mn, char *s, size_t sn) {
   snprintf(s, sn, v ? PET_NAME " asks for %s this often" : "no reminder for %s", WHY[remIdx]);
 }
 static void save_every(int v) { S.remind_min[remIdx] = v; save(); remind_open(); }
+
+static void fmt_sit(int v, char *m, size_t mn, char *s, size_t sn) {
+  snprintf(m, mn, "%d min", v); snprintf(s, sn, "sitting this long, then a nudge to stand");
+}
+static void fmt_stand(int v, char *m, size_t mn, char *s, size_t sn) {
+  snprintf(m, mn, "%d min", v); snprintf(s, sn, "standing this long, then a nudge to sit");
+}
+static void save_sit(int v) { S.sit_min = v; save(); remind_open(); }
+static void save_stand(int v) { S.stand_min = v; save(); remind_open(); }
 
 static void fmt_hour(int v, char *m, size_t mn, char *s, size_t sn) {
   snprintf(m, mn, "%d:00", v);
@@ -1003,6 +1022,9 @@ static void remind_tap(int i) {
     return;
   }
   switch (i) {
+    case RM_POSTURE: S.posture_on = !S.posture_on; save(); leds_flash(S.posture_on ? C_OK : C_SUB); remind_open(); break;
+    case RM_SIT:   value_open("Sit for", 15, 120, 5, S.sit_min, fmt_sit, nullptr, save_sit, false, remind_open); break;
+    case RM_STAND: value_open("Stand for", 5, 90, 5, S.stand_min, fmt_stand, nullptr, save_stand, false, remind_open); break;
     case RM_START: value_open("Active from", 0, 23, 1, S.hour_start, fmt_hour, nullptr, save_start, false, remind_open); break;
     case RM_END:   value_open("Active until", 1, 24, 1, S.hour_end, fmt_hour, nullptr, save_end, false, remind_open); break;
     case RM_TZ:    list_open("Time zone", tz_count, tz_row, tz_tap, remind_open, S.tz); break;

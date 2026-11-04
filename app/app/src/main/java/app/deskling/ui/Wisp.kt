@@ -43,8 +43,10 @@ enum class Loop(val dir: String) {
 data class Pose(val loop: Loop, val emote: String?)
 
 /** The same choices as the dial's pet screen. The happy heart only shows right after a pat or a break. */
-fun poseFor(mood: Mood, urgent: Need?, reacting: Boolean): Pose = when {
+fun poseFor(mood: Mood, urgent: Need?, reacting: Boolean, postureDue: Boolean = false): Pose = when {
     reacting -> Pose(Loop.HAPPY, "emote_happy")
+    // nothing else wanted, but it's time to switch between sitting and standing
+    postureDue && urgent == null && mood != Mood.ASLEEP -> Pose(if (mood == Mood.HAPPY) Loop.HAPPY else Loop.WALK, "emote_posture")
     else -> when (mood) {
         Mood.CONTENT -> Pose(Loop.WALK, "emote_content")
         Mood.HAPPY -> Pose(Loop.HAPPY, null)

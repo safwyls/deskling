@@ -44,6 +44,52 @@ class CareEngineTest {
         assertTrue(e.st.elapsed[Need.MOVE.ordinal] > 0)
     }
 
+    @Test fun sitStandIsOffUnlessTurnedOn() {
+        val e = engine()
+        e.advanceTo(at(11))
+        assertEquals(0L, e.st.postureElapsed)
+        assertFalse(e.postureDue())
+    }
+
+    @Test fun sitStandNudgesAfterEachPosturesLimit() {
+        val e = engine()
+        e.config = e.config.copy(postureOn = true, sitMin = 45, standMin = 15)
+        e.advanceTo(at(9, 44))
+        assertFalse(e.postureDue())
+        e.advanceTo(at(9, 45))
+        assertTrue(e.postureDue())
+        val happy = e.st.happy
+        e.setPosture(true, at(9, 46))             // stood up when asked: a small reward, a stand counted
+        assertTrue(e.st.standing)
+        assertEquals(1, e.st.standsToday)
+        assertTrue(e.st.happy > happy)
+        assertEquals(15 * 60L, e.postureInterval())
+        e.advanceTo(at(10, 1))
+        assertTrue(e.postureDue())                // 15 min standing
+        e.setPosture(false, at(10, 1))
+        assertEquals(1, e.st.standsToday)         // sitting down doesn't count as a stand
+    }
+
+    @Test fun sitStandNeverSoursTheMood() {
+        val e = engine()
+        e.config = e.config.copy(remindMin = intArrayOf(0, 0, 0, 0), postureOn = true)
+        e.advanceTo(at(12))                       // hours past the sit limit, nothing else on
+        assertTrue(e.postureDue())
+        assertTrue(e.mood(at(12)) == Mood.CONTENT || e.mood(at(12)) == Mood.HAPPY)
+    }
+
+    @Test fun sitStandTakesTheDialsState() {
+        val e = engine()
+        val st = JSONObject().put("needs", JSONArray()).put("posture",
+            JSONObject().put("on", true).put("standing", true).put("elapsed", 300).put("interval", 1200).put("stands", 2))
+        e.applyDialState(st, at(10))
+        assertTrue(e.config.postureOn)
+        assertTrue(e.st.standing)
+        assertEquals(300L, e.st.postureElapsed)
+        assertEquals(20, e.config.standMin)
+        assertEquals(2, e.st.standsToday)
+    }
+
     @Test fun timersRunOnlyInActiveHours() {
         val e = engine(at(19, 50))
         e.advanceTo(at(21))                       // 10 active minutes, then outside hours

@@ -36,21 +36,27 @@ data class CareConfig(
     val remindMin: IntArray = intArrayOf(45, 20, 50, 60),   // water, eyes, stretch, move; 0 = off
     val hourStart: Int = 8,
     val hourEnd: Int = 20,
+    val postureOn: Boolean = false,                         // sit/stand alternation reminders
+    val sitMin: Int = 45,
+    val standMin: Int = 15,
 ) {
     fun toJson() = JSONObject().put("remind", JSONArray(remindMin.toList())).put("hourStart", hourStart).put("hourEnd", hourEnd)
+        .put("postureOn", postureOn).put("sitMin", sitMin).put("standMin", standMin)
 
     companion object {
         fun fromJson(o: JSONObject?): CareConfig {
             if (o == null) return CareConfig()
             val r = o.optJSONArray("remind")
             val rem = IntArray(4) { i -> r?.optInt(i, CareConfig().remindMin[i]) ?: CareConfig().remindMin[i] }
-            return CareConfig(rem, o.optInt("hourStart", 8), o.optInt("hourEnd", 20))
+            return CareConfig(rem, o.optInt("hourStart", 8), o.optInt("hourEnd", 20),
+                o.optBoolean("postureOn", false), o.optInt("sitMin", 45), o.optInt("standMin", 15))
         }
     }
 
     override fun equals(other: Any?) = other is CareConfig && remindMin.contentEquals(other.remindMin) &&
-        hourStart == other.hourStart && hourEnd == other.hourEnd
-    override fun hashCode() = remindMin.contentHashCode() * 31 + hourStart * 7 + hourEnd
+        hourStart == other.hourStart && hourEnd == other.hourEnd &&
+        postureOn == other.postureOn && sitMin == other.sitMin && standMin == other.standMin
+    override fun hashCode() = remindMin.contentHashCode() * 31 + hourStart * 7 + hourEnd + (if (postureOn) 1 shl 20 else 0) + sitMin * 131 + standMin * 17
 }
 
 class CareState {
@@ -65,11 +71,15 @@ class CareState {
     var lastPet = 0L                  // epoch ms
     var lastUpdate = 0L               // epoch ms the timers were last advanced to
     var wasInHours = true
+    var standing = false              // sit/stand: which you said you're doing
+    var postureElapsed = 0L           // active seconds in it
+    var standsToday = 0
 
     fun toJson(): JSONObject = JSONObject()
         .put("elapsed", JSONArray(elapsed.toList())).put("happy", happy).put("xp", xp)
         .put("today", JSONArray(today.toList())).put("day", day).put("streak", streak).put("bedtime", bedtime)
         .put("pauseUntil", pauseUntil).put("lastPet", lastPet).put("lastUpdate", lastUpdate).put("wasInHours", wasInHours)
+        .put("standing", standing).put("postureElapsed", postureElapsed).put("standsToday", standsToday)
 
     companion object {
         fun fromJson(o: JSONObject?): CareState {
@@ -86,6 +96,9 @@ class CareState {
             s.lastPet = o.optLong("lastPet")
             s.lastUpdate = o.optLong("lastUpdate")
             s.wasInHours = o.optBoolean("wasInHours", true)
+            s.standing = o.optBoolean("standing")
+            s.postureElapsed = o.optLong("postureElapsed")
+            s.standsToday = o.optInt("standsToday")
             return s
         }
     }
@@ -170,6 +183,7 @@ class CareEngine(
             if (ih && !st.wasInHours) {                      // a new active day: fresh timers, bedtime over
                 st.bedtime = false
                 st.elapsed.fill(0)
+                st.standing = false; st.postureElapsed = 0          // mornings start sitting down
                 if (st.happy < 60) st.happy = 60.0
             }
             st.wasInHours = ih
@@ -181,6 +195,7 @@ class CareEngine(
                     st.elapsed[n.ordinal] += secs
                     neglected = neglected || (due(n) && overdue(n) > 10 * 60)
                 }
+                if (config.postureOn) st.postureElapsed += secs
                 addHappy(-1.0 / 360 * secs)                   // about 10 points an hour
                 if (neglected) addHappy(-0.25 / 60 * secs)    // plus 15 an hour while something is ignored
             }
@@ -199,6 +214,23 @@ class CareEngine(
         }
         st.day = today
         st.today.fill(0)
+        st.standsToday = 0
+    }
+
+    // ---------- sit/stand ----------
+    // Not a need: it never touches the mood. A nudge when you've been in one posture for its limit.
+    fun postureInterval(): Long = (if (st.standing) config.standMin else config.sitMin) * 60L
+    fun postureDue(): Boolean = config.postureOn && st.postureElapsed >= postureInterval()
+    fun postureLeft(): Long = maxOf(0L, postureInterval() - st.postureElapsed)
+
+    /** You switched between sitting and standing. A small reward when it was time. */
+    fun setPosture(standing: Boolean, now: Long = System.currentTimeMillis()) {
+        advanceTo(now)
+        if (standing == st.standing) return
+        if (postureDue()) { addHappy(6.0); st.xp += 4 } else addHappy(1.0)
+        st.standing = standing
+        st.postureElapsed = 0
+        if (standing && st.standsToday < 999) st.standsToday++
     }
 
     private fun addHappy(d: Double) { st.happy = (st.happy + d).coerceIn(0.0, 100.0) }
@@ -237,6 +269,9 @@ class CareEngine(
     }
 
     companion object {
+        /** Sit/stand's colour, as on the dial. */
+        const val POSTURE_COLOR = 0xFF4FD6C8
+
         /**
          * Breaks that include others: a walk gets you out of your chair and your eyes off the screen, so Move
          * also checks off Stretch and the eye break, each scored as if done on its own. Same table as the dial's
@@ -284,7 +319,15 @@ class CareEngine(
             st.today[i] = x.optInt("today")
             rem[i] = (x.optLong("interval") / 60).toInt()
         }
-        config = config.copy(remindMin = rem)
+        val po = o.optJSONObject("posture")
+        config = if (po != null) config.copy(remindMin = rem, postureOn = po.optBoolean("on")) else config.copy(remindMin = rem)
+        if (po != null) {
+            st.standing = po.optBoolean("standing")
+            st.postureElapsed = po.optLong("elapsed")
+            st.standsToday = po.optInt("stands")
+            val iv = (po.optLong("interval") / 60).toInt()
+            if (iv > 0) config = if (st.standing) config.copy(standMin = iv) else config.copy(sitMin = iv)
+        }
         st.happy = o.optDouble("happy", st.happy)
         st.xp = o.optLong("xp", st.xp)
         st.streak = o.optInt("streak", st.streak)

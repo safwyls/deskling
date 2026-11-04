@@ -121,6 +121,7 @@ class AppState(val ctx: Context, val scope: CoroutineScope) {
             Need.MOVE -> start(Activity.MOVE)
             null -> {
                 if (e.mood(now) == app.deskling.care.Mood.ASLEEP) { say("Shh, ${store.pet.title} is asleep"); return }
+                if (e.postureDue() && !e.paused(now)) { switchPosture(); return }
                 if (e.pet(now)) {
                     store.queue(JSONObject().put("op", "pet"))
                     store.saveCare()
@@ -137,6 +138,19 @@ class AppState(val ctx: Context, val scope: CoroutineScope) {
         store.saveCare()
         activity = null
         say("$hits of $rounds caught")
+        syncSoon()
+    }
+
+    /** You switched between sitting and standing (here, and queued for the dial). */
+    fun switchPosture() {
+        val e = store.engine
+        val stand = !e.st.standing
+        val wasDue = e.postureDue()
+        e.setPosture(stand, now)
+        store.queue(JSONObject().put("op", "posture").put("standing", stand))
+        store.saveCare()
+        if (wasDue) react(2)
+        say(if (stand) "Standing: sit in ${e.config.standMin} min" else "Sitting: stand in ${e.config.sitMin} min")
         syncSoon()
     }
 

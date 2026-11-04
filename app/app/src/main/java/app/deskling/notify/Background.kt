@@ -22,6 +22,8 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import app.deskling.MainActivity
 import app.deskling.R
+import app.deskling.care.CareEngine
+import org.json.JSONObject
 import app.deskling.care.Need
 import app.deskling.data.NotifyMode
 import app.deskling.data.Store
@@ -85,6 +87,27 @@ object Reminders {
                 .addAction(0, "Done", done)
             try { nm.notify(id, b.build()) } catch (e: SecurityException) { }
         }
+        // sit/stand
+        run {
+            val id = 110
+            val e = s.engine
+            if (!e.postureDue() || !e.active(now)) { nm.cancel(id); last.remove("posture"); return@run }
+            anyDue = true
+            if (!allowed || !canNotify(ctx) || now - last.optLong("posture") < 15 * 60_000) return@run
+            last.put("posture", now)
+            val open = PendingIntent.getActivity(ctx, id, Intent(ctx, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
+            val done = PendingIntent.getBroadcast(ctx, id, Intent(ctx, DoneReceiver::class.java).putExtra("posture", true),
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+            val b = NotificationCompat.Builder(ctx, CHANNEL)
+                .setSmallIcon(R.drawable.ic_wisp)
+                .setContentTitle(if (e.st.standing) "Time to sit down" else "Time to stand up")
+                .setContentText(if (e.st.standing) "You've been standing ${e.st.postureElapsed / 60} min" else "You've been sitting ${e.st.postureElapsed / 60} min")
+                .setColor(CareEngine.POSTURE_COLOR.toInt())
+                .setContentIntent(open)
+                .setAutoCancel(true)
+                .addAction(0, if (e.st.standing) "Sitting now" else "Standing now", done)
+            try { nm.notify(id, b.build()) } catch (ex: SecurityException) { }
+        }
         s.lastNotified = last
         schedule(ctx, if (anyDue) now + 15 * 60_000 else null)
     }
@@ -92,7 +115,8 @@ object Reminders {
     private fun schedule(ctx: Context, soon: Long?) {
         val s = Store.get(ctx)
         val now = System.currentTimeMillis()
-        val next = (Need.entries.mapNotNull { s.engine.dueAt(it, now) } + listOfNotNull(soon)).filter { it > now }.minOrNull()
+        val posture = if (s.engine.config.postureOn && !s.engine.postureDue()) now + s.engine.postureLeft() * 1000 else null   // roughly: pauses and hours push it later
+        val next = (Need.entries.mapNotNull { s.engine.dueAt(it, now) } + listOfNotNull(soon, posture)).filter { it > now }.minOrNull()
             ?: (now + 60 * 60_000)
         val am = ctx.getSystemService(AlarmManager::class.java)
         val pi = PendingIntent.getBroadcast(ctx, 1, Intent(ctx, AlarmReceiver::class.java), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
@@ -118,6 +142,16 @@ class AlarmReceiver : BroadcastReceiver() {
 /** "Done" on a reminder. */
 class DoneReceiver : BroadcastReceiver() {
     override fun onReceive(ctx: Context, intent: Intent) {
+        if (intent.getBooleanExtra("posture", false)) {
+            val s = Store.get(ctx)
+            val stand = !s.engine.st.standing
+            s.engine.setPosture(stand)
+            s.queue(JSONObject().put("op", "posture").put("standing", stand))
+            s.saveCare()
+            NotificationManagerCompat.from(ctx).cancel(110)
+            SyncWorker.now(ctx)
+            return
+        }
         val n = Need.of(intent.getStringExtra("need")) ?: return
         Store.get(ctx).logDone(n)
         NotificationManagerCompat.from(ctx).cancel(100 + n.ordinal)

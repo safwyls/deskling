@@ -69,6 +69,8 @@ class ScreensRenderTest {
         s.engine.st.today[Need.STRETCH.ordinal] = 1
         s.engine.st.xp = 260
         s.engine.st.streak = 3
+        s.engine.config = s.engine.config.copy(postureOn = true)
+        s.engine.st.postureElapsed = 50 * 60; s.engine.st.standsToday = 2
         s.saveCare()
         s.stepsDay = s.engine.dateOf(now); s.stepsToday = 5234
         s.stepsHistory = JSONObject().also { h ->

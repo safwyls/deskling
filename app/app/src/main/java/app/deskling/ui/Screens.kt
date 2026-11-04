@@ -62,6 +62,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.deskling.care.CareEngine
 import app.deskling.care.Mood
 import app.deskling.care.Need
 import app.deskling.steps.Steps
@@ -123,7 +124,8 @@ fun WispScreen(app: AppState) {
     v.hashCode()
     val mood = e.mood(now)
     val urgent = if (e.paused(now)) null else e.mostUrgent()
-    val pose = poseFor(mood, urgent, now < app.reactUntil)
+    val postureDue = e.postureDue() && !e.paused(now)
+    val pose = poseFor(mood, urgent, now < app.reactUntil, postureDue)
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(mood.title, color = TextC, fontSize = 22.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
@@ -137,11 +139,13 @@ fun WispScreen(app: AppState) {
             mood == Mood.ASLEEP -> if (e.st.bedtime) "Asleep: bedtime" else "Asleep until ${e.config.hourStart}:00"
             e.paused(now) -> "Paused, ${mmss((e.st.pauseUntil - now) / 1000)} left"
             urgent != null -> "${urgent.title} is due: tap ${app.store.pet.title}"
+            postureDue -> "Time to ${if (e.st.standing) "sit down" else "stand up"}: tap ${app.store.pet.title}"
             else -> "Tap ${app.store.pet.title} for a pat"
         }
         Text(hint, color = Dim, fontSize = 14.sp)
         Spacer(Modifier.height(12.dp))
         for (n in Need.entries) NeedRow(app, n)
+        if (e.config.postureOn) PostureRow(app)
         Spacer(Modifier.height(12.dp))
         StepsRow(app)
         Spacer(Modifier.height(16.dp))
@@ -194,6 +198,26 @@ private fun NeedRow(app: AppState, n: Need) {
         val t = when { !e.enabled(n) -> "off"; e.due(n) -> "due"; else -> "in " + mmss(e.left(n)) }
         Text(t, color = if (e.due(n)) Bad else Dim, fontSize = 13.sp, textAlign = TextAlign.End, modifier = Modifier.width(78.dp))
         Text("${e.st.today[n.ordinal]}", color = col, fontSize = 15.sp, textAlign = TextAlign.End, modifier = Modifier.width(28.dp))
+    }
+}
+
+/** Sit/stand: where you are, how long, when to switch, and the switch itself. */
+@Composable
+private fun PostureRow(app: AppState) {
+    val e = app.store.engine
+    val col = Color(CareEngine.POSTURE_COLOR)
+    val due = e.postureDue()
+    val mins = e.st.postureElapsed / 60
+    Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(if (e.st.standing) "Standing" else "Sitting", color = TextC, fontSize = 15.sp, modifier = Modifier.width(84.dp))
+        Text(if (due) "$mins min: time to ${if (e.st.standing) "sit" else "stand"}"
+             else "$mins min, ${if (e.st.standing) "sit" else "stand"} in ${mmss(e.postureLeft())}",
+            color = if (due) col else Dim, fontSize = 13.sp, modifier = Modifier.weight(1f))
+        OutlinedButton(onClick = { app.switchPosture() }, shape = RoundedCornerShape(10.dp),
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = col)) {
+            Text(if (e.st.standing) "Sit down" else "Stand up", fontSize = 13.sp)
+        }
     }
 }
 
@@ -387,6 +411,19 @@ private fun TodayBlock(app: AppState) {
                 if (c == 0) Box(Modifier.size(10.dp).border(1.5.dp, Line, CircleShape))
                 for (i in 0 until min(c, 12)) Box(Modifier.size(10.dp).background(Color(n.color), CircleShape))
                 if (c > 12) Text("+${c - 12}", color = Color(n.color), fontSize = 12.sp)
+            }
+            Text("$c", color = if (c > 0) TextC else Dim, fontSize = 15.sp, textAlign = TextAlign.End, modifier = Modifier.width(32.dp))
+        }
+    }
+    if (e.config.postureOn) {
+        val c = e.st.standsToday
+        val col = Color(CareEngine.POSTURE_COLOR)
+        Row(Modifier.fillMaxWidth().padding(vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text("Stood up", color = TextC, fontSize = 15.sp, modifier = Modifier.width(88.dp))
+            Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
+                if (c == 0) Box(Modifier.size(10.dp).border(1.5.dp, Line, CircleShape))
+                for (i in 0 until min(c, 12)) Box(Modifier.size(10.dp).background(col, CircleShape))
+                if (c > 12) Text("+${c - 12}", color = col, fontSize = 12.sp)
             }
             Text("$c", color = if (c > 0) TextC else Dim, fontSize = 15.sp, textAlign = TextAlign.End, modifier = Modifier.width(32.dp))
         }

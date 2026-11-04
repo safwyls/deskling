@@ -67,6 +67,18 @@ bool care_pet();                        // a pat on the screen; false while on c
 void care_played(int hits, int rounds);
 void care_pause(int minutes);           // 0 = resume
 void care_set_bedtime(bool on);
+// Sit/stand alternation (optional, Settings > Reminders). Not a need: it never affects the mood. The timer
+// counts active time in the current posture; when it reaches that posture's limit it's "due" and cues like a
+// need. You say when you switch (there's no sensor).
+bool care_posture_on();
+bool care_standing();
+bool care_posture_due();
+uint32_t care_posture_elapsed_s();
+uint32_t care_posture_interval_s();     // the limit for the current posture
+uint32_t care_posture_left_s();
+void care_posture_set(bool standing);   // you switched
+int care_stands_today();
+uint32_t care_posture_color();
 // A break done ageS seconds ago, logged on the phone. Scored for how due it was then; it only resets the
 // timer if nothing more recent was logged here.
 void care_done_at(Need n, uint32_t ageS);

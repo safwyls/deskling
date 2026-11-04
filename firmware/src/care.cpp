@@ -45,10 +45,18 @@ static bool wasDue[NEED_COUNT];
 static uint32_t lastCueMs = 0;             // millis() of the last cue, for pacing
 static uint8_t remind[NEED_COUNT], hourStart = 8, hourEnd = 20, tzIdx = 0;
 static uint32_t cfgVer = 0;
+// Sit/stand alternation: not a need (no mood, nothing runs down), just a nudge when it's time to switch.
+static bool postureOn = false, standing = false, postWasDue = false;
+static uint8_t sitMin = 45, standMin = 15;
+static uint32_t postSec = 0;               // active seconds in the current posture
+static uint16_t standsToday = 0;
 static bool ntpStarted = false, wasInHours = true;   // true: a reboot during the day keeps a bedtime you set
 
 static void save() {
   prefs.putBytes("state", &st, sizeof(st));
+  prefs.putBool("p_st", standing);
+  prefs.putUInt("p_sec", postSec);
+  prefs.putUShort("p_cnt", standsToday);
   dirty = false;
   lastSave = millis();
 }
@@ -64,6 +72,7 @@ static void load_settings() {
   cfgVer = settings_version();
   for (int i = 0; i < NEED_COUNT; i++) remind[i] = s.remind_min[i];
   hourStart = s.hour_start; hourEnd = s.hour_end;
+  postureOn = s.posture_on; sitMin = s.sit_min ? s.sit_min : 45; standMin = s.stand_min ? s.stand_min : 15;
   if (s.tz != tzIdx) { tzIdx = s.tz; apply_tz(); }
 }
 
@@ -78,6 +87,9 @@ void care_begin() {
   load_settings();
   stepsDay = prefs.getInt("stepsDay", 0);
   stepsCount = prefs.getUInt("steps", 0);
+  standing = prefs.getBool("p_st", false);
+  postSec = prefs.getUInt("p_sec", 0);
+  standsToday = prefs.getUShort("p_cnt", 0);
   for (int i = 0; i < NEED_COUNT; i++) wasDue[i] = care_need_due((Need)i);
   lastSecond = millis();
 }
@@ -337,6 +349,7 @@ static void new_day(int32_t today) {
   }
   st.day = today;
   memset(st.today, 0, sizeof(st.today));
+  standsToday = 0;
   dirty = true;
   changed();
 }
@@ -369,6 +382,7 @@ void care_tick() {
     memset(st.elapsed, 0, sizeof(st.elapsed));
     if (st.happy < 60) st.happy = 60;
     for (int i = 0; i < NEED_COUNT; i++) wasDue[i] = false;
+    standing = false; postSec = 0; postWasDue = false;    // mornings start sitting down
     save();
   }
   wasInHours = inHours;
@@ -385,6 +399,13 @@ void care_tick() {
       anyDue |= due;
       neglected |= due && care_need_overdue_s(n) > 10 * 60;
     }
+    if (postureOn) {
+      postSec += secs;
+      bool due = care_posture_due();
+      if (due && !postWasDue) newlyDue = true;
+      postWasDue = due;
+      anyDue |= due;                               // cues like a need, but never sours the mood
+    }
     // cues: when something falls due (at most every 2 min), then every 15 min while anything is overdue
     uint32_t sinceCue = now - lastCueMs;
     if ((newlyDue && (lastCueMs == 0 || sinceCue >= 120000)) || (anyDue && lastCueMs && sinceCue >= 15 * 60000UL)) {
@@ -396,4 +417,26 @@ void care_tick() {
     dirty = true;
   }
   if (dirty && now - lastSave > 10 * 60000UL) save();
+}
+
+// ---------- sit/stand ----------
+bool care_posture_on() { return postureOn; }
+bool care_standing() { return standing; }
+uint32_t care_posture_elapsed_s() { return postSec; }
+uint32_t care_posture_interval_s() { return (uint32_t)(standing ? standMin : sitMin) * 60; }
+bool care_posture_due() { return postureOn && postSec >= care_posture_interval_s(); }
+uint32_t care_posture_left_s() { uint32_t iv = care_posture_interval_s(); return postSec >= iv ? 0 : iv - postSec; }
+int care_stands_today() { return standsToday; }
+uint32_t care_posture_color() { return 0x4fd6c8; }
+
+void care_posture_set(bool stand) {
+  if (stand == standing) return;
+  if (care_posture_due()) { add_happy(6); st.xp += 4; }      // switched when it was time
+  else add_happy(1);
+  standing = stand;
+  postSec = 0;
+  postWasDue = false;
+  if (stand && standsToday < 999) standsToday++;
+  changed();
+  save();
 }

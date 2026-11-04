@@ -19,6 +19,8 @@ struct Settings {
   uint8_t clock_mode;                 // home screen: 0 off, 1 12-hour, 2 24-hour
   uint8_t clock_style;                // ClockStyle
   bool show_date, show_status, show_next;
+  bool posture_on;                    // sit/stand alternation reminders
+  uint8_t sit_min, stand_min;         // minutes sitting / standing before a nudge to switch
 };
 
 void settings_begin();

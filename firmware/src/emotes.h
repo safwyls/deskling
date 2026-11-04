@@ -7,9 +7,9 @@ extern "C" {
 #endif
 
 extern const lv_image_dsc_t emote_water, emote_eyes, emote_stretch, emote_move;
-extern const lv_image_dsc_t emote_happy, emote_sad, emote_mad, emote_asleep, emote_content;
+extern const lv_image_dsc_t emote_happy, emote_sad, emote_mad, emote_asleep, emote_content, emote_posture;
 // care ring icons: white, 64 px; recolour with the image_recolor style
-extern const lv_image_dsc_t icon_water, icon_eyes, icon_stretch, icon_move, icon_play, icon_stats, icon_moon, icon_pause, icon_back;
+extern const lv_image_dsc_t icon_water, icon_eyes, icon_stretch, icon_move, icon_play, icon_stats, icon_moon, icon_pause, icon_back, icon_posture;
 
 #ifdef __cplusplus
 }

@@ -40,6 +40,9 @@ static void load() {
   cur.show_date = prefs.getBool("s_date", DEFAULT_SHOW_DATE);
   cur.show_status = prefs.getBool("s_status", DEFAULT_SHOW_STATUS);
   cur.show_next = prefs.getBool("s_next", DEFAULT_SHOW_NEXT);
+  cur.posture_on = prefs.getBool("post", DEFAULT_POSTURE_ON);
+  cur.sit_min = prefs.getUChar("sit", DEFAULT_SIT_MIN);
+  cur.stand_min = prefs.getUChar("stand", DEFAULT_STAND_MIN);
   hot_from(cur);
 }
 
@@ -75,6 +78,9 @@ void settings_put(const Settings &s) {
   if (s.show_date != cur.show_date) prefs.putBool("s_date", s.show_date);
   if (s.show_status != cur.show_status) prefs.putBool("s_status", s.show_status);
   if (s.show_next != cur.show_next) prefs.putBool("s_next", s.show_next);
+  if (s.posture_on != cur.posture_on) prefs.putBool("post", s.posture_on);
+  if (s.sit_min != cur.sit_min) prefs.putUChar("sit", s.sit_min);
+  if (s.stand_min != cur.stand_min) prefs.putUChar("stand", s.stand_min);
   cur = s;
   hot_from(cur);
   ver = ver + 1;

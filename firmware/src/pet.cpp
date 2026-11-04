@@ -185,8 +185,8 @@ static void react(int p, int loops = 2) {
 }
 
 // ============================================================ care ring
-enum RingItem { R_WATER, R_EYES, R_STRETCH, R_MOVE, R_PLAY, R_STATS, R_BED, R_PAUSE, R_BACK, R_COUNT };
-static const lv_image_dsc_t *const RING_ICON[R_COUNT] = { &icon_water, &icon_eyes, &icon_stretch, &icon_move,
+enum RingItem { R_WATER, R_EYES, R_STRETCH, R_MOVE, R_POSTURE, R_PLAY, R_STATS, R_BED, R_PAUSE, R_BACK, R_COUNT };
+static const lv_image_dsc_t *const RING_ICON[R_COUNT] = { &icon_water, &icon_eyes, &icon_stretch, &icon_move, &icon_posture,
                                                           &icon_play, &icon_stats, &icon_moon, &icon_pause, &icon_back };
 static lv_obj_t *ringLayer, *ringBg[R_COUNT], *ringImg[R_COUNT], *ringMeter[4];
 static lv_obj_t *cIcon, *cName, *cDetail;
@@ -205,15 +205,37 @@ static void need_detail(Need n, char *buf, size_t sz) {
   snprintf(buf, sz, "%s  " LV_SYMBOL_BULLET "  %d today", when, care_today(n));
 }
 
+// Sit/stand sits in the ring only while it's turned on.
+static bool ring_has(int i) { return i != R_POSTURE || care_posture_on(); }
+static int ring_step(int from, int dir) {
+  int i = from;
+  do i = (i + dir + R_COUNT) % R_COUNT; while (!ring_has(i));
+  return i;
+}
+
+static void posture_detail(char *buf, size_t sz) {
+  char left[24];
+  if (care_posture_due()) snprintf(left, sizeof(left), "time to switch");
+  else fmt_left(left, sizeof(left), care_posture_left_s());
+  snprintf(buf, sz, "%s %lu min  " LV_SYMBOL_BULLET "  %s", care_standing() ? "standing" : "sitting",
+           (unsigned long)(care_posture_elapsed_s() / 60), left);
+}
+
 static void ring_render() {
+  if (!ring_has(ringSel)) ringSel = R_PLAY;
+  int count = 0, at = 0;
+  for (int i = 0; i < R_COUNT; i++) count += ring_has(i);
   for (int i = 0; i < R_COUNT; i++) {
+    if (!ring_has(i)) { show(ringBg[i], false); continue; }
+    show(ringBg[i], true);
     bool sel = i == ringSel;
     int sz = sel ? 54 : 44;
     lv_obj_set_size(ringBg[i], sz, sz);
-    float a = (-90 + i * 360.0f / (int)R_COUNT) * 3.14159265f / 180;
+    float a = (-90 + at++ * 360.0f / count) * 3.14159265f / 180;
     lv_obj_align(ringBg[i], LV_ALIGN_CENTER, (int)(RING_R * cosf(a)), (int)(RING_R * sinf(a)));
     uint32_t iconCol = C_SUB;
     if (i < 4 && care_need_due((Need)i)) iconCol = care_need_color((Need)i);
+    if (i == R_POSTURE && care_posture_due()) iconCol = care_posture_color();
     lv_obj_set_style_bg_color(ringBg[i], lv_color_hex(sel ? C_ACCENT : C_PILL), 0);
     lv_obj_set_style_image_recolor(ringImg[i], lv_color_hex(sel ? PET_BG : iconCol), 0);
     lv_image_set_scale(ringImg[i], sel ? 112 : 92);
@@ -230,6 +252,8 @@ static void ring_render() {
     case R_EYES:    snprintf(name, sizeof(name), "Eye break"); need_detail(NEED_EYES, det, sizeof(det)); break;
     case R_STRETCH: snprintf(name, sizeof(name), "Stretch"); need_detail(NEED_STRETCH, det, sizeof(det)); break;
     case R_MOVE:    snprintf(name, sizeof(name), "Move"); need_detail(NEED_MOVE, det, sizeof(det)); break;
+    case R_POSTURE: snprintf(name, sizeof(name), care_standing() ? "Sit down" : "Stand up"); posture_detail(det, sizeof(det));
+                    col = care_posture_color(); break;
     case R_PLAY:    snprintf(name, sizeof(name), "Play"); snprintf(det, sizeof(det), "catch the light at the top"); break;
     case R_STATS:   snprintf(name, sizeof(name), "Stats");
                     snprintf(det, sizeof(det), "level %d  " LV_SYMBOL_BULLET "  %d%% happy", care_level(), care_happiness()); break;
@@ -248,7 +272,9 @@ static void ring_render() {
   lv_obj_set_style_image_recolor(cIcon, lv_color_hex(col), 0);
   lv_label_set_text(cName, name);
   lv_label_set_text(cDetail, det);
-  led(RING_POSITION, C_ACCENT, (uint16_t)(ringSel * 1000 / R_COUNT));
+  int pos = 0, count2 = 0;
+  for (int i = 0; i < R_COUNT; i++) if (ring_has(i)) { if (i < ringSel) pos++; count2++; }
+  led(RING_POSITION, C_ACCENT, (uint16_t)(pos * 1000 / count2));
 }
 
 static void toast_clear() { toastUntil = 0; lv_obj_set_style_opa(toast, LV_OPA_TRANSP, 0); }
@@ -262,6 +288,7 @@ static void ring_show(bool on) {
   if (on) {
     int u = care_most_urgent();
     if (u >= 0) ringSel = u;
+    else if (care_posture_due()) ringSel = R_POSTURE;
     ringInput = millis();
     ring_render();
   }
@@ -467,6 +494,18 @@ static void ring_do(int i) {
     case R_EYES: act_start(A_EYES); break;
     case R_STRETCH: act_start(A_STRETCH); break;
     case R_MOVE: act_start(A_MOVE); break;
+    case R_POSTURE: {
+      bool wasDue = care_posture_due(), stand = !care_standing();
+      care_posture_set(stand);
+      ring_show(false);
+      if (wasDue) react(P_HAPPY, 2);
+      leds_flash(care_posture_color());
+      char b[48];
+      snprintf(b, sizeof(b), "%s: %s in %lu min", stand ? "Standing" : "Sitting", stand ? "sit" : "stand",
+               (unsigned long)(care_posture_interval_s() / 60));
+      say(b);
+      break;
+    }
     case R_PLAY: act_start(A_PLAY); break;
     case R_STATS: ring_show(false); stats_show(true); break;
     case R_BED:
@@ -540,6 +579,8 @@ static void status_render() {
   } else if (u >= 0) {
     snprintf(buf, sizeof(buf), "%s is due", care_need_name((Need)u));
     st_set(stNext, buf, care_need_color((Need)u));
+  } else if (care_posture_due()) {
+    st_set(stNext, care_standing() ? "Time to sit down" : "Time to stand up", care_posture_color());
   } else {
     int best = -1; uint32_t left = 0;
     for (int i = 0; i < NEED_COUNT; i++) {
@@ -547,9 +588,13 @@ static void status_render() {
       uint32_t l = care_need_left_s((Need)i);
       if (best < 0 || l < left) { best = i; left = l; }
     }
+    const char *what = best >= 0 ? care_need_name((Need)best) : nullptr;
+    if (care_posture_on() && (best < 0 || care_posture_left_s() < left)) {
+      what = care_standing() ? "Sit" : "Stand"; left = care_posture_left_s(); best = 0;
+    }
     if (best < 0) { st_set(stNext, nullptr, 0); return; }
-    if (left >= 3600) snprintf(buf, sizeof(buf), "%s in %luh %02lum", care_need_name((Need)best), (unsigned long)(left / 3600), (unsigned long)(left / 60 % 60));
-    else snprintf(buf, sizeof(buf), "%s in %lu min", care_need_name((Need)best), (unsigned long)((left + 59) / 60));
+    if (left >= 3600) snprintf(buf, sizeof(buf), "%s in %luh %02lum", what, (unsigned long)(left / 3600), (unsigned long)(left / 60 % 60));
+    else snprintf(buf, sizeof(buf), "%s in %lu min", what, (unsigned long)((left + 59) / 60));
     st_set(stNext, buf, C_DIM);
   }
 }
@@ -756,6 +801,7 @@ void pet_input(InputEvent e) {
       int u = care_paused() || care_mood() == MOOD_ASLEEP ? -1 : care_most_urgent();
       static const RingItem FOR_NEED[NEED_COUNT] = { R_WATER, R_EYES, R_STRETCH, R_MOVE };
       if (u >= 0) ring_do(FOR_NEED[u]);
+      else if (care_posture_due() && care_mood() != MOOD_ASLEEP && !care_paused()) ring_do(R_POSTURE);
       else pat();
       return;
     }
@@ -772,7 +818,7 @@ void pet_input(InputEvent e) {
   }
   if (ringOn) {
     if (e == IN_CW || e == IN_CCW) {
-      ringSel = (ringSel + (e == IN_CW ? 1 : R_COUNT - 1)) % R_COUNT;
+      ringSel = ring_step(ringSel, e == IN_CW ? 1 : -1);
       ringInput = now;
       ring_render();
     } else if (e == IN_PRESS) ring_do(ringSel);
@@ -803,6 +849,10 @@ void pet_tick() {
       char b[40];
       snprintf(b, sizeof(b), "Time for %s", u == NEED_EYES ? "an eye break" : u == NEED_WATER ? "water" : u == NEED_STRETCH ? "a stretch" : "a walk");
       say(b, 6000);
+    } else if (care_posture_due() && care_mood() != MOOD_ASLEEP && !act) {
+      cueUntil = now + 60000;
+      leds_flash(care_posture_color());
+      say(care_standing() ? "Time to sit down" : "Time to stand up", 6000);
     }
   }
 
@@ -841,6 +891,8 @@ void pet_tick() {
   if (!act && !statsOn && !ringOn) {
     e = POSES[p].emote;
     if (p == P_HAPPY && now >= reactionUntil) e = nullptr;   // the heart means "you just did something"
+    // nothing else wanted, but it's time to switch between sitting and standing
+    if (now >= reactionUntil && m != MOOD_ASLEEP && care_most_urgent() < 0 && care_posture_due()) e = &emote_posture;
   }
   set_emote(e);
 
@@ -856,6 +908,7 @@ void pet_tick() {
     if (m == MOOD_ASLEEP) led(RING_OFF, 0);
     else if (m == MOOD_MAD) led(RING_BREATHE, 0xff4040, 0, 900);
     else if (u >= 0) led(RING_BREATHE, care_need_color((Need)u), 0, care_need_overdue_s((Need)u) > 600 ? 1300 : 2200);
+    else if (care_posture_due()) led(RING_BREATHE, care_posture_color(), 0, 2200);
     else if (dim) led(RING_BREATHE, TH_LED_NIGHT, 0, 7000);
     else led(RING_BREATHE, TH_LED_IDLE, 0, 4000);
   }

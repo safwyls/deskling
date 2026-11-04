@@ -5,7 +5,7 @@
 // erased board, or after Settings > Reset settings, so leaving them empty is fine.
 #pragma once
 
-#define FW_VERSION "5.17"
+#define FW_VERSION "5.18"
 
 // Which pet this firmware is (set per build environment in platformio.ini)
 #ifndef PET_ID
@@ -39,6 +39,10 @@
 #define DEFAULT_REMIND_EYES    20     // the 20-20-20 rule: every 20 min, look 20 ft away for 20 s
 #define DEFAULT_REMIND_STRETCH 50
 #define DEFAULT_REMIND_MOVE    60
+// Sit/stand alternation (optional, off until turned on): minutes in each before a nudge to switch
+#define DEFAULT_POSTURE_ON     0
+#define DEFAULT_SIT_MIN        45
+#define DEFAULT_STAND_MIN      15
 // Active hours, local time (24 h). Outside them Wisp sleeps and nothing counts down. Same value = always.
 #define DEFAULT_HOUR_START 8
 #define DEFAULT_HOUR_END   20

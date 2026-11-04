@@ -171,6 +171,13 @@ static void put_state(JsonObject o) {
   }
   o["day"] = care_today_date();
   o["steps"] = care_steps_today();
+  JsonObject ps = o["posture"].to<JsonObject>();
+  ps["on"] = care_posture_on();
+  ps["standing"] = care_standing();
+  ps["elapsed"] = care_posture_elapsed_s();
+  ps["interval"] = care_posture_interval_s();
+  ps["due"] = care_posture_due();
+  ps["stands"] = care_stands_today();
   JsonObject w = o["wifi"].to<JsonObject>();
   bool up = WiFi.status() == WL_CONNECTED;
   w["up"] = up;
@@ -191,6 +198,7 @@ static void put_settings(JsonObject o) {
   o["showDate"] = s.show_date; o["showStatus"] = s.show_status; o["showNext"] = s.show_next;
   o["bright"] = s.bright; o["ledBright"] = s.led_bright; o["napMin"] = s.nap_min;
   o["encInvert"] = s.enc_invert; o["ledOffset"] = s.led_offset;
+  o["postureOn"] = s.posture_on; o["sitMin"] = s.sit_min; o["standMin"] = s.stand_min;
   o["ssid"] = s.ssid;
   JsonArray tz = o["tzNames"].to<JsonArray>();
   for (int i = 0; i < care_tz_count(); i++) tz.add(care_tz_name(i));
@@ -218,6 +226,9 @@ static void apply_set(JsonObjectConst in) {
   if (in["napMin"].is<int>()) s.nap_min = constrain(in["napMin"].as<int>(), 0, 60);
   if (in["encInvert"].is<bool>()) s.enc_invert = in["encInvert"];
   if (in["ledOffset"].is<int>()) s.led_offset = constrain(in["ledOffset"].as<int>(), -16, 16);
+  if (in["postureOn"].is<bool>()) s.posture_on = in["postureOn"];
+  if (in["sitMin"].is<int>()) s.sit_min = constrain(in["sitMin"].as<int>(), 15, 120);
+  if (in["standMin"].is<int>()) s.stand_min = constrain(in["standMin"].as<int>(), 5, 90);
   settings_put(s);
   backlight(s.bright);
 }
@@ -281,6 +292,7 @@ static void handle(Req *r) {
     else if (!strcmp(op, "played")) { care_played(in["hits"] | 0, in["rounds"] | 5); put_state(out); }
     else if (!strcmp(op, "pause")) { care_pause(in["minutes"] | 0); put_state(out); }
     else if (!strcmp(op, "bedtime")) { care_set_bedtime(in["on"] | false); put_state(out); }
+    else if (!strcmp(op, "posture")) { care_posture_set(in["standing"] | false); put_state(out); }
     else if (!strcmp(op, "steps")) { care_set_steps(in["day"] | 0, in["count"] | 0u); out["steps"] = care_steps_today(); }
     else if (!strcmp(op, "scan")) { net_scan(); }
     else if (!strcmp(op, "nets")) {
