@@ -45,6 +45,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.deskling.data.Pet
 import app.deskling.data.NotifyMode
 import app.deskling.steps.Steps
 import app.deskling.sync.FoundDial
@@ -71,7 +72,7 @@ fun SettingsScreen(app: AppState) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
         Header("Dial")
         if (dial == null) {
-            Text("Pair the app with your Deskling to share one Wisp: breaks you log on either count on both.", color = Dim, fontSize = 14.sp)
+            Text("Pair the app with your Deskling to share one pet: breaks you log on either count on both.", color = Dim, fontSize = 14.sp)
             Spacer(Modifier.height(8.dp))
             Button(onClick = { pairing = true }) { Text("Pair a dial") }
         } else {
@@ -88,7 +89,7 @@ fun SettingsScreen(app: AppState) {
         }
         AppSettings(app)
         Header("About")
-        Text("Deskling 1.2  •  Wisp and the care game, shared with your dial over Bluetooth or Wi-Fi.", color = Dim, fontSize = 13.sp)
+        Text("Deskling 1.3  •  ${app.store.pet.title} and the care game, shared with your dial over Bluetooth or Wi-Fi.", color = Dim, fontSize = 13.sp)
         Spacer(Modifier.height(24.dp))
     }
 }
@@ -196,6 +197,8 @@ private fun AppSettings(app: AppState) {
     }
     val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { s.changed() }
     Header("This phone")
+    if (s.dial == null) Choice("Pet", Pet.entries.map { it.title }, s.pet.ordinal) { s.pet = Pet.entries[it] }
+    else Item("Pet", "${s.pet.title}: the paired dial's firmware decides")
     Choice("Reminders on the phone", NotifyMode.entries.map { it.title }, s.notifyMode.ordinal) { s.notifyMode = NotifyMode.entries[it] }
     SliderRow("A walk is", s.walkSteps, 100..1000, { "$it steps in 10 min" }) { s.walkSteps = (it / 50) * 50 }
     SliderRow("Daily step goal", s.stepGoal, 2000..20000, { "%,d".format(it) }) { s.stepGoal = (it / 500) * 500 }

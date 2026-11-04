@@ -5,7 +5,8 @@ The app gets the clips' own WebP frames (about twice the dial's resolution) and,
 the same layout data the dial uses: face anchor, ground line, per-frame lowest point (for the shadow),
 back-and-forth flag, and the per-frame bubble offsets computed by make_assets.face_track, scaled up.
 
-usage: python3 tools/export_app_assets.py OUT_DIR name=path/to/loop.js ...
+usage: python3 tools/export_app_assets.py [--gap N] OUT_DIR name=path/to/loop.js ...
+--gap is the shadow gap, as for make_assets.py (0 for Crumb).
 """
 import sys, os, json, base64, io
 from PIL import Image
@@ -40,9 +41,12 @@ def export(out_dir, name, path):
     return sum(os.path.getsize(os.path.join(d, f)) for f in os.listdir(d))
 
 if __name__ == '__main__':
-    out = sys.argv[1]
+    args = sys.argv[1:]
+    if '--gap' in args:
+        i = args.index('--gap'); MA.GAP = int(args[i + 1]); del args[i:i + 2]
+    out = args[0]
     tot = 0
-    for a in sys.argv[2:]:
+    for a in args[1:]:
         n, p = a.split('=', 1)
         sz = export(out, n, p); tot += sz
         print(f'{n}: {sz / 1024:.0f} KB')

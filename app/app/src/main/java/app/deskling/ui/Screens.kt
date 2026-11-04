@@ -82,18 +82,20 @@ import kotlin.math.min
 import kotlin.math.sin
 
 enum class Tab(val title: String, val icon: ImageVector) {
-    WISP("Wisp", Icons.Filled.Pets), STATS("Stats", Icons.Filled.Insights), SETTINGS("Settings", Icons.Filled.Settings)
+    WISP("Pet", Icons.Filled.Pets), STATS("Stats", Icons.Filled.Insights), SETTINGS("Settings", Icons.Filled.Settings)
 }
 
 @Composable
 fun MainUi(app: AppState) {
     var tab by remember { mutableStateOf(Tab.WISP) }
+    val v by app.store.version.collectAsState()          // the pet's name is on the first tab
+    val petName = remember(v) { app.store.pet.title }
     Scaffold(
         containerColor = Bg,
         bottomBar = {
             if (app.activity == null) NavigationBar(containerColor = Panel) {
                 for (t in Tab.entries) NavigationBarItem(selected = tab == t, onClick = { tab = t },
-                    icon = { Icon(t.icon, null) }, label = { Text(t.title) })
+                    icon = { Icon(t.icon, null) }, label = { Text(if (t == Tab.WISP) petName else t.title) })
             }
         },
     ) { pad ->
@@ -133,8 +135,8 @@ fun WispScreen(app: AppState) {
         val hint = when {
             mood == Mood.ASLEEP -> if (e.st.bedtime) "Asleep: bedtime" else "Asleep until ${e.config.hourStart}:00"
             e.paused(now) -> "Paused, ${mmss((e.st.pauseUntil - now) / 1000)} left"
-            urgent != null -> "${urgent.title} is due: tap Wisp"
-            else -> "Tap Wisp for a pat"
+            urgent != null -> "${urgent.title} is due: tap ${app.store.pet.title}"
+            else -> "Tap ${app.store.pet.title} for a pat"
         }
         Text(hint, color = Dim, fontSize = 14.sp)
         Spacer(Modifier.height(12.dp))
@@ -235,7 +237,7 @@ fun ActivityScreen(app: AppState, a: Activity) {
         if (a == Activity.STRETCH && el >= STRETCH_MS) { app.stop(); app.done(Need.STRETCH, "Nice stretch") }
     }
     Column(Modifier.fillMaxSize().padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(a.title, color = TextC, fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
+        Text(if (a == Activity.STRETCH) "Stretch with ${app.store.pet.title}" else a.title, color = TextC, fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
         if (a == Activity.PLAY) { CatchGame(app); return@Column }
         val prompt = when (a) {
             Activity.EYES -> "Look at something 20 feet away"
@@ -347,7 +349,7 @@ private fun GrowthBlock(app: AppState) {
     Meter(into.toFloat() / need, Accent)
     Spacer(Modifier.height(18.dp))
     Row(verticalAlignment = Alignment.Bottom) {
-        Text("Wisp is ${e.mood(app.now).title.lowercase()}", color = TextC, fontSize = 16.sp, modifier = Modifier.weight(1f))
+        Text("${app.store.pet.title} is ${e.mood(app.now).title.lowercase()}", color = TextC, fontSize = 16.sp, modifier = Modifier.weight(1f))
         Text("${e.happiness()}% happy", color = Dim, fontSize = 13.sp)
     }
     Spacer(Modifier.height(8.dp))

@@ -6,13 +6,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.test.captureToImage
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.core.app.ApplicationProvider
 import app.deskling.care.Need
 import app.deskling.data.DialInfo
+import app.deskling.data.Pet
 import app.deskling.data.Store
 import org.json.JSONArray
 import org.json.JSONObject
@@ -27,9 +29,9 @@ import java.io.File
 /** Renders the real screens on the JVM (Robolectric's native graphics) to build/shots/, to look at without a phone. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [34], qualifiers = "w400dp-h860dp-xxhdpi")
+@Config(sdk = [34], qualifiers = "w400dp-h860dp-xxhdpi", application = android.app.Application::class)
 class ScreensRenderTest {
-    @get:Rule val compose = createComposeRule()
+    @get:Rule val compose = createAndroidComposeRule<androidx.activity.ComponentActivity>()
 
     private fun shot(name: String) {
         compose.mainClock.advanceTimeBy(1500)
@@ -37,7 +39,20 @@ class ScreensRenderTest {
         Thread.sleep(400)                                // the loop's frames decode off the main thread
         compose.mainClock.advanceTimeBy(500)
         val dir = File("build/shots").apply { mkdirs() }
-        File(dir, "$name.png").outputStream().use { compose.onRoot().captureToImage().asAndroidBitmap().compress(Bitmap.CompressFormat.PNG, 100, it) }
+        // draw the window ourselves: captureToImage waits for a frame that a paused test clock never delivers
+        val v = compose.activity.window.decorView
+        val bmp = Bitmap.createBitmap(v.width, v.height, Bitmap.Config.ARGB_8888)
+        compose.runOnUiThread { v.draw(android.graphics.Canvas(bmp)) }
+        File(dir, "$name.png").outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
+    }
+
+    /** Click a text, then let the screen settle (the clock is paused, so nothing moves on by itself). */
+    private fun tap(text: String, scroll: Boolean = false) {
+        compose.mainClock.advanceTimeBy(300)
+        val n = compose.onNodeWithText(text)
+        (if (scroll) n.performScrollTo() else n).performClick()
+        compose.mainClock.advanceTimeBy(600)
+        compose.waitForIdle()
     }
 
     @Test fun screens() {
@@ -76,17 +91,23 @@ class ScreensRenderTest {
             }
         }
         shot("1_wisp")
-        compose.onNodeWithText("Stats").performClick(); shot("2_stats")
-        compose.onNodeWithText("Settings").performClick(); shot("3_settings")
-        compose.onNodeWithText("Wisp").performClick()
-        compose.onNodeWithText("Eyes").performClick(); shot("5_eye_break")
-        compose.onNodeWithText("Stop").performClick()
+        tap("Stats"); shot("2_stats")
+        tap("Settings"); shot("3_settings")
+        tap("Wisp"); shot("3b_back")
+        tap("Eyes", scroll = true); shot("5_eye_break")
+        tap("Stop")
         // a phone with one day of steps, as on a fresh install
         s.stepsHistory = JSONObject().put(s.engine.dateOf(now).toString(), 995); s.stepsToday = 995
         s.engine.st.today.fill(0); s.engine.st.today[Need.WATER.ordinal] = 1; s.engine.st.streak = 0; s.saveCare()
-        compose.onNodeWithText("Stats").performClick(); shot("6_stats_fresh")
-        compose.onNodeWithText("Settings").performClick()
-        compose.onNodeWithText("Forget this dial").performClick()
-        compose.onNodeWithText("Pair a dial").performClick(); shot("4_pair")
+        tap("Stats"); shot("6_stats_fresh")
+        tap("Settings")
+        tap("Forget this dial", scroll = true)
+        tap("Pair a dial", scroll = true); shot("4_pair")
+        tap("Cancel", scroll = true)
+        // no dial: the app's own pet choice applies
+        s.pet = Pet.CRUMB
+        s.engine.st.today[Need.WATER.ordinal] = 3; s.engine.st.elapsed[Need.WATER.ordinal] = 0; s.saveCare()
+        tap("Crumb"); shot("7_crumb")
+        s.engine.st.elapsed[Need.WATER.ordinal] = 60 * 60; s.saveCare(); compose.mainClock.advanceTimeBy(2000); shot("8_crumb_thirsty")
     }
 }

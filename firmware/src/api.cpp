@@ -146,6 +146,7 @@ static int need_of(JsonVariantConst v) {
 
 static void put_state(JsonObject o) {
   o["time"] = (uint32_t)(care_clock_valid() ? time(nullptr) : 0);
+  o["pet"] = PET_ID;
   o["mood"] = care_mood_name(care_mood());
   o["happy"] = care_happiness();
   o["xp"] = care_xp();
@@ -243,6 +244,7 @@ static void handle(Req *r) {
       char h[33]; hex(p.key, 16, h);
       out["key"] = h;
       out["name"] = dialName;
+      out["pet"] = PET_ID;
       strlcpy(lastPaired, p.name, sizeof(lastPaired));
       pairOpen = false;
       r->authed = true;
@@ -252,6 +254,7 @@ static void handle(Req *r) {
       r->authed = true;
       out["name"] = dialName;
       out["fw"] = FW_VERSION;
+      out["pet"] = PET_ID;
       if (WiFi.status() == WL_CONNECTED) out["ip"] = WiFi.localIP().toString();
     } else { out["ok"] = false; out["err"] = "unknown key: pair again"; }
   } else if (!r->authed) {

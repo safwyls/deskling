@@ -25,6 +25,8 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import app.deskling.care.Mood
 import app.deskling.care.Need
+import app.deskling.data.Pet
+import app.deskling.data.Store
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -37,7 +39,7 @@ enum class Loop(val dir: String) {
     THIRSTY("thirsty"), TIRED("tired"), STRETCH("stretch"), MOVE("move")
 }
 
-/** What Wisp shows: a loop and maybe a thought bubble (assets/emotes/<name>.png). */
+/** What the pet shows: a loop and maybe a thought bubble (assets/emotes/<name>.png). */
 data class Pose(val loop: Loop, val emote: String?)
 
 /** The same choices as the dial's pet screen. The happy heart only shows right after a pat or a break. */
@@ -63,10 +65,11 @@ class LoopData(val meta: JSONObject, val frames: List<ImageBitmap>) {
     fun arr(key: String, i: Int) = meta.optJSONArray(key)?.optDouble(i)?.toFloat() ?: 0f
 
     companion object {
-        suspend fun load(ctx: Context, loop: Loop): LoopData = withContext(Dispatchers.IO) {
-            val meta = JSONObject(ctx.assets.open("wisp/${loop.dir}/meta.json").bufferedReader().readText())
+        suspend fun load(ctx: Context, pet: Pet, loop: Loop): LoopData = withContext(Dispatchers.IO) {
+            val dir = "pets/${pet.id}/${loop.dir}"
+            val meta = JSONObject(ctx.assets.open("$dir/meta.json").bufferedReader().readText())
             val frames = (0 until meta.getInt("count")).map { i ->
-                ctx.assets.open("wisp/${loop.dir}/%03d.webp".format(i)).use { BitmapFactory.decodeStream(it).asImageBitmap() }
+                ctx.assets.open("$dir/%03d.webp".format(i)).use { BitmapFactory.decodeStream(it).asImageBitmap() }
             }
             LoopData(meta, frames)
         }
@@ -86,11 +89,12 @@ private object EmoteCache {
 @Composable
 fun WispView(pose: Pose, modifier: Modifier = Modifier, onTap: (() -> Unit)? = null) {
     val ctx = LocalContext.current
-    // keep showing the old loop until the new one has loaded, so a pose change never blanks Wisp
+    val pet = Store.get(ctx).pet
+    // keep showing the old loop until the new one has loaded, so a pose change never blanks the pet
     var data by remember { mutableStateOf<LoopData?>(null) }
-    LaunchedEffect(pose.loop) { data = LoopData.load(ctx, pose.loop) }
+    LaunchedEffect(pet, pose.loop) { data = LoopData.load(ctx, pet, pose.loop) }
     val emote = remember(pose.emote) { pose.emote?.let { EmoteCache.get(ctx, it) } }
-    var frame by remember(pose.loop) { mutableIntStateOf(0) }
+    var frame by remember(pet, pose.loop) { mutableIntStateOf(0) }
     LaunchedEffect(data) {
         val d = data ?: return@LaunchedEffect
         var dir = 1

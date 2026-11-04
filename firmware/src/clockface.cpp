@@ -1,4 +1,5 @@
 #include "clockface.h"
+#include "config.h"
 #include "clock_digits.h"
 #include "care.h"
 #include <math.h>
@@ -7,8 +8,8 @@
 
 static const char *const NAMES[CS_COUNT] = { "Classic", "Big", "Split", "Analog", "Rim", "Words" };
 static const char *const NOTES[CS_COUNT] = {
-  "small, at the top", "heavy digits, Wisp floats in front", "hours and minutes either side",
-  "faint hands behind Wisp", "minutes around the edge", "quarter past nine",
+  "small, at the top", "heavy digits, " PET_NAME " in front", "hours and minutes either side",
+  "faint hands behind " PET_NAME, "minutes around the edge", "quarter past nine",
 };
 const char *clockface_style_name(int s) { return NAMES[s % CS_COUNT]; }
 int clockface_style_count() { return CS_COUNT; }

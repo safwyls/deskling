@@ -30,17 +30,17 @@ static const uint32_t RING_IDLE_MS = 6000;
 enum PoseId { P_CONTENT, P_HAPPY, P_THIRSTY, P_TIRED, P_STRETCH, P_MOVE, P_SAD, P_MAD, P_ASLEEP, P_DASH, P_BOUNCE, P_COUNT };
 struct Pose { const char *name; const PetAnim *anim; const PetAnim *fallback; const lv_image_dsc_t *emote; const char *use; };
 static const Pose POSES[P_COUNT] = {
-  { "Content",  &wisp_walk,     nullptr, &emote_content, "all needs met" },
-  { "Happy",    &wisp_happy,    nullptr, &emote_happy,   "very happy (no bubble), and after a break or a pat (heart)" },
-  { "Thirsty",  &wisp_thirsty,  nullptr, nullptr,        "water is due (the bubble is part of the clip)" },
-  { "Tired",    &wisp_tired,    nullptr, &emote_eyes,    "an eye break is due" },
-  { "Stretch",  &wisp_restless, nullptr, &emote_stretch, "a stretch is due" },
-  { "Move",     &wisp_move,     nullptr, &emote_move,    "time to get up and move" },
-  { "Sad",      &wisp_sad,      nullptr, &emote_sad,     "needs ignored for a while" },
-  { "Mad",      &wisp_mad,      nullptr, &emote_mad,     "needs ignored a long time" },
-  { "Asleep",   &wisp_sleep,    nullptr, &emote_asleep,  "night, bedtime, naps, eye breaks" },
-  { "Dashing",  &wisp_run,      nullptr, nullptr,        "playing, out on a walk" },
-  { "Bouncing", &wisp_jump,     nullptr, nullptr,        "celebrating, stretching" },
+  { "Content",  &pet_walk,     nullptr, &emote_content, "all needs met" },
+  { "Happy",    &pet_happy,    nullptr, &emote_happy,   "very happy (no bubble), and after a break or a pat (heart)" },
+  { "Thirsty",  &pet_thirsty,  nullptr, nullptr,        "water is due (the bubble is part of the clip)" },
+  { "Tired",    &pet_tired,    nullptr, &emote_eyes,    "an eye break is due" },
+  { "Stretch",  &pet_restless, nullptr, &emote_stretch, "a stretch is due" },
+  { "Move",     &pet_move,     nullptr, &emote_move,    "time to get up and move" },
+  { "Sad",      &pet_sad,      nullptr, &emote_sad,     "needs ignored for a while" },
+  { "Mad",      &pet_mad,      nullptr, &emote_mad,     "needs ignored a long time" },
+  { "Asleep",   &pet_sleep,    nullptr, &emote_asleep,  "night, bedtime, naps, eye breaks" },
+  { "Dashing",  &pet_run,      nullptr, nullptr,        "playing, out on a walk" },
+  { "Bouncing", &pet_jump,     nullptr, nullptr,        "celebrating, stretching" },
 };
 // restless is Stretch or Move, by whichever is more urgent (see pet_tick)
 static const PoseId MOOD_POSE[MOOD_COUNT] = { P_CONTENT, P_HAPPY, P_THIRSTY, P_TIRED, P_STRETCH, P_SAD, P_MAD, P_ASLEEP };
@@ -360,7 +360,7 @@ static void act_start(Act a) {
   switch (a) {
     case A_EYES:    lv_label_set_text(aTitle, "Eye break"); lv_label_set_text(aPrompt, "Look at something 20 feet away");
                     lv_obj_set_style_arc_color(aArc, lv_color_hex(care_need_color(NEED_EYES)), LV_PART_INDICATOR); break;
-    case A_STRETCH: lv_label_set_text(aTitle, "Stretch with Wisp"); lv_label_set_text(aPrompt, STRETCHES[0]);
+    case A_STRETCH: lv_label_set_text(aTitle, "Stretch with " PET_NAME); lv_label_set_text(aPrompt, STRETCHES[0]);
                     lv_obj_set_style_arc_color(aArc, lv_color_hex(care_need_color(NEED_STRETCH)), LV_PART_INDICATOR); break;
     case A_MOVE:    lv_label_set_text(aTitle, "Out for a walk"); lv_label_set_text(aPrompt, "Get up and move about"); break;
     case A_PLAY:    lv_label_set_text(aTitle, ""); gRound = 0; gHits = 0; gRoundStart = millis(); gPauseUntil = 0; break;
@@ -553,10 +553,10 @@ static void status_render() {
 
 // ============================================================ screen
 static void pat() {
-  if (care_mood() == MOOD_ASLEEP) { say("Shh, Wisp is asleep"); return; }
+  if (care_mood() == MOOD_ASLEEP) { say("Shh, " PET_NAME " is asleep"); return; }
   bool counted = care_pet();
   react(P_HAPPY, 2);
-  if (counted) say("Wisp likes that", 1500);
+  if (counted) say(PET_NAME " likes that", 1500);
 }
 
 void pet_create() {
@@ -661,7 +661,7 @@ void pet_create() {
   lv_arc_set_range(sLevelArc, 0, 100);
   lv_obj_center(sLevelArc);
   lv_obj_t *t = mk_label(statsLayer, &lv_font_montserrat_14, -132, 160, C_ACCENT);
-  lv_label_set_text(t, "Wisp");
+  lv_label_set_text(t, PET_NAME);
   sLevel = mk_label(statsLayer, &lv_font_montserrat_28, -104, 200, C_TEXT);
   sHappy = mk_label(statsLayer, &lv_font_montserrat_14, -70, 240, C_SUB);
   sHappyBar = lv_bar_create(statsLayer);

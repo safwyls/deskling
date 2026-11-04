@@ -496,7 +496,7 @@ static void save_ledbr(int v) { S.led_bright = v; save(); main_open(); }
 
 static void fmt_nap(int v, char *m, size_t mn, char *s, size_t sn) {
   if (v) snprintf(m, mn, "%d min", v); else snprintf(m, mn, "Never");
-  snprintf(s, sn, "Wisp naps and the screen dims after this long without input");
+  snprintf(s, sn, PET_NAME " naps and the screen dims after this long without input");
 }
 static void save_nap(int v) { S.nap_min = v; save(); main_open(); }
 
@@ -952,7 +952,7 @@ static void remind_row(int i, Row &r) {
   }
   switch (i) {
     case RM_START: snprintf(r.text, sizeof(r.text), LV_SYMBOL_BELL "  Active from");
-                   snprintf(r.detail, sizeof(r.detail), "%d:00" SEP "Wisp wakes up", S.hour_start); break;
+                   snprintf(r.detail, sizeof(r.detail), "%d:00" SEP PET_NAME " wakes up", S.hour_start); break;
     case RM_END:   snprintf(r.text, sizeof(r.text), LV_SYMBOL_BELL "  Active until");
                    snprintf(r.detail, sizeof(r.detail), "%d:00" SEP "then sleeps, no reminders", S.hour_end); break;
     case RM_TZ:    snprintf(r.text, sizeof(r.text), LV_SYMBOL_GPS "  Time zone");
@@ -967,7 +967,7 @@ static void remind_row(int i, Row &r) {
 static void fmt_every(int v, char *m, size_t mn, char *s, size_t sn) {
   if (v) snprintf(m, mn, "%d min", v); else snprintf(m, mn, "Off");
   static const char *const WHY[4] = { "a glass of water", "20 seconds looking far away", "a one-minute stretch", "a short walk" };
-  snprintf(s, sn, v ? "Wisp asks for %s this often" : "no reminder for %s", WHY[remIdx]);
+  snprintf(s, sn, v ? PET_NAME " asks for %s this often" : "no reminder for %s", WHY[remIdx]);
 }
 static void save_every(int v) { S.remind_min[remIdx] = v; save(); remind_open(); }
 
@@ -1168,7 +1168,7 @@ static void hub_row(int i, Row &r) {
       break;
     case HB_BACK:
       snprintf(r.text, sizeof(r.text), LV_SYMBOL_LEFT "  Back");
-      snprintf(r.detail, sizeof(r.detail), "to Wisp");
+      snprintf(r.detail, sizeof(r.detail), "to " PET_NAME);
       break;
   }
 }

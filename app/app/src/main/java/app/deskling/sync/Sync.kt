@@ -8,6 +8,7 @@ import android.net.NetworkCapabilities
 import android.os.Build
 import androidx.core.content.ContextCompat
 import app.deskling.data.DialInfo
+import app.deskling.data.Pet
 import app.deskling.data.Store
 import app.deskling.steps.Steps
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -88,6 +89,7 @@ object Sync {
             if (st.optBoolean("ok")) {
                 store.engine.applyDialState(st)
                 store.dialState = st
+                Pet.of(st.optString("pet"))?.let { store.pet = it }   // older firmware doesn't say: it's Wisp then
                 st.optJSONObject("wifi")?.let { w ->
                     val ip = w.optString("ip")
                     if (w.optBoolean("up") && ip.isNotBlank() && ip != d.ip) store.dial = (store.dial ?: d).copy(ip = ip)

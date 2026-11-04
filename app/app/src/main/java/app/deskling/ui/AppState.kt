@@ -37,7 +37,7 @@ fun DesklingTheme(content: @Composable () -> Unit) {
     )
 }
 
-enum class Activity(val title: String) { EYES("Eye break"), STRETCH("Stretch with Wisp"), MOVE("Out for a walk"), PLAY("Catch") }
+enum class Activity(val title: String) { EYES("Eye break"), STRETCH("Stretch"), MOVE("Out for a walk"), PLAY("Catch") }
 
 /** What the screens share: the clock, Wisp's reactions and toasts, and the activity in progress. */
 class AppState(val ctx: Context, val scope: CoroutineScope) {
@@ -85,11 +85,11 @@ class AppState(val ctx: Context, val scope: CoroutineScope) {
             Need.STRETCH -> start(Activity.STRETCH)
             Need.MOVE -> start(Activity.MOVE)
             null -> {
-                if (e.mood(now) == app.deskling.care.Mood.ASLEEP) { say("Shh, Wisp is asleep"); return }
+                if (e.mood(now) == app.deskling.care.Mood.ASLEEP) { say("Shh, ${store.pet.title} is asleep"); return }
                 if (e.pet(now)) {
                     store.queue(JSONObject().put("op", "pet"))
                     store.saveCare()
-                    say("Wisp likes that", 1500)
+                    say("${store.pet.title} likes that", 1500)
                 }
                 react(2)
             }

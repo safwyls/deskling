@@ -38,7 +38,7 @@ import java.util.concurrent.TimeUnit
 object Reminders {
     private const val CHANNEL = "reminders"
     private val PROMPT = mapOf(
-        Need.WATER to "Wisp is thirsty: time for some water",
+        Need.WATER to "%s is thirsty: time for some water",
         Need.EYES to "Time for an eye break: look 20 feet away for 20 seconds",
         Need.STRETCH to "Time to stretch",
         Need.MOVE to "Time to get up and move",
@@ -78,7 +78,7 @@ object Reminders {
             val b = NotificationCompat.Builder(ctx, CHANNEL)
                 .setSmallIcon(R.drawable.ic_wisp)
                 .setContentTitle(n.title)
-                .setContentText(PROMPT[n])
+                .setContentText(PROMPT[n]?.format(Store.get(ctx).pet.title))
                 .setColor(n.color.toInt())
                 .setContentIntent(open)
                 .setAutoCancel(true)

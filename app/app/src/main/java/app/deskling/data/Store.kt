@@ -106,6 +106,10 @@ class Store private constructor(ctx: Context) {
         set(v) { p.edit().putLong("lastWalkCredit", v).apply() }
 
     // ---------- app preferences ----------
+    /** The pet: the paired dial's (set on every sync), or the one picked in Settings without a dial. */
+    var pet: Pet
+        get() = Pet.of(p.getString("pet", null)) ?: Pet.WISP
+        set(v) { if (v != pet) { p.edit().putString("pet", v.id).apply(); changed() } }
     var notifyMode: NotifyMode
         get() = NotifyMode.entries.getOrElse(p.getInt("notifyMode", 0)) { NotifyMode.AWAY }
         set(v) { p.edit().putInt("notifyMode", v.ordinal).apply(); changed() }

@@ -69,7 +69,7 @@ Everything is set on the device and kept in flash (NVS), so one build works for 
 - **When the partition table changes** (v5.7 grew the app partition from 10 to 14 MB): add `partitions.bin` at **0x8000** to the same flash as `firmware.bin` at 0x10000, without erasing. Settings are kept. An app bigger than the old partition doesn't boot until the new table is in.
 - **Crashes:** Settings > Last restart says why the dial last restarted. After a crash it shows a QR code with the crash report (reason, task, program counter, backtrace) saved in flash; decode the addresses with `xtensa-esp32s3-elf-addr2line -pfiaC -e firmware.elf ADDR...` using the `.elf` of the firmware that crashed (its first 8 hex digits are in the report as `dump=`).
 
-**Building:** open the folder in VS Code with the PlatformIO extension, or use the CLI: `pio run -t upload`, then `pio device monitor`. App logs go to the UART0 header pins at 115200; boot messages and crash dumps also appear on the USB-C port.
+**Building:** one firmware per pet. Open the folder in VS Code with the PlatformIO extension, or use the CLI: `pio run -e wisp -t upload` (or `-e crumb`), then `pio device monitor`. The environment sets the pet's name (`PET_NAME`, `PET_ID`) and compiles only that pet's frames from `src/anims/<pet>/`; the dial reports `pet` in the phone API's `hello` and `state` so the app shows the same one. App logs go to the UART0 header pins at 115200; boot messages and crash dumps also appear on the USB-C port.
 
 ### Build notes
 
@@ -94,24 +94,38 @@ ffmpeg -i clip.mp4 -vf scale=1024:-1 frames/f%04d.png
 python3 tools/process_clip.py frames loop_walk.js LOOP 0.2 --min 16 --max 60 --fps 12
 
 # 3. loop files -> LVGL C sources (8-bit indexed with a transparent palette; --rgb565 for the old opaque format)
-python3 tools/make_assets.py src/anims wisp_walk=loop_walk.js wisp_run=loop_run.js ...
+python3 tools/make_assets.py src/anims/wisp pet_walk=loop_walk.js pet_run=loop_run.js ...   # then drop the pet_ prefix from the file names
 ```
 
 The processed loops are kept in `assets/loops/`. Regenerating everything from them (run in `firmware/`):
 
 ```
 L=assets/loops
-python3 tools/make_assets.py src/anims wisp_walk=$L/wisp_loop.js wisp_run=$L/wisp_run.js wisp_jump=$L/wisp_jump.js \
-  wisp_sleep=$L/wisp_sleep.js wisp_happy=$L/happy.js wisp_sad=$L/sad.js wisp_mad=$L/mad.js wisp_thirsty=$L/thirsty.js \
-  wisp_tired=$L/tired.js wisp_restless=$L/restless.js wisp_move=$L/move.js
-python3 tools/export_app_assets.py ../app/app/src/main/assets/wisp walk=$L/wisp_loop.js run=$L/wisp_run.js \
+python3 tools/make_assets.py src/anims/wisp pet_walk=$L/wisp_loop.js pet_run=$L/wisp_run.js pet_jump=$L/wisp_jump.js \
+  pet_sleep=$L/wisp_sleep.js pet_happy=$L/happy.js pet_sad=$L/sad.js pet_mad=$L/mad.js pet_thirsty=$L/thirsty.js \
+  pet_tired=$L/tired.js pet_restless=$L/restless.js pet_move=$L/move.js
+(cd src/anims/wisp && for f in pet_*.c; do mv $f ${f#pet_}; done; rm -f *_preview.png)
+python3 tools/export_app_assets.py ../app/app/src/main/assets/pets/wisp walk=$L/wisp_loop.js run=$L/wisp_run.js \
   jump=$L/wisp_jump.js sleep=$L/wisp_sleep.js happy=$L/happy.js sad=$L/sad.js mad=$L/mad.js thirsty=$L/thirsty.js \
   tired=$L/tired.js stretch=$L/restless.js move=$L/move.js
 python3 tools/make_emotes.py src/emotes.c && python3 tools/make_emotes.py --app ../app/app/src/main/assets/emotes
 ```
 
+Crumb stands on the ground, so its shadow has no hover gap (`--gap 0`). Its Stretch and Move clips aren't made yet:
+`src/anims/crumb/stand_ins.cpp` points them at the jump and walk loops until they are.
+
+```
+C=assets/loops/crumb
+python3 tools/make_assets.py --gap 0 src/anims/crumb pet_walk=$C/idle.js pet_run=$C/walk.js pet_jump=$C/jump.js \
+  pet_sleep=$C/sleep.js pet_happy=$C/happy.js pet_sad=$C/sad.js pet_mad=$C/mad.js pet_thirsty=$C/thirsty.js pet_tired=$C/tired.js
+(cd src/anims/crumb && for f in pet_*.c; do mv $f ${f#pet_}; done; rm -f *_preview.png)
+python3 tools/export_app_assets.py --gap 0 ../app/app/src/main/assets/pets/crumb walk=$C/idle.js run=$C/walk.js \
+  jump=$C/jump.js sleep=$C/sleep.js happy=$C/happy.js sad=$C/sad.js mad=$C/mad.js thirsty=$C/thirsty.js \
+  tired=$C/tired.js stretch=$C/jump.js move=$C/walk.js
+```
+
 To add a loop:
-1. Declare it in `src/anims/anims.h`.
+1. Declare it in `src/anims/anims.h`, and give every pet's folder a `.c` (or a stand-in) for it.
 2. Put it in the first column of its row in the `POSES` table in `src/pet.cpp`, with its bubble (or `nullptr` if the clip draws its own, like Thirsty).
 
 `make_assets.py` also works out where the bubble goes in every frame: it follows the dark face mask (loosely for clips that move a lot, like Move), and lifts the bubble up and right in any frame where it would cover something Wisp draws. The positions are stored per frame (`hx`, `hy` in `PetAnim`).
@@ -132,7 +146,7 @@ Clips work best:
 
 On the device, every loop is stored as 8-bit indexed images with a transparent palette: one shared palette per loop, so colours don't flicker between frames. Measured on the walk loop: 39.8 dB PSNR against the original.
 - **Transparency** lets the clock sit behind Wisp.
-- **Size:** about half of RGB565. The firmware with all eleven loops is 11.8 MB of the 14 MB app space (80%).
+- **Size:** about half of RGB565. Wisp's firmware with all eleven loops is 11.9 MB of the 14 MB app space (81%); Crumb's is 8.4 MB.
 - **Decoding:** LVGL decodes each frame once into a 2 MB PSRAM cache (`LV_CACHE_DEF_SIZE`).
 - **Old format:** `make_assets.py --rgb565` still writes the old opaque frames.
 
