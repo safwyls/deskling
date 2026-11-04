@@ -125,7 +125,7 @@ fun WispView(pose: Pose, modifier: Modifier = Modifier, onTap: (() -> Unit)? = n
         val kk = max(0.45f, 1f - hgt / 160f)
         val sw = max(28f, 0.32f * devW) * kk
         val sh = sw * 0.17f
-        drawOval(Color(70, 105, 160, (110 * kk).toInt()), Offset((180f - sw) * u, (ground - sh) * u), Size(2 * sw * u, 2 * sh * u))
+        drawOval(Theme.palette.shadow.let { it.copy(alpha = it.alpha * kk) }, Offset((180f - sw) * u, (ground - sh) * u), Size(2 * sw * u, 2 * sh * u))
         drawImage(img, dstOffset = IntOffset((left * u).toInt(), (top * u).toInt()),
             dstSize = IntSize((img.width / k * u).toInt(), (img.height / k * u).toInt()))
         if (emote != null) {

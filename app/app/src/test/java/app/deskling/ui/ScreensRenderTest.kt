@@ -107,7 +107,9 @@ class ScreensRenderTest {
         // no dial: the app's own pet choice applies
         s.pet = Pet.CRUMB
         s.engine.st.today[Need.WATER.ordinal] = 3; s.engine.st.elapsed[Need.WATER.ordinal] = 0; s.saveCare()
-        tap("Crumb"); shot("7_crumb")
+        tap("Stats"); tap("Crumb"); shot("7_crumb")
         s.engine.st.elapsed[Need.WATER.ordinal] = 60 * 60; s.saveCare(); compose.mainClock.advanceTimeBy(2000); shot("8_crumb_thirsty")
+        tap("Stats"); shot("9_crumb_stats")
+        tap("Settings"); shot("10_crumb_settings")
     }
 }

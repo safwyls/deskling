@@ -7,7 +7,7 @@ take about half the flash of RGB565. Measured on the walk loop: 39.8 dB PSNR aga
 
 --rgb565 writes the old opaque frames (composited onto the background), drawn from flash without decoding.
 
-usage: python3 make_assets.py [--rgb565] [--gap N] OUT_DIR name=path/to/loop.js [name=path/to/loop.js ...]
+usage: python3 make_assets.py [--rgb565] [--gap N] [--shadow R,G,B,A] OUT_DIR name=path/to/loop.js [name=path/to/loop.js ...]
 The loop .js files are the ones produced for the rig page (const X = {...frames as webp data URIs...}).
 """
 import sys, json, base64, io, os
@@ -17,6 +17,8 @@ from PIL import Image, ImageDraw
 BG = (17, 26, 44)          # screen background, must match the firmware's PET_BG
 GAP = 12                    # px between the loop's lowest point and the shadow centre line: Wisp hovers.
                             # --gap N overrides it (0 for a pet that stands on the ground, like Crumb)
+SHADOW = (70, 105, 160, 110)  # ground shadow colour and its alpha at rest: a soft glow under Wisp.
+                            # --shadow R,G,B,A overrides it (Crumb: a dark patch of ground)
 
 def load(path):
     txt = open(path).read()
@@ -97,7 +99,7 @@ def build(name, L, indexed=True):
         k = max(0.45, 1 - hgt / 160)
         sw, sh = shw * k, shw * k * 0.17
         sh_layer = Image.new('RGBA', (W, H), (0, 0, 0, 0))
-        ImageDraw.Draw(sh_layer).ellipse((cx - sw, ground - sh, cx + sw, ground + sh), fill=(70, 105, 160, int(110 * k)))
+        ImageDraw.Draw(sh_layer).ellipse((cx - sw, ground - sh, cx + sw, ground + sh), fill=SHADOW[:3] + (int(SHADOW[3] * k),))
         c.alpha_composite(sh_layer)
         c.alpha_composite(f, (0, 0))
         out.append(c if indexed else c.convert('RGB'))
@@ -158,6 +160,8 @@ if __name__ == '__main__':
     args = [a for a in args if a != '--rgb565']
     if '--gap' in args:
         i = args.index('--gap'); GAP = int(args[i + 1]); del args[i:i + 2]
+    if '--shadow' in args:
+        i = args.index('--shadow'); SHADOW = tuple(int(v) for v in args[i + 1].split(',')); del args[i:i + 2]
     out_dir = args[0]; os.makedirs(out_dir, exist_ok=True)
     total = 0; names = []
     for arg in args[1:]:

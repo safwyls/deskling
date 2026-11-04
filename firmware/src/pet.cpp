@@ -20,8 +20,8 @@
 #include "clockface.h"
 #include <WiFi.h>
 
-static const uint32_t C_TEXT = 0xe8eef8, C_ACCENT = 0x9fd8f7, C_SUB = 0x8a94a8, C_DIM = 0x4a5468,
-                      C_OK = 0x5cf08a, C_BAD = 0xff6b6b, C_PILL = 0x1e2a42;
+static const uint32_t C_TEXT = TH_TEXT, C_ACCENT = TH_ACCENT, C_SUB = TH_SUB, C_DIM = TH_DIM,
+                      C_OK = 0x5cf08a, C_BAD = 0xff6b6b, C_PILL = TH_RAISED;
 static const int GROUND_Y = 272;        // where every loop's shadow sits
 static const uint32_t RING_IDLE_MS = 6000;
 
@@ -853,8 +853,8 @@ void pet_tick() {
     if (m == MOOD_ASLEEP) led(RING_OFF, 0);
     else if (m == MOOD_MAD) led(RING_BREATHE, 0xff4040, 0, 900);
     else if (u >= 0) led(RING_BREATHE, care_need_color((Need)u), 0, care_need_overdue_s((Need)u) > 600 ? 1300 : 2200);
-    else if (dim) led(RING_BREATHE, 0x2a4a8a, 0, 7000);
-    else led(RING_BREATHE, 0x4cc8ff, 0, 4000);
+    else if (dim) led(RING_BREATHE, TH_LED_NIGHT, 0, 7000);
+    else led(RING_BREATHE, TH_LED_IDLE, 0, 4000);
   }
 
   if (toastUntil && now > toastUntil) { toastUntil = 0; lv_obj_fade_out(toast, 400, 0); }

@@ -4,7 +4,8 @@
 #include "input.h"
 #include "anims/anims.h"
 
-#define PET_BG 0x111a2c   // must match BG in tools/make_assets.py
+#include "theme.h"
+#define PET_BG TH_BG       // the screen behind the pet (frames are transparent, so any colour works)
 
 void app_show_pet();
 void app_show_setup();

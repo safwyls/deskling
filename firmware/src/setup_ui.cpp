@@ -17,8 +17,8 @@
 #include "ble.h"
 #include <WiFi.h>
 
-static const uint32_t C_TEXT = 0xe8eef8, C_ACCENT = 0x9fd8f7, C_SUB = 0x8a94a8, C_DIM = 0x4a5468,
-                      C_OK = 0x5cf08a, C_BAD = 0xff6b6b, C_PILL = 0x1e2a42;
+static const uint32_t C_TEXT = TH_TEXT, C_ACCENT = TH_ACCENT, C_SUB = TH_SUB, C_DIM = TH_DIM,
+                      C_OK = 0x5cf08a, C_BAD = 0xff6b6b, C_PILL = TH_RAISED;
 static const uint32_t IDLE_BACK_MS = 180000;
 #define SEP "  " LV_SYMBOL_BULLET "  "
 

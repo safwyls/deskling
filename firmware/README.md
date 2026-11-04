@@ -69,7 +69,9 @@ Everything is set on the device and kept in flash (NVS), so one build works for 
 - **When the partition table changes** (v5.7 grew the app partition from 10 to 14 MB): add `partitions.bin` at **0x8000** to the same flash as `firmware.bin` at 0x10000, without erasing. Settings are kept. An app bigger than the old partition doesn't boot until the new table is in.
 - **Crashes:** Settings > Last restart says why the dial last restarted. After a crash it shows a QR code with the crash report (reason, task, program counter, backtrace) saved in flash; decode the addresses with `xtensa-esp32s3-elf-addr2line -pfiaC -e firmware.elf ADDR...` using the `.elf` of the firmware that crashed (its first 8 hex digits are in the report as `dump=`).
 
-**Building:** one firmware per pet. Open the folder in VS Code with the PlatformIO extension, or use the CLI: `pio run -e wisp -t upload` (or `-e crumb`), then `pio device monitor`. The environment sets the pet's name (`PET_NAME`, `PET_ID`) and compiles only that pet's frames from `src/anims/<pet>/`; the dial reports `pet` in the phone API's `hello` and `state` so the app shows the same one. App logs go to the UART0 header pins at 115200; boot messages and crash dumps also appear on the USB-C port.
+**Building:** one firmware per pet. Open the folder in VS Code with the PlatformIO extension, or use the CLI: `pio run -e wisp -t upload` (or `-e crumb`), then `pio device monitor`. The environment sets the pet's name (`PET_NAME`, `PET_ID`) and compiles only that pet's frames from `src/anims/<pet>/`; the dial reports `pet` in the phone API's `hello` and `state` so the app shows the same one.
+
+**Themes:** each pet has its own colours, in `include/theme.h`: Wisp's night sky (navy, ice blue) and Crumb's pond at dusk (moss, loam, shell amber, cream). They cover the screens, clock faces, LED ring at rest and the setup page (as CSS variables). The four need colours are shared. The app's matching palettes are in `ui/AppState.kt`. App logs go to the UART0 header pins at 115200; boot messages and crash dumps also appear on the USB-C port.
 
 ### Build notes
 
@@ -111,12 +113,12 @@ python3 tools/export_app_assets.py ../app/app/src/main/assets/pets/wisp walk=$L/
 python3 tools/make_emotes.py src/emotes.c && python3 tools/make_emotes.py --app ../app/app/src/main/assets/emotes
 ```
 
-Crumb stands on the ground, so its shadow has no hover gap (`--gap 0`). Its Stretch and Move clips aren't made yet:
+Crumb stands on the ground, so his shadow has no hover gap (`--gap 0`) and is a dark patch of ground rather than Wisp's blue glow (`--shadow`). Its Stretch and Move clips aren't made yet:
 `src/anims/crumb/stand_ins.cpp` points them at the jump and walk loops until they are.
 
 ```
 C=assets/loops/crumb
-python3 tools/make_assets.py --gap 0 src/anims/crumb pet_walk=$C/idle.js pet_run=$C/walk.js pet_jump=$C/jump.js \
+python3 tools/make_assets.py --gap 0 --shadow 4,9,5,150 src/anims/crumb pet_walk=$C/idle.js pet_run=$C/walk.js pet_jump=$C/jump.js \
   pet_sleep=$C/sleep.js pet_happy=$C/happy.js pet_sad=$C/sad.js pet_mad=$C/mad.js pet_thirsty=$C/thirsty.js pet_tired=$C/tired.js
 (cd src/anims/crumb && for f in pet_*.c; do mv $f ${f#pet_}; done; rm -f *_preview.png)
 python3 tools/export_app_assets.py --gap 0 ../app/app/src/main/assets/pets/crumb walk=$C/idle.js run=$C/walk.js \

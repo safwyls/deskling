@@ -1,5 +1,6 @@
 #include "clockface.h"
 #include "config.h"
+#include "theme.h"
 #include "clock_digits.h"
 #include "care.h"
 #include <math.h>
@@ -15,8 +16,8 @@ const char *clockface_style_name(int s) { return NAMES[s % CS_COUNT]; }
 int clockface_style_count() { return CS_COUNT; }
 const char *clockface_style_note(int s) { return NOTES[s % CS_COUNT]; }
 
-static const uint32_t COL_BIG = 0x27395c, COL_SPLIT = 0x34496f, COL_HAND = 0x2f4268, COL_TICK = 0x3a4e78,
-                      COL_RIM = 0x9fd8f7, COL_WORD = 0x3e5279, COL_WORD_HI = 0x6680b4, COL_CLASSIC = 0xe8eef8;
+static const uint32_t COL_BIG = TH_CLK_BIG, COL_SPLIT = TH_CLK_SPLIT, COL_HAND = TH_CLK_HAND, COL_TICK = TH_CLK_TICK,
+                      COL_RIM = TH_ACCENT, COL_WORD = TH_CLK_WORD, COL_WORD_HI = TH_CLK_WORDHI, COL_CLASSIC = TH_TEXT;
 
 struct ClockFace {
   lv_obj_t *layer;
@@ -173,7 +174,7 @@ void clockface_set(ClockFace *f, int style, int mode) {
   vis(f->w1, on && f->style == CS_WORDS);
   vis(f->w2, on && f->style == CS_WORDS);
   // the rim style keeps the small time at the top, a little quieter
-  lv_obj_set_style_text_color(f->small, lv_color_hex(f->style == CS_RIM ? 0x8a94a8 : COL_CLASSIC), 0);
+  lv_obj_set_style_text_color(f->small, lv_color_hex(f->style == CS_RIM ? TH_SUB : COL_CLASSIC), 0);
   clockface_update(f, true);
 }
 

@@ -6,6 +6,7 @@
 #include "net.h"
 #include "care.h"
 #include "api.h"
+#include "theme.h"
 #include <WiFi.h>
 #include <DNSServer.h>
 #include <esp_http_server.h>
@@ -149,25 +150,25 @@ static void url_decode(char *s) {
 }
 
 static const char HEAD[] = R"(<!doctype html><html><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1"><title>Deskling setup</title><style>
-body{font:16px system-ui,sans-serif;background:#111a2c;color:#e8eef8;margin:0;padding:24px;max-width:520px}
-h1{font-size:22px;margin:0 0 4px}h2{font-size:18px;margin:34px 0 0;padding-top:18px;border-top:1px solid #2a3a5a}
-p{color:#8a94a8;margin:4px 0 18px}label{display:block;margin:16px 0 6px;color:#9fd8f7}
-input,textarea,select{box-sizing:border-box;width:100%;padding:10px;border-radius:8px;border:1px solid #2a3a5a;
-background:#0b1220;color:#e8eef8;font:15px ui-monospace,monospace}textarea{height:150px}select{font:15px system-ui,sans-serif}
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Deskling setup</title><style>)" ":root{--bg:" TH_BG_CSS ";--panel:" TH_PANEL_CSS ";--raised:" TH_RAISED_CSS ";--line:" TH_LINE_CSS ";--row:" TH_ROW_CSS ";--accent:" TH_ACCENT_CSS ";--text:" TH_TEXT_CSS ";--sub:" TH_SUB_CSS ";--ok:" TH_OK_CSS ";--bad:" TH_BAD_CSS "}" R"(
+body{font:16px system-ui,sans-serif;background:var(--bg);color:var(--text);margin:0;padding:24px;max-width:520px}
+h1{font-size:22px;margin:0 0 4px}h2{font-size:18px;margin:34px 0 0;padding-top:18px;border-top:1px solid var(--line)}
+p{color:var(--sub);margin:4px 0 18px}label{display:block;margin:16px 0 6px;color:var(--accent)}
+input,textarea,select{box-sizing:border-box;width:100%;padding:10px;border-radius:8px;border:1px solid var(--line);
+background:var(--panel);color:var(--text);font:15px ui-monospace,monospace}textarea{height:150px}select{font:15px system-ui,sans-serif}
 input[type=range]{padding:0;border:0;background:none}input[type=checkbox]{width:auto;margin:0 8px 0 0;transform:scale(1.3)}
-button{margin-top:22px;width:100%;padding:12px;border:0;border-radius:8px;background:#9fd8f7;color:#111a2c;font-size:17px}
-small{color:#8a94a8}a{color:#9fd8f7}
-.box{border:1px solid #2a3a5a;border-radius:8px;background:#0b1220;margin-top:6px}
-.it{display:flex;align-items:center;gap:8px;padding:9px 10px;border-top:1px solid #1a2640}
+button{margin-top:22px;width:100%;padding:12px;border:0;border-radius:8px;background:var(--accent);color:var(--bg);font-size:17px}
+small{color:var(--sub)}a{color:var(--accent)}
+.box{border:1px solid var(--line);border-radius:8px;background:var(--panel);margin-top:6px}
+.it{display:flex;align-items:center;gap:8px;padding:9px 10px;border-top:1px solid var(--row)}
 .it:first-child{border-top:0}.it .n{flex:1;min-width:0}.it .n b{display:block;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.it .n i{display:block;font:12px ui-monospace,monospace;color:#8a94a8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.it button{margin:0;width:auto;padding:6px 10px;font-size:15px;background:#1e2a42;color:#e8eef8}
-.it button.add{background:#9fd8f7;color:#111a2c}.list{max-height:340px;overflow:auto}
-.net{cursor:pointer}.net.on{background:#1e2a42}.net.on b{color:#9fd8f7}
-.row{display:flex;gap:10px;align-items:center}.row>*{flex:1}.chk{display:flex;align-items:center;margin:12px 0;color:#e8eef8}
-.msg{margin-top:10px;color:#8a94a8;min-height:1.2em}.msg.ok{color:#7ee0a0}.msg.bad{color:#ff8f8f}
-#status{color:#8a94a8;padding:10px}.empty{color:#8a94a8;padding:10px}</style></head><body>)";
+.it .n i{display:block;font:12px ui-monospace,monospace;color:var(--sub);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.it button{margin:0;width:auto;padding:6px 10px;font-size:15px;background:var(--raised);color:var(--text)}
+.it button.add{background:var(--accent);color:var(--bg)}.list{max-height:340px;overflow:auto}
+.net{cursor:pointer}.net.on{background:var(--raised)}.net.on b{color:var(--accent)}
+.row{display:flex;gap:10px;align-items:center}.row>*{flex:1}.chk{display:flex;align-items:center;margin:12px 0;color:var(--text)}
+.msg{margin-top:10px;color:var(--sub);min-height:1.2em}.msg.ok{color:var(--ok)}.msg.bad{color:var(--bad)}
+#status{color:var(--sub);padding:10px}.empty{color:var(--sub);padding:10px}</style></head><body>)";
 
 
 // One request per connection. On the setup network every name resolves to the dial, so the phone's
@@ -185,7 +186,7 @@ static esp_err_t closed_page(httpd_req_t *req) {
   httpd_resp_set_status(req, "403 Forbidden");
   httpd_resp_set_type(req, "text/html; charset=utf-8");
   return httpd_resp_sendstr(req, "<!doctype html><meta name=viewport content='width=device-width'>"
-                                 "<body style='font:16px system-ui;background:#111a2c;color:#e8eef8;padding:24px'>"
+                                 "<body style='font:16px system-ui;background:" TH_BG_CSS ";color:" TH_TEXT_CSS ";padding:24px'>"
                                  "<h2>Deskling</h2><p>Open <b>Settings &gt; Set up from phone</b> on the dial first.</p>");
 }
 #define SETUP_ONLY() do { if (!setupOn) return closed_page(req); } while (0)

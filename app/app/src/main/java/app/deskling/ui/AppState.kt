@@ -8,7 +8,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import android.graphics.drawable.ColorDrawable
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
+import app.deskling.data.Pet
 import app.deskling.care.Need
 import app.deskling.data.Store
 import app.deskling.sync.Sync
@@ -16,22 +24,49 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 
-// the dial's palette
-val Bg = Color(0xFF111A2C)
-val Panel = Color(0xFF0B1220)
-val Line = Color(0xFF2A3A5A)
-val Accent = Color(0xFF9FD8F7)
-val TextC = Color(0xFFE8EEF8)
-val Dim = Color(0xFF8A94A8)
-val Ok = Color(0xFF7EE0A0)
-val Bad = Color(0xFFFF8F8F)
+/** One palette per pet, the same as the dial's (firmware include/theme.h). */
+class Palette(val bg: Color, val panel: Color, val raised: Color, val line: Color, val accent: Color, val text: Color,
+              val dim: Color, val ok: Color, val bad: Color, val shadow: Color)
+
+/** Wisp: night sky. Navy and ice blue; the shadow is a soft glow. */
+val WispPalette = Palette(Color(0xFF111A2C), Color(0xFF0B1220), Color(0xFF1E2A42), Color(0xFF2A3A5A), Color(0xFF9FD8F7),
+    Color(0xFFE8EEF8), Color(0xFF8A94A8), Color(0xFF7EE0A0), Color(0xFFFF8F8F), Color(70, 105, 160, 110))
+/** Crumb: a pond at dusk. Moss and loam, the amber of his shell, the cream of his face; a shadow on the ground. */
+val CrumbPalette = Palette(Color(0xFF1A2C20), Color(0xFF101B13), Color(0xFF26392D), Color(0xFF3A5644), Color(0xFFF3B54A),
+    Color(0xFFF2ECDA), Color(0xFF9AA88F), Color(0xFF9ED98A), Color(0xFFFF9A85), Color(4, 9, 5, 150))
+
+fun paletteOf(pet: Pet) = when (pet) { Pet.WISP -> WispPalette; Pet.CRUMB -> CrumbPalette }
+
+/** The palette on screen now; the names below read it, so everything recolours when the pet changes. */
+object Theme { var palette by mutableStateOf(WispPalette) }
+val Bg: Color get() = Theme.palette.bg
+val Panel: Color get() = Theme.palette.panel
+val Raised: Color get() = Theme.palette.raised
+val Line: Color get() = Theme.palette.line
+val Accent: Color get() = Theme.palette.accent
+val TextC: Color get() = Theme.palette.text
+val Dim: Color get() = Theme.palette.dim
+val Ok: Color get() = Theme.palette.ok
+val Bad: Color get() = Theme.palette.bad
 
 @Composable
 fun DesklingTheme(content: @Composable () -> Unit) {
+    val ctx = LocalContext.current
+    val store = remember { Store.get(ctx) }
+    val v by store.version.collectAsState()
+    val p = remember(v) { paletteOf(store.pet) }
+    if (Theme.palette !== p) Theme.palette = p
+    val view = LocalView.current
+    SideEffect { (view.context as? android.app.Activity)?.window?.setBackgroundDrawable(ColorDrawable(p.bg.toArgb())) }
     MaterialTheme(
         colorScheme = darkColorScheme(
-            primary = Accent, onPrimary = Bg, background = Bg, onBackground = TextC, surface = Panel, onSurface = TextC,
-            surfaceVariant = Color(0xFF1E2A42), onSurfaceVariant = Dim, outline = Line, secondary = Accent, error = Bad,
+            primary = p.accent, onPrimary = p.bg, background = p.bg, onBackground = p.text, surface = p.panel, onSurface = p.text,
+            surfaceVariant = p.raised, onSurfaceVariant = p.dim, outline = p.line, outlineVariant = p.line,
+            secondary = p.accent, onSecondary = p.bg, error = p.bad,
+            // the selected tab's pill, slider tracks and switches draw from these: keep them in the pet's colours
+            secondaryContainer = p.raised, onSecondaryContainer = p.text, primaryContainer = p.raised, onPrimaryContainer = p.text,
+            surfaceContainer = p.panel, surfaceContainerHigh = p.raised, surfaceContainerHighest = p.raised,
+            surfaceContainerLow = p.panel, surfaceContainerLowest = p.bg,
         ),
         content = content,
     )

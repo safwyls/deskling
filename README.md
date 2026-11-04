@@ -25,7 +25,7 @@ Each pet is its own firmware: build with PlatformIO in `firmware/`, `pio run -e 
 ## The app
 
 Build in Android Studio or with `./gradlew :app:assembleDebug` in `app/`; see [`app/README.md`](app/README.md).
-The app carries both pets and shows whichever the paired dial runs (without a dial, pick one in Settings).
+The app carries both pets and shows whichever the paired dial runs (without a dial, pick one in Settings), each in its own colours.
 Pair it from the dial: Settings > Phone app > Pair a phone shows a 6-digit code.
 
 ## Regenerating Wisp
