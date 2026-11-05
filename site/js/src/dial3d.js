@@ -7,10 +7,12 @@ import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { buildPanel, petgMaterial } from './parts3d.js';
 
-export async function mountDial(canvas, screenCanvas, { led = '#4cc8ff', modelUrl }) {
+export async function mountDial(canvas, screenCanvas, { led = '#4cc8ff', modelUrl, onLost = () => {} }) {
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  // phones and tablets get a lighter scene: some mobile GPU drivers lose the WebGL context under the full one
+  const lite = matchMedia('(pointer: coarse)').matches;
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'low-power' });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, lite ? 1.5 : 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.05;
@@ -29,7 +31,7 @@ export async function mountDial(canvas, screenCanvas, { led = '#4cc8ff', modelUr
   const key = new THREE.DirectionalLight(0xffffff, 1.6);
   key.position.set(-60, -90, 140);
   key.castShadow = true;
-  key.shadow.mapSize.set(2048, 2048);
+  key.shadow.mapSize.set(lite ? 1024 : 2048, lite ? 1024 : 2048);
   Object.assign(key.shadow.camera, { left: -70, right: 70, top: 70, bottom: -70, near: 10, far: 400 });
   key.shadow.radius = 6;
   scene.add(key);
@@ -43,7 +45,7 @@ export async function mountDial(canvas, screenCanvas, { led = '#4cc8ff', modelUr
   scene.add(desk);
 
   // the printed shell and base plate
-  const petg = petgMaterial(led);
+  const petg = petgMaterial(led, { transmission: !lite });
   const loader = new STLLoader();
   const [shellGeo, baseGeo] = await Promise.all(['shell', 'base'].map(async (n) =>
     loader.parse(await (await fetch(modelUrl(n))).arrayBuffer())));
@@ -81,13 +83,16 @@ export async function mountDial(canvas, screenCanvas, { led = '#4cc8ff', modelUr
     }
   }
 
-  let visible = true, raf = 0;
+  let visible = true, raf = 0, lost = false;
+  // if the GPU gives up anyway, stop drawing and let the page fall back to the flat screen
+  const onContextLost = (e) => { e.preventDefault(); lost = true; cancelAnimationFrame(raf); onLost(); };
+  canvas.addEventListener('webglcontextlost', onContextLost);
   const io = new IntersectionObserver(([e]) => { visible = e.isIntersecting; });
   io.observe(canvas);
   const t0 = performance.now();
   function frame(t) {
     raf = requestAnimationFrame(frame);
-    if (!visible) return;
+    if (!visible || lost) return;
     resize();
     const s = reduce ? 0 : (t - t0) / 1000;
     px += (tx - px) * 0.05; py += (ty - py) * 0.05;
@@ -110,6 +115,7 @@ export async function mountDial(canvas, screenCanvas, { led = '#4cc8ff', modelUr
     stop() {
       cancelAnimationFrame(raf);
       io.disconnect();
+      canvas.removeEventListener('webglcontextlost', onContextLost);
       canvas.removeEventListener('pointermove', onMove);
       canvas.removeEventListener('pointerleave', onLeave);
       renderer.dispose();

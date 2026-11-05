@@ -5,15 +5,19 @@ export async function init(root, { cleanup }) {
   const box = root.querySelector('#viewer');
   if (!box) return;
   const canvas = box.querySelector('canvas');
+  const noViewer = (msg) => {
+    box.querySelector('.viewer-hint').textContent = msg;
+    canvas.remove();
+    box.querySelector('.viewer-bar')?.remove();
+  };
   const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#9fd8f7';
   let viewer;
   try {
     const { mountModels } = await import('./models3d.js');
-    viewer = await mountModels(canvas, { accent, modelUrl: (n) => new URL(`../model/${n}.${MODEL_EXT}`, import.meta.url) });
+    viewer = await mountModels(canvas, { accent, onLost: () => noViewer('The 3D view stopped: this device’s graphics driver gave up on it. The files below still download.'),
+      modelUrl: (n) => new URL(`../model/${n}.${MODEL_EXT}`, import.meta.url) });
   } catch (e) {
-    box.querySelector('.viewer-hint').textContent = 'This browser can’t show 3D here (WebGL is off or unavailable). The files below still download.';
-    canvas.remove();
-    box.querySelector('.viewer-bar').remove();
+    noViewer('This browser can’t show 3D here (WebGL is off or unavailable). The files below still download.');
     return;
   }
   cleanup.push(() => viewer.stop());

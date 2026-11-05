@@ -25,14 +25,26 @@ export async function init(root, { cleanup }) {
   let step = 0;
   const screen = new Screen(screenCanvas, { pet, pose: STORY[0].pose, home: true, size: 512, status: STORY[0].status(pet), onFrame: () => {} });
   cleanup.push(() => screen.stop());
-  const { mountDial } = await import('./dial3d.js');
   let dial;
-  try {
-    dial = await mountDial(gl, screenCanvas, { led: PETS[pet].led, modelUrl: (n) => new URL(`../model/${n}.${MODEL_EXT}`, import.meta.url) });
-    cleanup.push(() => dial.stop());
-  } catch (e) {
-    // no WebGL: show the screen flat instead
-    gl.replaceWith(Object.assign(screenCanvas, { className: 'round', style: 'width:70%;margin:10% auto' }));
+  // no WebGL, or it crashed earlier this visit: show the screen flat instead
+  const flat = () => {
+    dial?.stop(); dial = null;
+    if (gl.isConnected) gl.replaceWith(Object.assign(screenCanvas, { className: 'round', style: 'width:70%;margin:10% auto;box-shadow:0 0 0 6px var(--panel),0 0 0 7px var(--line)' }));
+  };
+  let crashed = false;
+  try { crashed = sessionStorage.getItem('deskling-no-3d') === '1'; } catch { /* storage blocked */ }
+  if (crashed) flat();
+  else {
+    try {
+      const { mountDial } = await import('./dial3d.js');
+      dial = await mountDial(gl, screenCanvas, {
+        led: PETS[pet].led, modelUrl: (n) => new URL(`../model/${n}.${MODEL_EXT}`, import.meta.url),
+        onLost: () => { try { sessionStorage.setItem('deskling-no-3d', '1'); } catch { /* fine */ } flat(); },
+      });
+      cleanup.push(() => dial?.stop());
+    } catch (e) {
+      flat();
+    }
   }
   const show = () => {
     const s = STORY[step];

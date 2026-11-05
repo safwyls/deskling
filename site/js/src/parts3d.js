@@ -78,9 +78,11 @@ export function buildPanel({ screenTexture = null, led = '#4cc8ff', lit = true }
  * Translucent PETG lit from inside by the display's skirt: the emissive colour fades with distance from the
  * skirt, so the glow sits in the shell around the display's edge rather than over the whole part.
  */
-export function petgMaterial(led = '#4cc8ff', { falloff = 7 } = {}) {
+export function petgMaterial(led = '#4cc8ff', { falloff = 7, transmission = true } = {}) {
+  // transmission (light through the plastic) costs an extra full render pass; phones get a plain frosted look
   const mat = new THREE.MeshPhysicalMaterial({
-    color: 0xf2f5f8, roughness: 0.42, transmission: 0.55, thickness: 2.4, ior: 1.57, clearcoat: 0.2,
+    color: 0xf2f5f8, roughness: 0.42, clearcoat: 0.2,
+    ...(transmission ? { transmission: 0.55, thickness: 2.4, ior: 1.57 } : {}),
     emissive: new THREE.Color(led), emissiveIntensity: 1.6,
   });
   const centre = at((SKIRT.a0 + SKIRT.a1) / 2);

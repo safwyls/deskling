@@ -15,10 +15,13 @@ const EXPLODE = {
   shell: new THREE.Vector3(),
 };
 
-export async function mountModels(canvas, { modelUrl, accent = '#9fd8f7' }) {
+export async function mountModels(canvas, { modelUrl, accent = '#9fd8f7', onLost = () => {} }) {
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  const lite = matchMedia('(pointer: coarse)').matches;
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'low-power' });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, lite ? 1.5 : 2));
+  let raf = 0;
+  canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault(); cancelAnimationFrame(raf); onLost(); });
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
 
@@ -91,7 +94,6 @@ export async function mountModels(canvas, { modelUrl, accent = '#9fd8f7' }) {
     }
   }
 
-  let raf = 0;
   function frame() {
     raf = requestAnimationFrame(frame);
     resize();
