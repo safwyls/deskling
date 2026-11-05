@@ -1,0 +1,25 @@
+<p class="kicker">Start here</p>
+<h1>Get the display ready</h1>
+<p class="lede">Out of the box the CrowPanel runs Elecrow&rsquo;s demo. Before flashing, it helps to know where its ports and buttons are and how you&rsquo;ll power it on your desk.</p>
+
+<h2>What&rsquo;s in the box</h2>
+<ul>
+  <li>The display: a round touchscreen inside a knob that turns and clicks, on an ESP32-S3 board.</li>
+  <li>A 50&nbsp;cm cable from the board&rsquo;s small 4-pin MX1.25 power connector to USB.</li>
+  <li>A 4-pin Dupont cable for the expansion header (not needed for Deskling).</li>
+</ul>
+
+<h2>Ports and buttons</h2>
+<table>
+  <tr><th>Thing</th><th>What Deskling uses it for</th></tr>
+  <tr><td><b>USB-C</b></td><td>Flashing from the browser, and the boot log if something goes wrong.</td></tr>
+  <tr><td><b>MX1.25 power connector</b></td><td>5&nbsp;V power, with the cable in the box.</td></tr>
+  <tr><td><b>BOOT</b> and <b>RESET</b></td><td>Download mode, if the browser can&rsquo;t connect: hold BOOT, tap RESET, let go of BOOT.</td></tr>
+  <tr><td><b>Knob</b> (turn and press) and <b>touch</b></td><td>Everything on the dial. A tap on the screen works like a press almost everywhere.</td></tr>
+  <tr><td><b>LED ring</b></td><td>Breathes the colour of whatever is due.</td></tr>
+</table>
+
+<h2>Power on your desk</h2>
+<p>Any 5&nbsp;V USB supply works, through the USB-C port or the MX1.25 cable in the box. Deskling is happy on a laptop port or a phone charger.</p>
+<p>For a tidier stand we soldered a short USB-C socket pigtail to the board&rsquo;s 5&nbsp;V input on the underside, so the dial runs from a single USB-C cable that leaves through the back of the ring. That&rsquo;s optional, and if you&rsquo;re not comfortable soldering, the supplied cable does the same job.</p>
+<div class="callout"><p>Whatever you do to the power, keep the USB-C data port reachable. Firmware updates go over it.</p></div>

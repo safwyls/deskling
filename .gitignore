@@ -13,3 +13,8 @@ app/.idea/
 *.elf
 *.bin
 .DS_Store
+# site (fw/ and pets/ are generated; see site/README.md)
+site/node_modules/
+site/fw/*.bin
+site/pets/
+site/tools/nvs_check/*.bin

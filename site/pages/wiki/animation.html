@@ -1,0 +1,51 @@
+<p class="kicker">Deep dive</p>
+<h1>Clips to dial frames</h1>
+<p class="lede">A 5-second, 1440-pixel video becomes a seamless loop of a few dozen small, transparent, indexed frames. Four scripts in <code>firmware/tools/</code> do it, and nothing in the result is edited by hand.</p>
+
+<h2>The pipeline</h2>
+<pre><code># 1. clip to frames, 1024 px wide
+ffmpeg -i clip.mp4 -vf scale=1024:-1 frames/f%04d.png
+
+# 2. key out the magenta, find the cleanest loop, write a loop file
+python3 tools/process_clip.py frames happy.js L 0.22 --min 16 --max 72 --fps 12 --strip 0 --keep 0 --min-area 60
+
+# 3. loop files to the dial's C sources (8-bit indexed, transparent)
+python3 tools/make_assets.py --gap 0 --shadow 10,4,14,150 src/anims/sprig pet_happy=happy.js ...
+
+# 4. the same loops for the phone app (WebP frames and layout data)
+python3 tools/export_app_assets.py --gap 0 ../app/app/src/main/assets/pets/sprig happy=happy.js ...</code></pre>
+
+<h2>Keying: getting rid of the magenta</h2>
+<figure><img src="img/clip-raw-crumb.webp" alt="A raw frame of Crumb on a magenta background, with his bowl and a thought bubble" style="width:min(100%,420px)" loading="lazy"><figcaption>Raw frame. The background isn&rsquo;t one exact colour: it&rsquo;s brighter or duller from clip to clip, and shaded under the character.</figcaption></figure>
+<p><code>process_clip.py</code> samples the background from the frame&rsquo;s edges, then treats anything near that colour, or anything in the magenta family (red and blue well above green), as background. That second rule catches the baked-in shadows and the darker magenta right under the character. Then it cleans up:</p>
+<ul>
+  <li><b>Streaks:</b> a morphological opening removes thin specks (<code>--strip</code>).</li>
+  <li><b>Detached bits:</b> pieces much smaller than the body are dropped (<code>--keep</code>, <code>--min-area</code>), except in emotion clips, where tears, sparkles and anger marks are the point. Those keep anything over 60 pixels.</li>
+  <li><b>Holes:</b> enclosed areas such as eyes, mouths and a translucent sleep bubble take their transparency from how far their colour is from the background, rather than being filled solid. That&rsquo;s why Crumb&rsquo;s sleep bubble stays see-through.</li>
+</ul>
+
+<h2>Finding the loop</h2>
+<p>A clip doesn&rsquo;t loop by itself. The script compares every pair of frames a sensible distance apart (<code>--min</code> to <code>--max</code>) and keeps the most similar pair: playing from one to just before the other loops with the smallest jump. It reports that jump as an error score; under about 1.5 is invisible on the dial.</p>
+<p>Some clips have no good loop point: a slow yawn, a long sip. For those, <code>--range A-B --pingpong</code> plays frames A to B forward, then backward. The dial does the reversing, so it costs no extra frames. Tired is built that way for every pet.</p>
+
+<h2>Packing for the dial</h2>
+<p><code>make_assets.py</code> turns each loop into LVGL image descriptors in C:</p>
+<ul>
+  <li><b>Scaled</b> so every pet is about the same size on the 360-pixel screen.</li>
+  <li><b>Shadow baked in:</b> a soft ellipse under the lowest point of each frame that narrows and fades as the pet leaves the ground. Wisp hovers, so his shadow sits 12 pixels below him and glows blue. Crumb and Sprig stand on theirs (<code>--gap 0</code>), dark like a patch of ground (<code>--shadow</code>).</li>
+  <li><b>8-bit indexed, one palette per loop:</b> half the size of 16-bit colour, with a transparent palette entry so the clock shows behind. Sharing the palette across the loop&rsquo;s frames stops colours flickering.</li>
+  <li><b>Trimmed</b> to the box every frame fits in.</li>
+  <li><b>The bubble&rsquo;s path:</b> the script finds the pet&rsquo;s face in every frame (the dark eyes are the largest near-black area), smooths it, and lifts the bubble up and to the right wherever it would cover the pet. Those per-frame offsets are stored with the loop, so the thought bubble floats with the face.</li>
+</ul>
+<table>
+  <tr><th>Companion</th><th>Loops</th><th>Frames on the dial</th></tr>
+  <tr><td>Wisp</td><td>11</td><td>about 9.5 MB</td></tr>
+  <tr><td>Sprig</td><td>9 plus 2 stand-ins</td><td>7.1 MB</td></tr>
+  <tr><td>Crumb</td><td>9 plus 2 stand-ins</td><td>5.5 MB</td></tr>
+</table>
+
+<h2>The bubbles and icons</h2>
+<p><code>make_emotes.py</code> draws the thought bubbles (a frosted circle and two trailing dots, matched to the one in Wisp&rsquo;s thirsty clip) with a small symbol for each mood, and the white icons for the ring of activities. Everything is drawn in code at four times the size and scaled down, so it stays crisp.</p>
+
+<h2>Checking the result</h2>
+<p>Before anything goes on a dial, every pose is laid out exactly as the pet screen would place it: the frame on the ground line, the bubble at its stored offset, on the companion&rsquo;s own background. That&rsquo;s how a shadow floating under a turtle and a missing water bubble were caught before flashing. On the dial, Settings &gt; Poses plays every mood for a final look.</p>

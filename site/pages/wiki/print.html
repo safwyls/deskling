@@ -1,0 +1,30 @@
+<p class="kicker">Start here</p>
+<h1>Print the ring</h1>
+<p class="lede">The ring is the only part you make. It grips the display&rsquo;s body and holds it tipped 30&deg; toward you, and in translucent filament it turns the LEDs into a soft glow on your desk.</p>
+
+<figure><img src="img/ring-render.webp" alt="The printed ring holding the CrowPanel display at an angle, rendered from the model" loading="lazy"><figcaption>The ring with the display in it, rendered from the model on this site&rsquo;s home page.</figcaption></figure>
+
+<h2>The model</h2>
+<p>One solid part, about 60 &times; 62 &times; 43&nbsp;mm. Its opening is sized for the CrowPanel&rsquo;s rear body (about 52&nbsp;mm across), with a lip that stops the display from sliding through; the 60&nbsp;mm knob rests on top. The tab at the front carries two holes.</p>
+<ul>
+  <li><a href="https://github.com/safwyls/deskling/tree/main/hardware">STEP and STL in the repository</a> (<code>hardware/</code>)</li>
+  <li><a href="model/shell.stl">STL from this site</a></li>
+</ul>
+
+<h2>Material</h2>
+<p>We printed it in <b>translucent PETG</b>. The knob&rsquo;s LED ring sits just above the printed part, so a clear or frosted filament carries its colour down into the ring: blue when water is due, amber when it&rsquo;s time for an eye break. Opaque filament works fine too; you just lose the glow.</p>
+
+<h2>Settings to start from</h2>
+<p>These are sensible defaults for a small, round, functional part, not a tuned profile. Adjust for your printer.</p>
+<table>
+  <tr><th>Setting</th><th>Start with</th><th>Why</th></tr>
+  <tr><td>Orientation</td><td>Ring lying flat (its opening facing up)</td><td>Round walls print round; the layer lines run around the ring rather than across it.</td></tr>
+  <tr><td>Layer height</td><td>0.2&nbsp;mm</td><td>Fine for a part this size.</td></tr>
+  <tr><td>Walls</td><td>3 or 4</td><td>A ring is mostly wall. More walls also diffuse the LED light more evenly.</td></tr>
+  <tr><td>Infill</td><td>15&ndash;20%</td><td>Only the tab and the base have any.</td></tr>
+  <tr><td>Supports</td><td>Check your slicer&rsquo;s preview</td><td>Depending on orientation, the tilted lower edge or the tab may want a little.</td></tr>
+</table>
+
+<h2>Fit</h2>
+<p>Push the display&rsquo;s body into the ring from the top until the knob sits on the rim. It should hold without glue. If it&rsquo;s too tight, scale the model up by 0.5% in X and Y and print again; if it rattles, scale down by the same.</p>
+<div class="callout"><p>Leave the back of the display reachable: you&rsquo;ll want the USB-C port, and the BOOT and RESET buttons if a flash ever needs a nudge.</p></div>

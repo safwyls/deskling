@@ -1,0 +1,8 @@
+key,type,encoding,value
+deskling,namespace,,
+ssid,data,string,"Home Wi-Fi"
+pass,data,string,"a long passphrase that spans more than one entry, 64 chars max!"
+ledoff,data,i8,"-2"
+bright,data,u8,"70"
+rem_stretch,data,u8,"50"
+post,data,u8,"1"

@@ -1,0 +1,46 @@
+<p class="kicker">Start here</p>
+<h1>Flash the firmware</h1>
+<p class="lede">The quickest way is the <a href="#flash">firmware page</a> on this site: pick a companion, fill in your settings, plug in the display and press one button. This page explains what that button does, and what to try when it doesn&rsquo;t.</p>
+
+<h2>From the browser</h2>
+<ol>
+  <li>Open the <a href="#flash">firmware page</a> in Chrome or Edge on a computer. (Web Serial, which lets a page talk to a USB device, isn&rsquo;t in Firefox, Safari or phone browsers.)</li>
+  <li>Choose Wisp, Crumb or Sprig. Each is its own firmware with its own animations and colours.</li>
+  <li>Choose <b>Fresh install</b> for a new display, or <b>Update</b> to keep everything already on it.</li>
+  <li>For a fresh install, fill in your settings. Wi-Fi is optional.</li>
+  <li>Plug the display in with a USB-C data cable, press <b>Write to the display</b> and pick it from the list your browser shows.</li>
+  <li>Wait for the progress bar. The dial restarts with your companion on it.</li>
+</ol>
+
+<h3>What gets written</h3>
+<p>The display has 16&nbsp;MB of flash, laid out like this. A fresh install writes all four pieces plus your settings; an update writes only the app.</p>
+<table>
+  <tr><th>Address</th><th>What</th><th>Fresh install</th><th>Update</th></tr>
+  <tr><td><code>0x0</code></td><td>Bootloader</td><td>Yes</td><td>&mdash;</td></tr>
+  <tr><td><code>0x8000</code></td><td>Partition table</td><td>Yes</td><td>&mdash;</td></tr>
+  <tr><td><code>0x9000</code></td><td>Settings (NVS, 20&nbsp;KB)</td><td>Yours, built in the page</td><td>Kept</td></tr>
+  <tr><td><code>0xE000</code></td><td>Boot data</td><td>Yes</td><td>&mdash;</td></tr>
+  <tr><td><code>0x10000</code></td><td>The app: firmware and animations (up to 14&nbsp;MB)</td><td>Yes</td><td>Yes</td></tr>
+</table>
+<p>Your settings never leave the page: it builds the settings partition in your browser, in the same format as Espressif&rsquo;s <code>nvs_partition_gen</code> tool (we check them against each other byte for byte), and writes it straight to the display. That includes your Wi-Fi password.</p>
+
+<h2>If it won&rsquo;t connect</h2>
+<table>
+  <tr><th>What you see</th><th>Try</th></tr>
+  <tr><td>The display isn&rsquo;t in the browser&rsquo;s list</td><td>A different cable (many only charge), a different USB port, or unplug and replug. On Linux, add yourself to the <code>dialout</code> group and log in again.</td></tr>
+  <tr><td>&ldquo;The display didn&rsquo;t answer&rdquo;</td><td>Put it in download mode: hold <b>BOOT</b>, tap <b>RESET</b>, let go of <b>BOOT</b>. Then press Write again.</td></tr>
+  <tr><td>It stops partway</td><td>Usually a loose cable or a hub. Plug straight into the computer and write again; nothing is harmed by a partial write.</td></tr>
+  <tr><td>It finishes but the screen stays dark</td><td>Press RESET. If the dial still won&rsquo;t start, do a Fresh install.</td></tr>
+</table>
+
+<h2>From the command line</h2>
+<p>With Espressif&rsquo;s <code>esptool</code> and images from your own build (PlatformIO writes <code>firmware.factory.bin</code> for a full install and <code>firmware.bin</code> for the app):</p>
+<pre><code>esptool.py --chip esp32s3 write_flash 0x0 firmware.factory.bin   # fresh install: erases your settings
+esptool.py --chip esp32s3 write_flash 0x10000 firmware.bin       # update: keeps them</code></pre>
+
+<h2>From source</h2>
+<p>The firmware is a PlatformIO project in <code>firmware/</code>, with one build per companion:</p>
+<pre><code>cd firmware
+pio run -e crumb -t upload     # or -e wisp, -e sprig
+pio device monitor</code></pre>
+<p>See <a href="#wiki-firmware">Inside the firmware</a> for how the builds differ.</p>

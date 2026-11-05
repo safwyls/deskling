@@ -1,0 +1,32 @@
+<p class="kicker">Start here</p>
+<h1>The phone app</h1>
+<p class="lede">Deskling for Android shares one pet with your dial. It counts your steps toward Move, reminds you when you&rsquo;re away from the desk, and stays in sync with the dial over Bluetooth while you&rsquo;re near it.</p>
+
+<div class="gallery">
+  <img src="img/app-wisp.webp" alt="The pet screen with Wisp" loading="lazy">
+  <img src="img/app-crumb.webp" alt="The pet screen with Crumb, in Crumb's colours" loading="lazy">
+  <img src="img/app-sprig.webp" alt="The pet screen with Sprig, in Sprig's colours" loading="lazy">
+  <img src="img/app-stats.webp" alt="The stats screen" loading="lazy">
+</div>
+
+<h2>Install</h2>
+<p>The app isn&rsquo;t in the Play Store. Build it from <code>app/</code> in the <a href="https://github.com/safwyls/deskling">repository</a> with Android Studio, or <code>./gradlew :app:assembleDebug</code>, and install the APK on your phone. It needs Android 8 or newer.</p>
+
+<h2>Pair it with your dial</h2>
+<ol>
+  <li>On the dial: Settings &gt; Phone app &gt; Pair a phone. It shows a 6-digit code.</li>
+  <li>In the app: Settings &gt; Pair a dial. Enter the code.</li>
+  <li>Pick your dial from the Bluetooth list or the Wi-Fi list (either works; the code is needed both ways), then Pair.</li>
+</ol>
+<figure><img src="img/app-pair.webp" alt="The pairing screen: enter the code from the dial, then pick your dial" style="width:min(100%,280px)" loading="lazy"></figure>
+<p>A dial remembers up to four phones. Settings &gt; Phone app on the dial can forget them all.</p>
+
+<h2>What it does</h2>
+<ul>
+  <li><b>One pet, two places.</b> When the phone can reach the dial, the dial&rsquo;s state is the truth: the phone sends what you logged (with the time you did it) and takes the dial&rsquo;s state back. Away from the dial, the phone runs its own copy of the care game and catches up later.</li>
+  <li><b>Instant sync.</b> While you&rsquo;re nearby, the app keeps a Bluetooth link open. What you do on either side reaches the other within a second or two, and the app&rsquo;s header says &ldquo;in sync&rdquo;. Android shows a quiet notification while it&rsquo;s on; Settings &gt; Stay connected to the dial turns it off.</li>
+  <li><b>Steps feed Move.</b> Walk 250 steps within ten minutes and the app logs a Move for you. Both numbers are in Settings.</li>
+  <li><b>Reminders when you&rsquo;re away.</b> If the phone hasn&rsquo;t been near the dial for ten minutes, it posts the reminders itself, each with a Done button.</li>
+  <li><b>The dial&rsquo;s settings from your phone,</b> including its Wi-Fi.</li>
+  <li><b>Your companion&rsquo;s colours.</b> The app follows whichever pet your dial runs. Without a dial, pick one in Settings.</li>
+</ul>

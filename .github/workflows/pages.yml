@@ -1,0 +1,67 @@
+# Builds the three firmwares, assembles the website around them and publishes it to GitHub Pages.
+# Pages has to be switched on once: Settings > Pages > Source: GitHub Actions.
+name: Website
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'site/**'
+      - 'firmware/**'
+      - 'app/app/src/main/assets/pets/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Cache PlatformIO
+        uses: actions/cache@v4
+        with:
+          path: ~/.platformio
+          key: pio-${{ runner.os }}-${{ hashFiles('firmware/platformio.ini') }}
+
+      - name: Install PlatformIO
+        run: pip install platformio==6.1.19
+
+      - name: Build the firmware for each companion
+        working-directory: firmware
+        run: pio run -e wisp -e crumb -e sprig
+
+      - name: Assemble the site
+        run: |
+          python3 site/tools/firmware_to_site.py firmware site/fw
+          python3 site/tools/pack_pets.py app/app/src/main/assets/pets site/pets
+          rm -rf site/js/src site/tools site/package.json
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

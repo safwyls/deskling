@@ -1,0 +1,56 @@
+<p class="kicker">Deep dive</p>
+<h1>From sketches to characters</h1>
+<p class="lede">Every frame your companion plays started as a still image from ChatGPT and became motion in a video model. Here&rsquo;s the path, including the detour that didn&rsquo;t work.</p>
+
+<h2>1. Five candidates, ten poses each</h2>
+<p>It started with five characters: Mochi, Sprig, Cinder, Crumb and Wisp. Each got a short personality brief and pose directions written for its body. Wisp glides instead of walking; Crumb hides in his shell to sleep; Sprig&rsquo;s leaves give its mood away. Then came one <b>action and emotion study</b> per character, made with ChatGPT&rsquo;s image generation from that character&rsquo;s original drawing.</p>
+<figure><img src="img/studies-wisp.webp" alt="Wisp's action and emotion studies: ten poses in round navy frames, labelled walking, running, jumping, sleeping, happy, sad, mad, tired, thirsty, restless" loading="lazy"><figcaption>Wisp&rsquo;s study sheet. Each circle stands in for the dial&rsquo;s 360&times;360 round screen.</figcaption></figure>
+<p>The prompt did a lot of the design work. Some of the rules that mattered:</p>
+<ul>
+  <li><b>Use the reference strictly for identity and style.</b> The original drawing pins down the character; the sheet only adds poses.</li>
+  <li><b>Ten equal round navy vignettes</b> in a 5 &times; 2 grid, each representing the 360&times;360 screen, with the whole character and any action cue inside its circle. Composing for the real screen from the first sketch saved trouble later.</li>
+  <li><b>Exactly these labels, in this order:</b> walking, running, jumping, sleeping, happy / sad, mad, tired, thirsty, restless.</li>
+  <li><b>Distinctions the eye needs at 1.46 inches:</b> asleep is curled and low, tired is awake but sagging, restless is fidgety but not angry, and mad must not look like sad.</li>
+  <li><b>Thirst gets an empty bowl and a droplet</b>, so it can&rsquo;t be mistaken for sadness.</li>
+</ul>
+<div class="gallery two">
+  <img src="img/studies-crumb.webp" alt="Crumb's study sheet" loading="lazy">
+  <img src="img/studies-sprig.webp" alt="Sprig's study sheet" loading="lazy">
+  <img src="img/studies-mochi.webp" alt="Mochi's study sheet" loading="lazy">
+  <img src="img/studies-cinder.webp" alt="Cinder's study sheet" loading="lazy">
+</div>
+<p>Wisp, Crumb and Sprig made it onto the dial. Mochi and Cinder are still sketches, waiting for someone to animate them.</p>
+
+<h2>2. The detour: a cut-out puppet</h2>
+<p>The first plan was to animate in code: split each character into parts (body, fins, feet, crest, a set of face masks) and move the pieces like a paper puppet. ChatGPT produced the part sheets, and a script cleaned them up and lined them up on a shared scale.</p>
+<figure><img src="img/puppet-wisp-parts.webp" alt="Wisp broken into puppet parts on a magenta background: body, fin, foot, crests, folded fin, tail tip and bowl" loading="lazy"><figcaption>Wisp&rsquo;s puppet parts on magenta, ready to be cut apart and pinned together.</figcaption></figure>
+<p>It worked, but it looked like a puppet. Pieces rotating around pins don&rsquo;t blend the way drawn animation does, and a squash, a wince or a yawn needs the whole silhouette to change. That&rsquo;s the moment the project switched to video.</p>
+
+<h2>3. One reference per pose</h2>
+<p>Next, each pose got its own reference image, made with ChatGPT from the study sheet: one clear pose per image, in its navy circle. Those are the starting frames for the video model. Starting from a single, clean pose keeps the character on model through the clip.</p>
+<div class="gallery">
+  <img src="img/ref-wisp-happy.webp" alt="Wisp, happy" loading="lazy">
+  <img src="img/ref-wisp-thirsty.webp" alt="Wisp, thirsty, with its bowl" loading="lazy">
+  <img src="img/ref-crumb-tired.webp" alt="Crumb, tired, mid-yawn" loading="lazy">
+  <img src="img/ref-crumb-mad.webp" alt="Crumb, mad" loading="lazy">
+</div>
+
+<h2>4. Video from each reference</h2>
+<p>The references went into <b>Scenario</b>, using its image-to-video mode with <b>MiniMax H3</b>, one 5-second clip per pose. Three things in the prompt made the clips usable:</p>
+<ul>
+  <li><b>In place.</b> The character acts out the pose on the spot, without walking across the frame, so the clip can loop on a small screen.</li>
+  <li><b>A flat magenta background</b> (pure <code>#FF00FF</code>), a colour none of the characters use, so it can be keyed out cleanly.</li>
+  <li><b>A locked camera.</b> No zooms or pans, so every frame lines up with the last.</li>
+</ul>
+<figure><img src="img/clip-raw-sprig.webp" alt="A frame of a generated clip: Sprig looking sadly at an empty bowl on a magenta background" style="width:min(100%,420px)" loading="lazy"><figcaption>A frame straight out of the video model, before keying.</figcaption></figure>
+
+<h3>What still goes wrong</h3>
+<p>Video models don&rsquo;t always listen. Some clips that were thrown out or trimmed:</p>
+<ul>
+  <li>Crumb&rsquo;s restless clip walked out of frame, and its background turned navy halfway through.</li>
+  <li>Sprig&rsquo;s restless clip flickered between grey and magenta backgrounds while Sprig spun around.</li>
+  <li>Crumb&rsquo;s mad clip pushed the camera in after a second and a half, so only the first part is used.</li>
+  <li>Backgrounds drift between a hot and a dull magenta from clip to clip. The keying tool copes with that, as long as the colour stays in the magenta family.</li>
+</ul>
+<p>Generate a few and keep the best. A pet with a missing pose isn&rsquo;t blocked: a stand-in loop covers it until a good clip turns up.</p>
+<p>From here, the clips go through a small set of scripts that turn them into frames the dial can play: <a href="#wiki-animation">Clips to dial frames</a>.</p>

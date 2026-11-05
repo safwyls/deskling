@@ -1,0 +1,10 @@
+{
+  "name": "deskling-site",
+  "private": true,
+  "description": "The Deskling website: build the two bundles (3D dial, flasher). Everything else is plain files.",
+  "scripts": {
+    "build": "esbuild js/src/dial3d.js --bundle --format=esm --minify --outfile=js/dial3d.js && esbuild js/src/flasher.js --bundle --format=esm --minify --outfile=js/flasher.js",
+    "nvs-check": "cd tools/nvs_check && node check.mjs && python3 -m esp_idf_nvs_partition_gen generate in.csv py.bin 0x5000 && cmp js.bin py.bin && echo 'NVS image matches Espressif'"
+  },
+  "devDependencies": { "esbuild": "^0.25.0", "esptool-js": "0.7.1", "three": "0.170.0" }
+}

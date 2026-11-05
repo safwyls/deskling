@@ -1,0 +1,44 @@
+{
+ "version": "5.19",
+ "built": "2026-11-04",
+ "chip": "ESP32-S3",
+ "flash": "16MB",
+ "parts": {
+  "bootloader": {
+   "file": "bootloader.bin",
+   "address": 0
+  },
+  "partitions": {
+   "file": "partitions.bin",
+   "address": 32768
+  },
+  "otadata": {
+   "file": "boot_app0.bin",
+   "address": 57344
+  },
+  "nvs": {
+   "address": 36864,
+   "size": 20480
+  }
+ },
+ "apps": {
+  "wisp": {
+   "file": "wisp.bin",
+   "address": 65536,
+   "size": 11925744,
+   "md5": "d32108ff7b50bdfc252b08be8016b31f"
+  },
+  "crumb": {
+   "file": "crumb.bin",
+   "address": 65536,
+   "size": 7983168,
+   "md5": "2a8e2e459f518cef22de250df1a68d26"
+  },
+  "sprig": {
+   "file": "sprig.bin",
+   "address": 65536,
+   "size": 9632736,
+   "md5": "d7260ee8a076f8af132176597b94ec07"
+  }
+ }
+}

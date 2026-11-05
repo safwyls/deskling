@@ -1,0 +1,147 @@
+<div class="wrap">
+  <section class="hero">
+    <div>
+      <h1>A small companion that looks after you.</h1>
+      <p class="lede">Deskling lives on a round knob display on your desk. It gets <strong>thirsty, sleepy and restless</strong> on a schedule, so you drink water, rest your eyes, stretch and move. Look after it and you&rsquo;ve looked after yourself.</p>
+      <div class="cta">
+        <a class="btn primary" href="#flash">Put it on your display</a>
+        <a class="btn quiet" href="#wiki">See how it&rsquo;s built</a>
+      </div>
+      <div class="pick">
+        <p>Choose your companion</p>
+        <div class="pets">
+          <button class="pet-chip" data-pet-choice="wisp"><canvas data-screen="happy" data-fixed-pet="wisp" data-size="96"></canvas>Wisp</button>
+          <button class="pet-chip" data-pet-choice="crumb"><canvas data-screen="happy" data-fixed-pet="crumb" data-size="96"></canvas>Crumb</button>
+          <button class="pet-chip" data-pet-choice="sprig"><canvas data-screen="happy" data-fixed-pet="sprig" data-size="96"></canvas>Sprig</button>
+        </div>
+      </div>
+      <p class="honest">Not a product you can buy. Deskling is a do-it-yourself, open-source project: a $30 display, a 3D-printed ring and free firmware, made with plenty of AI help.</p>
+    </div>
+    <div class="stage" id="stage">
+      <canvas class="gl" aria-label="A 3D view of Deskling: the round CrowPanel display held at an angle in a translucent printed ring, with the pet animating on its screen"></canvas>
+      <p class="caption" id="caption" aria-live="polite"></p>
+    </div>
+  </section>
+</div>
+
+<section class="band">
+  <div class="wrap">
+    <div class="head">
+      <h2>Four needs that are really yours.</h2>
+      <p>Each one runs on its own timer during the hours you choose. When one comes due, your companion shows it, the ring around the knob glows its colour, and a tap answers it.</p>
+    </div>
+    <div class="needs">
+      <div class="need" style="--c:var(--water)">
+        <canvas class="round" data-screen="thirsty"></canvas>
+        <h3>Water</h3>
+        <p>It reaches for an empty bowl. Tap it after a glass and it perks right up.</p>
+        <span class="every">Every 45 minutes</span>
+      </div>
+      <div class="need" style="--c:var(--eyes)">
+        <canvas class="round" data-screen="tired"></canvas>
+        <h3>Eye break</h3>
+        <p>It yawns. Look across the room for twenty seconds while it naps on the screen.</p>
+        <span class="every">Every 20 minutes</span>
+      </div>
+      <div class="need" style="--c:var(--stretch)">
+        <canvas class="round" data-screen="stretch"></canvas>
+        <h3>Stretch</h3>
+        <p>It fidgets. Stretch along with it for a minute on the dial.</p>
+        <span class="every">Every 50 minutes</span>
+      </div>
+      <div class="need" style="--c:var(--move)">
+        <canvas class="round" data-screen="move"></canvas>
+        <h3>Move</h3>
+        <p>It wants a walk. Take one, with the dial or your phone counting, and stretch and eyes count too.</p>
+        <span class="every">Every hour</span>
+      </div>
+    </div>
+    <p class="note" style="margin-top:40px">Every interval is yours to change, or turn off. There&rsquo;s an optional sit/stand timer for standing desks too.</p>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap split">
+    <div>
+      <h2>It has moods, not guilt trips.</h2>
+      <p class="sub" style="margin-top:16px;font-size:var(--t-l);line-height:1.5">Happiness drifts down slowly and comes back when you look after yourself. Ignore a need for a while and it sulks; much longer and it gets cross. At night it sleeps, and so do the reminders.</p>
+      <div class="facts">
+        <div><i class="dot"></i><p><b>Tap</b> answers what it&rsquo;s asking for: a glass logged, or that break started. Nothing due? It&rsquo;s a pat.</p></div>
+        <div><i class="dot"></i><p><b>Turn the knob</b> for the ring of activities: the four breaks, a catch game, stats, bedtime and pause.</p></div>
+        <div><i class="dot"></i><p><b>The LED ring</b> breathes the colour of whatever is due, so you notice from across the room.</p></div>
+      </div>
+    </div>
+    <div class="moods">
+      <figure><canvas class="round" data-screen="sad"></canvas><figcaption>Sad</figcaption></figure>
+      <figure><canvas class="round" data-screen="mad"></canvas><figcaption>Mad</figcaption></figure>
+      <figure><canvas class="round" data-screen="asleep"></canvas><figcaption>Asleep</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap split">
+    <div class="phones" aria-label="The Android app">
+      <img src="img/app-wisp.webp" alt="The app's pet screen: Wisp is tired, an eye break is due, with each need's timer below" loading="lazy">
+      <img src="img/app-stats.webp" alt="The app's stats screen: level, breaks today and steps over the last seven days" loading="lazy">
+      <img src="img/app-pair.webp" alt="Pairing the app with a dial using the six-digit code it shows" loading="lazy">
+    </div>
+    <div>
+      <h2>The same pet goes with you.</h2>
+      <p class="sub" style="margin-top:16px;font-size:var(--t-l);line-height:1.5">The Android app shares one pet with your dial. Log a break on either and it counts on both.</p>
+      <div class="facts">
+        <div><i class="dot" style="--c:var(--move)"></i><p><b>Steps feed Move.</b> Your phone&rsquo;s step counter spots a walk and logs it for you.</p></div>
+        <div><i class="dot"></i><p><b>Instant sync over Bluetooth.</b> While you&rsquo;re near the dial they stay linked, so what you do on one shows on the other in a second or two.</p></div>
+        <div><i class="dot" style="--c:var(--eyes)"></i><p><b>Reminders when you&rsquo;re away.</b> Leave the desk and your phone takes over the nudging.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band" id="companions">
+  <div class="wrap">
+    <div class="head">
+      <h2>Three companions. Each brings its own colours.</h2>
+      <p>Pick one when you flash the dial. The screens, clock faces, LED ring and app all follow it, and so does this site: try them.</p>
+    </div>
+    <div class="companions">
+      <button class="companion" data-pet-choice="wisp">
+        <canvas class="round" data-screen="content" data-fixed-pet="wisp"></canvas>
+        <h3>Wisp</h3>
+        <p class="who">A curious little daydream. It glides where others walk and curls up to sleep. Night sky and ice.</p>
+        <div class="swatches"><i style="background:#111a2c"></i><i style="background:#1e2a42"></i><i style="background:#9fd8f7"></i><i style="background:#e8eef8"></i></div>
+      </button>
+      <button class="companion" data-pet-choice="crumb">
+        <canvas class="round" data-screen="content" data-fixed-pet="crumb"></canvas>
+        <h3>Crumb</h3>
+        <p class="who">A shy, determined explorer. Deliberate steps, a sudden scamper, everything under the shell at bedtime. Pond at dusk.</p>
+        <div class="swatches"><i style="background:#1a2c20"></i><i style="background:#26392d"></i><i style="background:#f3b54a"></i><i style="background:#f2ecda"></i></div>
+      </button>
+      <button class="companion" data-pet-choice="sprig">
+        <canvas class="round" data-screen="content" data-fixed-pet="sprig"></canvas>
+        <h3>Sprig</h3>
+        <p class="who">A curious little gardener. Its leaves give it away: open for joy, drooped when sad, a blanket at bedtime. Blossom at dusk.</p>
+        <div class="swatches"><i style="background:#32223a"></i><i style="background:#412f4b"></i><i style="background:#a9db7f"></i><i style="background:#f5f1e3"></i></div>
+      </button>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <div class="head">
+      <h2>Make one in an afternoon.</h2>
+      <p>No soldering required to get started, no accounts, nothing to subscribe to.</p>
+    </div>
+    <ol class="steps">
+      <li><h3>Print the ring</h3><p>One small part, about an hour on most printers. Translucent PETG lets the LEDs glow through it.</p><a href="#wiki-print">Printing guide</a></li>
+      <li><h3>Flash your companion</h3><p>Plug the display into your computer and write the firmware from this site in Chrome or Edge. Pick a pet, add your Wi-Fi.</p><a href="#flash">Get the firmware</a></li>
+      <li><h3>Pair your phone</h3><p>Optional. Install the app, enter the six-digit code the dial shows, and your pet goes with you.</p><a href="#wiki-app">About the app</a></li>
+    </ol>
+    <div class="parts">
+      <div><b>CrowPanel 1.46&Prime;</b><span>Elecrow&rsquo;s round ESP32-S3 knob display, about $30</span></div>
+      <div><b>Printed ring</b><span>A few grams of PETG, or any filament you have</span></div>
+      <div><b>USB cable</b><span>Data-capable, for flashing and power</span></div>
+    </div>
+  </div>
+</section>

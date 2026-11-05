@@ -1,0 +1,63 @@
+<p class="kicker">Deep dive</p>
+<h1>Inside the firmware</h1>
+<p class="lede">How a $30 knob display runs a pet with hundreds of frames of animation, a care game, Wi-Fi, Bluetooth and a web page, and what had to give to fit it all.</p>
+
+<h2>The stack</h2>
+<table>
+  <tr><th>Piece</th><th>Version</th><th>Why</th></tr>
+  <tr><td>PlatformIO with pioarduino</td><td>55.03.38 (Arduino-ESP32 3.3.8)</td><td>The same core Elecrow&rsquo;s LVGL 9 example targets.</td></tr>
+  <tr><td>LVGL</td><td>9.1.0</td><td>Screens, lists, arcs, images, and decoding the animation frames.</td></tr>
+  <tr><td>LovyanGFX</td><td>1.2.7, Elecrow&rsquo;s copy</td><td>It includes the board&rsquo;s ST77961 panel driver.</td></tr>
+  <tr><td>ArduinoJson</td><td>7.2.1</td><td>The phone API.</td></tr>
+  <tr><td>ESP-IDF&rsquo;s HTTP server, NimBLE</td><td>from the core</td><td>The setup page and phone API over Wi-Fi, and the Bluetooth link.</td></tr>
+</table>
+<p>Libraries are vendored in <code>firmware/lib/</code>, so a build downloads nothing from the library registry.</p>
+
+<h2>One firmware per companion</h2>
+<p>Each pet is a PlatformIO environment. They share every line of code; what differs is a few build flags and a folder of frames.</p>
+<pre><code>[env:crumb]
+build_flags = ${env.build_flags} -DPET_CRUMB -DPET_ID=\"crumb\" -DPET_NAME=\"Crumb\"
+build_src_filter = ${env.build_src_filter} +&lt;anims/crumb/&gt;</code></pre>
+<ul>
+  <li><code>src/anims/&lt;pet&gt;/</code> holds that pet&rsquo;s loops as generated C files with the same names (<code>pet_walk</code>, <code>pet_happy</code>&hellip;), so the code never knows which pet it is. A pet without a clip for something gets a stand-in in <code>stand_ins.cpp</code> (Crumb&rsquo;s Stretch borrows his bounce until a proper clip exists).</li>
+  <li><code>include/theme.h</code> gives each pet its colours: screens, clock faces, the LED ring at rest, and the setup page (as CSS variables). The four need colours are shared, because they mean the same thing on every pet.</li>
+  <li><code>PET_NAME</code> goes into every sentence on screen (&ldquo;Sprig is asleep&rdquo;), and the dial tells the phone app which pet it is, so the app shows the same one.</li>
+</ul>
+<p>Wisp&rsquo;s firmware is 11.9&nbsp;MB, Sprig&rsquo;s 9.6&nbsp;MB and Crumb&rsquo;s 8.0&nbsp;MB, almost all of it animation. The partition table gives the app 14&nbsp;MB of the 16&nbsp;MB flash, which is why each pet is its own firmware: two sets of frames don&rsquo;t fit.</p>
+
+<h2>A tour of the source</h2>
+<table>
+  <tr><th>File</th><th>What it does</th></tr>
+  <tr><td><code>main.cpp</code></td><td>Power-up order, the display and its DMA flush, LVGL, and the main loop.</td></tr>
+  <tr><td><code>care.cpp</code></td><td>The care game: four need timers counting active seconds, the optional sit/stand timer, happiness, experience, streaks, active hours, time zones and the clock. Saved to flash.</td></tr>
+  <tr><td><code>pet.cpp</code></td><td>The pet screen: picks a pose from the mood, plays its loop, floats the thought bubble with the face, the ring of activities, the activities themselves, the catch game, stats, cues and the LED ring.</td></tr>
+  <tr><td><code>clockface.cpp</code></td><td>Six clock faces drawn behind the pet in quiet colours.</td></tr>
+  <tr><td><code>setup_ui.cpp</code></td><td>Settings on the knob: every list, value picker and the text entry.</td></tr>
+  <tr><td><code>net.cpp</code></td><td>Wi-Fi on its own task: connecting with backoff, scanning, the setup network.</td></tr>
+  <tr><td><code>web.cpp</code></td><td>The setup page served from the dial, and the phone API over HTTP.</td></tr>
+  <tr><td><code>api.cpp</code></td><td>The phone API itself: pairing, keys, and JSON operations (state, settings, done, pet, pause, posture&hellip;).</td></tr>
+  <tr><td><code>ble.cpp</code></td><td>The same API over Bluetooth, and the &ldquo;changed&rdquo; events that make sync instant.</td></tr>
+  <tr><td><code>crashlog.cpp</code></td><td>Why the dial last restarted; after a crash, a QR code with the backtrace.</td></tr>
+  <tr><td><code>settings.cpp</code></td><td>Settings in flash (NVS, namespace <code>deskling</code>), the same keys the firmware page writes.</td></tr>
+  <tr><td><code>leds.cpp</code>, <code>input.cpp</code></td><td>The LED ring&rsquo;s patterns, and the knob, button and touch turned into one stream of events.</td></tr>
+</table>
+
+<h2>Memory: the real constraint</h2>
+<p>The ESP32-S3 has two kinds of RAM. <b>Internal RAM</b> is fast but small, a few hundred kilobytes, and it&rsquo;s the only kind the Wi-Fi and Bluetooth drivers can use. <b>PSRAM</b> is 8&nbsp;MB, slower, and fine for almost everything else. Most of the hard bugs came from running out of the first.</p>
+<ul>
+  <li><b>LVGL&rsquo;s heap lives in PSRAM</b> (a custom allocator in <code>lv_mem_psram.c</code>), and decoded frames go into a 2&nbsp;MB PSRAM cache.</li>
+  <li><b>One small render buffer</b> of 30 lines stays in internal RAM, because the display&rsquo;s DMA needs it there.</li>
+  <li><b>Bluetooth takes about 75&nbsp;KB</b> of internal RAM; the dial&rsquo;s own setup network takes about 40&nbsp;KB more. They don&rsquo;t fit together, so Bluetooth pauses while the setup network is up and comes back after.</li>
+  <li>An early version also talked to Home Assistant; dropping it freed about 40&nbsp;KB, which is what made room for Bluetooth.</li>
+</ul>
+<div class="callout"><p>The setup network used to crash the dial outright: the Wi-Fi driver doesn&rsquo;t fail gracefully when internal RAM runs out. The crash-report QR code on Settings &gt; Last restart is how that was found, decoded against the build&rsquo;s <code>.elf</code> with <code>xtensa-esp32s3-elf-addr2line</code>.</p></div>
+
+<h2>Animation on a microcontroller</h2>
+<p>Every loop is stored as 8-bit indexed images with a transparent palette: one 256-colour palette shared by all frames of a loop, so colours don&rsquo;t flicker from frame to frame. That&rsquo;s half the size of 16-bit colour, transparent (so the clock can sit behind the pet), and measured at about 40&nbsp;dB against the source. The ground shadow is baked in. The bubble&rsquo;s position is stored per frame so it floats with the pet&rsquo;s face. <a href="#wiki-animation">Clips to dial frames</a> covers how the frames are made.</p>
+
+<h2>Talking to the phone</h2>
+<p>The app and the dial speak one small JSON protocol, over HTTP on Wi-Fi (<code>POST /api</code>, the phone&rsquo;s key in a header) or over Bluetooth (one message per line on a custom service). Pairing trades the 6-digit code on the dial&rsquo;s screen for a random key. The dial is the source of truth: the phone sends what it logged, with the time it happened, and takes the dial&rsquo;s state back.</p>
+<p>For instant sync the phone keeps a Bluetooth connection open while nearby. The dial watches a counter that moves on every action and, when it changes, sends <code>{"event":"changed"}</code>; the phone syncs at once. Replies always carry <code>"ok"</code> and events never do, which is how the phone tells them apart.</p>
+
+<h2>Settings in flash</h2>
+<p>Settings use Arduino&rsquo;s <code>Preferences</code> on ESP-IDF&rsquo;s NVS, one key each: <code>ssid</code>, <code>pass</code>, <code>rem_water</code>&hellip;<code>rem_move</code>, <code>h_start</code>, <code>h_end</code>, <code>tz</code>, <code>clock</code>, <code>clock_st</code>, <code>post</code>, <code>sit</code>, <code>stand</code> and the rest. That&rsquo;s what lets the firmware page hand a freshly flashed dial your settings: it builds the NVS partition in the browser (<code>site/js/nvs.js</code>) and writes it at <code>0x9000</code>.</p>

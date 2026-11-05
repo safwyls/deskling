@@ -1,0 +1,93 @@
+<div class="wrap flash">
+  <div>
+    <h1>Put Deskling on your display.</h1>
+    <p class="intro">Pick a companion, set it up the way you like, and write it to the CrowPanel straight from this page over USB. You&rsquo;ll need Chrome or Edge on a computer and a USB cable that carries data.</p>
+    <div id="support" class="warn" hidden></div>
+
+    <div class="stepper">
+      <section class="stepblock">
+        <header><span>1</span><h3>Choose your companion</h3><p>Each is its own firmware</p></header>
+        <div class="body">
+          <div class="choose">
+            <button data-pet-choice="wisp"><canvas data-screen="content" data-fixed-pet="wisp" data-size="240"></canvas><b>Wisp</b><span id="size-wisp"></span></button>
+            <button data-pet-choice="crumb"><canvas data-screen="content" data-fixed-pet="crumb" data-size="240"></canvas><b>Crumb</b><span id="size-crumb"></span></button>
+            <button data-pet-choice="sprig"><canvas data-screen="content" data-fixed-pet="sprig" data-size="240"></canvas><b>Sprig</b><span id="size-sprig"></span></button>
+          </div>
+        </div>
+      </section>
+
+      <section class="stepblock">
+        <header><span>2</span><h3>Fresh install or update?</h3></header>
+        <div class="body mode">
+          <label><input type="radio" name="mode" value="install" checked><div><b>Fresh install</b><span>For a new display, or to start over. Writes everything, including the settings below. Replaces any pairing and your pet&rsquo;s progress.</span></div></label>
+          <label><input type="radio" name="mode" value="update"><div><b>Update or switch companion</b><span>Writes only the firmware. Your Wi-Fi, settings, paired phones and your pet&rsquo;s level all stay.</span></div></label>
+        </div>
+      </section>
+
+      <section class="stepblock" id="settings-block">
+        <header><span>3</span><h3>Settings</h3><p>All can be changed later on the dial or in the app</p></header>
+        <form class="body" id="settings" autocomplete="off">
+          <fieldset class="fields" id="settings-fields">
+            <p class="group-title">Wi-Fi</p>
+            <div class="field"><label for="ssid">Network name</label><input type="text" id="ssid" name="ssid" maxlength="32" placeholder="Optional"></div>
+            <div class="field"><label for="pass">Password</label><input type="password" id="pass" name="pass" maxlength="64"></div>
+            <p class="note wide">2.4 GHz networks only (the ESP32-S3 has no 5 GHz radio). The password goes from this page to your display and nowhere else. Wi-Fi is optional: the dial works without it, and the phone app can sync over Bluetooth.</p>
+
+            <p class="group-title">Reminders</p>
+            <div class="field"><label for="r0">Water</label><select id="r0" data-every="45"></select></div>
+            <div class="field"><label for="r1">Eye break</label><select id="r1" data-every="20"></select></div>
+            <div class="field"><label for="r2">Stretch</label><select id="r2" data-every="50"></select></div>
+            <div class="field"><label for="r3">Move</label><select id="r3" data-every="60"></select></div>
+            <div class="field"><label for="hs">Awake from</label><select id="hs"></select></div>
+            <div class="field"><label for="he">Asleep at</label><select id="he"></select></div>
+            <div class="field wide"><label for="tz">Time zone</label><select id="tz">
+              <option value="0">US Pacific</option><option value="1">US Mountain</option><option value="2">Arizona</option>
+              <option value="3">US Central</option><option value="4">US Eastern</option><option value="5">UTC</option>
+              <option value="6">UK</option><option value="7">Central Europe</option></select></div>
+            <label class="check wide"><input type="checkbox" id="post"> Sit/stand reminders, for a standing desk</label>
+            <div class="field"><label for="sit">Sit for</label><select id="sit" data-range="15,120,5" data-v="45" data-unit="min"></select></div>
+            <div class="field"><label for="stand">Stand for</label><select id="stand" data-range="5,90,5" data-v="15" data-unit="min"></select></div>
+
+            <p class="group-title">Home screen</p>
+            <div class="field"><label for="cm">Clock</label><select id="cm"><option value="0">Off</option><option value="1" selected>12-hour</option><option value="2">24-hour</option></select></div>
+            <div class="field"><label for="cs">Clock style</label><select id="cs">
+              <option value="0">Classic</option><option value="1">Big</option><option value="2">Split</option>
+              <option value="3">Analog</option><option value="4">Rim</option><option value="5">Words</option></select></div>
+            <label class="check"><input type="checkbox" id="sd"> Show the date</label>
+            <label class="check"><input type="checkbox" id="ss" checked> Show status icons</label>
+            <label class="check wide"><input type="checkbox" id="sn" checked> Show the next reminder at the bottom</label>
+
+            <p class="group-title">Display</p>
+            <div class="field"><label for="br">Screen brightness</label><div class="row"><input type="range" id="br" min="10" max="100" step="5" value="70"><output for="br"></output></div></div>
+            <div class="field"><label for="lb">LED brightness</label><div class="row"><input type="range" id="lb" min="5" max="255" step="5" value="60"><output for="lb"></output></div></div>
+            <div class="field"><label for="nap">Nap after</label><select id="nap"><option value="0">Never</option><option value="2">2 min</option><option value="5">5 min</option><option value="10" selected>10 min</option><option value="15">15 min</option><option value="30">30 min</option><option value="60">60 min</option></select></div>
+            <label class="check" style="align-self:end;padding-bottom:12px"><input type="checkbox" id="inv"> Reverse the knob</label>
+          </fieldset>
+          <p class="note" id="settings-off" hidden>An update keeps the settings already on your dial, so there&rsquo;s nothing to set here.</p>
+        </form>
+      </section>
+
+      <section class="stepblock">
+        <header><span>4</span><h3>Connect and write</h3></header>
+        <div class="body">
+          <p class="sub">Plug the display into this computer, press the button below and pick the dial from the list your browser shows (often &ldquo;USB JTAG/serial debug unit&rdquo; or a COM port). Keep the cable in until it restarts.</p>
+          <div style="margin-top:18px;display:flex;gap:12px;flex-wrap:wrap">
+            <button class="btn primary" id="go" type="button">Write to the display</button>
+          </div>
+          <div class="progress" aria-hidden="true"><i id="bar"></i></div>
+          <p class="status" id="status" role="status"></p>
+          <pre class="log" id="log"></pre>
+          <p class="note">If it won&rsquo;t connect: hold the <b>BOOT</b> button on the back of the display, tap <b>RESET</b>, let go of BOOT, then try again. <a href="#wiki-flash">More help</a>.</p>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <aside>
+    <div class="preview">
+      <canvas id="preview" width="360" height="360" aria-label="What your dial will show"></canvas>
+      <p id="preview-caption"></p>
+      <div class="summary" id="summary"></div>
+    </div>
+  </aside>
+</div>
