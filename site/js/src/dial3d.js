@@ -28,7 +28,7 @@ export async function mountDial(canvas, screenCanvas, { led = '#4cc8ff', modelUr
 
   const camera = new THREE.PerspectiveCamera(26, 1, 1, 2000);
   camera.up.set(0, 0, 1);
-  const target = new THREE.Vector3(0, 6, 22);
+  const target = new THREE.Vector3(0, -2, 24);         // just below the screen's centre
 
   // light: a soft key from the front left, a rim from behind, and the shadow on the desk
   const key = new THREE.DirectionalLight(0xffffff, 1.6);
@@ -71,7 +71,7 @@ export async function mountDial(canvas, screenCanvas, { led = '#4cc8ff', modelUr
     new THREE.MeshPhysicalMaterial({ color: 0x24272d, roughness: 0.48, metalness: 0, clearcoat: 0.25, clearcoatRoughness: 0.5 }));
   knob.position.y = at(RING_TOP + 0.6);
   const glass = new THREE.Mesh(new THREE.CylinderGeometry(27.6, 27.6, 0.8, 128),
-    new THREE.MeshPhysicalMaterial({ color: 0x050607, roughness: 0.06, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.04 }));
+    new THREE.MeshPhysicalMaterial({ color: 0x050607, roughness: 0.06, metalness: 0, clearcoat: 0.5, clearcoatRoughness: 0.04, envMapIntensity: 0.12 }));
   glass.position.y = at(RING_TOP + 0.6 + 9 + 0.4);
   const screenTex = new THREE.CanvasTexture(screenCanvas);
   screenTex.colorSpace = THREE.SRGBColorSpace;
@@ -82,7 +82,7 @@ export async function mountDial(canvas, screenCanvas, { led = '#4cc8ff', modelUr
   screen.position.y = glass.position.y + 0.42;
   // a faint reflection layer over the screen, so it reads as under glass
   const sheen = new THREE.Mesh(new THREE.CircleGeometry(27.4, 96),
-    new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.05, transparent: true, opacity: 0.06, clearcoat: 1 }));
+    new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.05, transparent: true, opacity: 0.025, clearcoat: 1 }));
   sheen.rotation.x = -Math.PI / 2;
   sheen.position.y = screen.position.y + 0.05;
   // the LED ring under the knob, and the light it throws into the PETG
@@ -125,9 +125,9 @@ export async function mountDial(canvas, screenCanvas, { led = '#4cc8ff', modelUr
     resize();
     const s = reduce ? 0 : (t - t0) / 1000;
     px += (tx - px) * 0.05; py += (ty - py) * 0.05;
-    const yaw = -0.62 + Math.sin(s * 0.25) * 0.12 + px * 0.25;
-    const pitch = 0.3 - py * 0.08;
-    const dist = 215;
+    const yaw = -0.34 + Math.sin(s * 0.25) * 0.08 + px * 0.2;
+    const pitch = 0.78 - py * 0.06;                  // looking down at the screen, which faces up and forward
+    const dist = 228;
     camera.position.set(target.x + Math.sin(yaw) * Math.cos(pitch) * dist,
       target.y - Math.cos(yaw) * Math.cos(pitch) * dist, target.z + Math.sin(pitch) * dist);
     camera.lookAt(target);
