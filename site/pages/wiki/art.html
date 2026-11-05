@@ -21,13 +21,8 @@
 </div>
 <p>Wisp, Crumb and Sprig made it onto the dial. Mochi and Cinder are still sketches, waiting for someone to animate them.</p>
 
-<h2>2. The detour: a cut-out puppet</h2>
-<p>The first plan was to animate in code: split each character into parts (body, fins, feet, crest, a set of face masks) and move the pieces like a paper puppet. ChatGPT produced the part sheets, and a script cleaned them up and lined them up on a shared scale.</p>
-<figure><img src="img/puppet-wisp-parts.webp" alt="Wisp broken into puppet parts on a magenta background: body, fin, foot, crests, folded fin, tail tip and bowl" loading="lazy"><figcaption>Wisp&rsquo;s puppet parts on magenta, ready to be cut apart and pinned together.</figcaption></figure>
-<p>It worked, but it looked like a puppet. Pieces rotating around pins don&rsquo;t blend the way drawn animation does, and a squash, a wince or a yawn needs the whole silhouette to change. That&rsquo;s the moment the project switched to video.</p>
-
-<h2>3. One reference per pose</h2>
-<p>Next, each pose got its own reference image, made with ChatGPT from the study sheet: one clear pose per image, in its navy circle. Those are the starting frames for the video model. Starting from a single, clean pose keeps the character on model through the clip.</p>
+<h2>2. One reference per pose</h2>
+<p>Each pose then got its own reference image, made with ChatGPT from the study sheet: one clear pose per image, in its navy circle. Those are the starting frames for the video model. Starting from a single, clean pose keeps the character on model through the clip.</p>
 <div class="gallery">
   <img src="img/ref-wisp-happy.webp" alt="Wisp, happy" loading="lazy">
   <img src="img/ref-wisp-thirsty.webp" alt="Wisp, thirsty, with its bowl" loading="lazy">
@@ -35,7 +30,7 @@
   <img src="img/ref-crumb-mad.webp" alt="Crumb, mad" loading="lazy">
 </div>
 
-<h2>4. Video from each reference</h2>
+<h2>3. Video from each reference</h2>
 <p>The references went into <b>Scenario</b>, using its image-to-video mode with <b>MiniMax H3</b>, one 5-second clip per pose. Three things in the prompt made the clips usable:</p>
 <ul>
   <li><b>In place.</b> The character acts out the pose on the spot, without walking across the frame, so the clip can loop on a small screen.</li>
