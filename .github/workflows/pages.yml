@@ -17,9 +17,10 @@ permissions:
   pages: write
   id-token: write
 
+# a new push waits for the running build instead of cancelling it; if several pile up, only the newest runs next
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build:
