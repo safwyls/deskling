@@ -17,9 +17,11 @@ STL is moved down 3 mm onto the bed, and the retainer files are in print orienta
 
 Electronics (v4): a 22 × 13 mm USB-C breakout (VBUS/GND/CC1/D-/D+/CC2, 5.1 kΩ CC pull-downs fitted) at the rear port,
 an IP5306 charge + 5 V boost board (HW-775, 25 × 16 mm) on the right, an 18350 cell with 18650-holder contact plates
-on the left. Wiring: breakout VBUS/GND → IP5306 VIN/GND; IP5306 BAT/GND → cell +/−; IP5306 OUT-5V/GND → the display's
-5 V input. D+/D− stay unconnected; firmware goes over the display's own USB-C port. Without a battery, wire the
-breakout straight to the display and leave out the IP5306.
+on the left. Wiring: breakout VBUS/GND → IP5306 VIN/GND; IP5306 BAT/GND → cell +/−. The display takes power and data through
+the MX1.25-to-USB cable it ships with, plugged into its 4-pin USB connector (J37 on Elecrow's schematic: 1 VUSB,
+2 D−, 3 D+, 4 GND, wired straight to the ESP32-S3's USB pins) with the USB end cut off: IP5306 OUT-5V/GND → pins 1
+and 4, breakout D−/D+ → pins 2 and 3. So the stand's USB-C port charges, powers and flashes it. Without a battery,
+wire the breakout's four pads straight to the cable and leave out the IP5306.
 
 Before printing the shell, measure your display: `STOP_A` (7.0 mm) is the height of its fixed base above the
 bottom plate, taken from Elecrow's 3D model, which has been wrong around the skirt before. The board sizes come from

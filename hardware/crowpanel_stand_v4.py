@@ -3,7 +3,8 @@
 v4: battery power. The inline JRC-B008 pigtail is replaced by a USB-C breakout board at the rear port (22 x 13 mm,
 VBUS/GND/CC1/D-/D+/CC2 pads, 5.1k CC pull-downs fitted) and an IP5306 charge + 5 V boost board (HW-775, 25 x 16 mm)
 on the right of the base, opposite the 18350 cradle. Its KEY button is pressed through a hole in the right wall and
-its four charge LEDs glow through the shell. To fit the 22 mm breakout the rear is a little squarer, the lip in
+its four charge LEDs glow through the shell. The display is fed by its own MX1.25-to-USB cable (J37: VUSB, D-, D+,
+GND) with the USB end cut off: 5 V from the IP5306, D-/D+ straight from the breakout, so the stand's port flashes it. To fit the 22 mm breakout the rear is a little squarer, the lip in
 front of the socket is 1.0 mm, and the rear base screws move out to x = +-16.
 
 Three parts:

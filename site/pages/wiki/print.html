@@ -41,7 +41,8 @@
 <p>The display itself only runs on 5&nbsp;V and has no battery input, so the cell needs a board that charges it and boosts it to 5&nbsp;V. The stand is designed around two cheap modules:</p>
 <table>
   <tr><th>Part</th><th>What it does</th></tr>
-  <tr><td><b>USB-C breakout</b>, 22 &times; 13&nbsp;mm, pads marked VBUS, GND, CC1, D&minus;, D+, CC2</td><td>The socket in the stand&rsquo;s back wall. It already has the two 5.1&nbsp;k&Omega; resistors (marked 512) that make a USB-C charger supply power.</td></tr>
+  <tr><td><b>USB-C breakout</b>, 22 &times; 13&nbsp;mm, pads marked VBUS, GND, CC1, D&minus;, D+, CC2</td><td>The socket in the stand&rsquo;s back wall, for charging and for flashing. It already has the two 5.1&nbsp;k&Omega; resistors (marked 512) that make a USB-C charger supply power.</td></tr>
+  <tr><td><b>The MX1.25-to-USB cable</b> that comes with the display</td><td>Its small 4-pin plug fits the display&rsquo;s USB connector (J37 on Elecrow&rsquo;s schematic): 5&nbsp;V in, D&minus;, D+ and ground, wired straight to the ESP32-S3&rsquo;s own USB pins. Cut off the USB end and it becomes the link from the stand&rsquo;s socket to the display, power and data both, with no soldering on the display.</td></tr>
   <tr><td><b>IP5306 charge and boost board</b> (HW-775), 25 &times; 16&nbsp;mm, pads OUT-5V, GND, BAT, GND, GND, VIN</td><td>Charges the cell from USB, turns it into 5&nbsp;V for the display, and keeps the display running while it charges. Its four LEDs show the charge level and glow through the right side of the shell.</td></tr>
   <tr><td><b>18350 Li-ion cell</b>, and a flat and a spring contact plate from a standard 18650 holder</td><td>The battery. A protected cell is the safer choice.</td></tr>
   <tr><td>Thin wire</td><td>Silicone-insulated, 26&ndash;28&nbsp;AWG is plenty.</td></tr>
@@ -53,11 +54,15 @@
   <tr><td>Breakout GND</td><td>IP5306 GND, the pad next to VIN</td></tr>
   <tr><td>IP5306 BAT</td><td>The flat contact at the front of the cradle (the cell&rsquo;s +)</td></tr>
   <tr><td>IP5306 GND</td><td>The spring contact at the back of the cradle (the cell&rsquo;s &minus;)</td></tr>
-  <tr><td>IP5306 OUT-5V and GND</td><td>The display&rsquo;s 5&nbsp;V input and ground on its underside (see <a href="#wiki-display">Get the display ready</a>)</td></tr>
-  <tr><td>Breakout CC1, CC2, D+, D&minus;</td><td>Nothing. The CC resistors are already on the board, and data stays on the display&rsquo;s own USB-C port.</td></tr>
+  <tr><td>IP5306 OUT-5V</td><td>The display cable&rsquo;s 5&nbsp;V wire (pin 1 at the plug)</td></tr>
+  <tr><td>IP5306 GND</td><td>The display cable&rsquo;s ground wire (pin 4)</td></tr>
+  <tr><td>Breakout D&minus; and D+</td><td>The display cable&rsquo;s D&minus; (pin 2) and D+ (pin 3). Twist the two together; at the ESP32&rsquo;s 12&nbsp;Mbit/s, short plain wires are fine.</td></tr>
+  <tr><td>Breakout CC1, CC2</td><td>Nothing. The resistors they need are already on the board.</td></tr>
 </table>
 <p>Plugging in a USB-C charger switches the board on and starts charging. Running on the battery, a short press of its button (through the hole in the right side, with a pen tip) switches it on, and on most IP5306 boards two quick presses switch it off. The board also switches itself off if the load stays very light for about half a minute, so if the dial goes dark during a long nap, that&rsquo;s why.</p>
 <p>How long a charge lasts depends on how much the display draws, which we haven&rsquo;t measured yet. Expect a few hours rather than days: an 18350 holds about 4&nbsp;Wh, and the dial with its screen and Bluetooth on probably uses somewhere around half a watt to a watt.</p>
-<p><b>No battery?</b> Leave out the IP5306 and the cell, and wire the breakout&rsquo;s VBUS and GND straight to the display&rsquo;s 5&nbsp;V input and ground. Everything else is the same.</p>
+<p>The colours inside the display cable aren&rsquo;t standardised, so check which wire is which with a multimeter against the pins of its plug before you solder. Plug it into the display with the cable led down through the hole in the stand&rsquo;s floor.</p>
+<p>With the data pair wired, a computer on the stand&rsquo;s USB-C port reaches the ESP32 directly, so the <a href="#flash">firmware page</a> can flash a closed-up stand. The IP5306 keeps the 5&nbsp;V coming while it does; the computer only carries data.</p>
+<p><b>No battery?</b> Leave out the IP5306 and the cell, and wire the breakout&rsquo;s VBUS, D&minus;, D+ and GND straight to the display cable&rsquo;s four wires. Everything else is the same.</p>
 <div class="callout"><p><b>Check your boards against the model.</b> The sizes come from the sellers&rsquo; listings, which are only good to a millimetre or two. Before printing, check the breakout&rsquo;s hole spacing (16.3&nbsp;mm in the model) and how far the IP5306&rsquo;s button sits from its end (3.5&nbsp;mm), and change <code>BRK_HOLE_X</code> or <code>KEY_IN</code> in the script if yours differ.</p></div>
-<div class="callout"><p>Flash the firmware before you close the base. The display&rsquo;s own USB-C port and its BOOT and RESET buttons are on its underside: the retainer&rsquo;s open middle leaves them reachable, the base covers them.</p></div>
+<div class="callout"><p>Do the first flash before you close the base anyway. The ESP32-S3 normally switches into its download mode over USB by itself, but if it ever doesn&rsquo;t, the fix is holding its BOOT button and tapping RESET, and those are on the display&rsquo;s underside, under the base.</p></div>
