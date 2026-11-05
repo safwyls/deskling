@@ -318,3 +318,9 @@ article.doc .viewer { background: radial-gradient(120% 90% at 50% 35%, var(--rai
 .viewer .check:has(input:disabled) { opacity: 0.45; cursor: default; }
 .viewer-hint { margin: 10px 8px 0 !important; font-size: var(--t-xs); color: var(--sub); }
 article.doc td .sub { color: var(--sub); font-size: var(--t-xs); line-height: 1.5; display: inline-block; margin-top: 4px; }
+/* settings fold away when updating: an update keeps what's on the dial */
+.stepblock .collapse { display: grid; grid-template-rows: 1fr; transition: grid-template-rows .35s ease; }
+.stepblock .collapse > div { overflow: hidden; min-height: 0; }
+.stepblock.collapsed .collapse { grid-template-rows: 0fr; }
+.stepblock.collapsed .when-open { display: none; }
+.stepblock.collapsed #settings-off { margin-top: 0; }

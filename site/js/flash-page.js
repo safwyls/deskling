@@ -64,6 +64,7 @@ export async function init(root, { cleanup }) {
     $(root, '#preview-caption').textContent = `${P.name} on your dial, in ${P.name}’s colours.`;
     $(root, '#settings-fields').disabled = m !== 'install';
     $(root, '#settings-off').hidden = m === 'install';
+    $(root, '#settings-block').classList.toggle('collapsed', m !== 'install');
   };
   summary();
   root.addEventListener('input', summary);

@@ -25,8 +25,9 @@
       </section>
 
       <section class="stepblock" id="settings-block">
-        <header><span>3</span><h3>Settings</h3><p>All can be changed later on the dial or in the app</p></header>
+        <header><span>3</span><h3>Settings</h3><p class="when-open">All can be changed later on the dial or in the app</p></header>
         <form class="body" id="settings" autocomplete="off">
+          <div class="collapse"><div>
           <fieldset class="fields" id="settings-fields">
             <p class="group-title">Wi-Fi</p>
             <div class="field"><label for="ssid">Network name</label><input type="text" id="ssid" name="ssid" maxlength="32" placeholder="Optional"></div>
@@ -63,6 +64,7 @@
             <div class="field"><label for="nap">Nap after</label><select id="nap"><option value="0">Never</option><option value="2">2 min</option><option value="5">5 min</option><option value="10" selected>10 min</option><option value="15">15 min</option><option value="30">30 min</option><option value="60">60 min</option></select></div>
             <label class="check" style="align-self:end;padding-bottom:12px"><input type="checkbox" id="inv"> Reverse the knob</label>
           </fieldset>
+          </div></div>
           <p class="note" id="settings-off" hidden>An update keeps the settings already on your dial, so there&rsquo;s nothing to set here.</p>
         </form>
       </section>
