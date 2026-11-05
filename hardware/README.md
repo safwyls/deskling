@@ -19,5 +19,5 @@ The website shows them in 3D (`site/pages/wiki/models.html`) and covers printing
 
 Before printing the shell, measure your display: `STOP_A` (7.0 mm) is the height of its fixed base above the
 bottom plate, taken from Elecrow's 3D model, which has been wrong around the skirt before. Assembled, the stand is
-65.5 × 90.7 × 56.1 mm. Screws: 2 × M3×10 socket head (retainer), 4 × M3×8 countersunk into 4 M3 heat-set inserts
+65.5 × 90.7 × 56.1 mm. Screws: 2 × M3×8 socket head (retainer; longer ones bottom out in the 6.5 mm pilots), 4 × M3×8 countersunk into 4 M3 heat-set inserts
 (base). The 18350 cradle has no charger or boost board placed yet, so it can't power the display on its own.
