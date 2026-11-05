@@ -26,6 +26,7 @@ import app.deskling.sync.LinkService
 import app.deskling.sync.Sync
 import app.deskling.ui.AppState
 import app.deskling.ui.DesklingTheme
+import app.deskling.ui.LauncherIcon
 import app.deskling.ui.MainUi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -39,14 +40,14 @@ class DesklingApp : Application() {
     }
 }
 
-class MainActivity : ComponentActivity() {
+class Home : ComponentActivity() {
     private var lastStepSave = 0L
     private val stepListener = object : SensorEventListener {
         override fun onSensorChanged(e: SensorEvent) {
             val now = System.currentTimeMillis()
             if (now - lastStepSave < 5000) return       // the counter fires every step or two: fold it in now and then
             lastStepSave = now
-            Steps.record(this@MainActivity, e.values[0], now)
+            Steps.record(this@Home, e.values[0], now)
         }
         override fun onAccuracyChanged(s: Sensor?, a: Int) {}
     }
@@ -83,20 +84,26 @@ class MainActivity : ComponentActivity() {
         // while the app is open: stay in step with the dial and count steps live
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.RESUMED) {
-                LinkService.update(this@MainActivity)      // the held Bluetooth link (needs the app in front to start)
+                LinkService.update(this@Home)      // the held Bluetooth link (needs the app in front to start)
                 val sm = getSystemService(SENSOR_SERVICE) as SensorManager
                 val sensor = sm.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
-                if (sensor != null && Steps.permitted(this@MainActivity)) sm.registerListener(stepListener, sensor, SensorManager.SENSOR_DELAY_NORMAL)
+                if (sensor != null && Steps.permitted(this@Home)) sm.registerListener(stepListener, sensor, SensorManager.SENSOR_DELAY_NORMAL)
                 try {
                     while (true) {
-                        Sync.sync(this@MainActivity)
+                        Sync.sync(this@Home)
                         delay(15_000)
                     }
                 } finally {
                     sm.unregisterListener(stepListener)
-                    Reminders.check(this@MainActivity)
+                    Reminders.check(this@Home)
                 }
             }
         }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        // the app icon follows the companion; switch it now that we're out of sight
+        LauncherIcon.sync(this, Store.get(this).pet)
     }
 }

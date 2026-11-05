@@ -14,7 +14,7 @@ import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
-import app.deskling.MainActivity
+import app.deskling.Home
 import app.deskling.R
 import app.deskling.data.Store
 import kotlinx.coroutines.CoroutineScope
@@ -116,7 +116,7 @@ class LinkService : Service() {
 
     private fun note(s: Held.State): Notification {
         val name = Store.get(this).dial?.name ?: "your dial"
-        val open = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
+        val open = PendingIntent.getActivity(this, 0, Intent(this, Home::class.java), PendingIntent.FLAG_IMMUTABLE)
         return NotificationCompat.Builder(this, CHANNEL)
             .setSmallIcon(R.drawable.ic_wisp)
             .setContentTitle(if (s == Held.State.LINKED) "Linked to $name" else "Waiting for $name")

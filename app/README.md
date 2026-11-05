@@ -40,6 +40,10 @@ queues what you log until they meet again.
   in the app is sent at once, and the dial sends `{"event":"changed"}` the moment something happens on the knob,
   so the phone syncs straight away. Android reconnects by itself when you come back in range. The header chip
   reads "in sync" while linked with nothing left to send. The dial shows a Bluetooth icon in its status row.
+- **App icon:** it follows the companion. Each pet has a launcher entry in the manifest (an `activity-alias` of
+  `Home`, Wisp's still named `.MainActivity` so older home-screen shortcuts keep working), and
+  `ui/LauncherIcon.kt` enables the current pet's one when the app goes to the background. The icons are frames of
+  each pet's own animation (`tools/make_launcher_icons.py`), with a silhouette for Android 13's themed icons.
 - **Sit/stand:** the same optional posture timer as the dial (`CareEngine.setPosture`, `postureDue`), a row on
   the pet screen to switch, "Stood up" on the stats screen, and a notification with a "Standing now"/"Sitting
   now" button when you're away from the dial.

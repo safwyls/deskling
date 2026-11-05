@@ -20,7 +20,7 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
-import app.deskling.MainActivity
+import app.deskling.Home
 import app.deskling.R
 import app.deskling.care.CareEngine
 import org.json.JSONObject
@@ -74,7 +74,7 @@ object Reminders {
             if (!allowed || !canNotify(ctx)) continue
             if (now - last.optLong(n.key) < 15 * 60_000) continue
             last.put(n.key, now)
-            val open = PendingIntent.getActivity(ctx, id, Intent(ctx, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
+            val open = PendingIntent.getActivity(ctx, id, Intent(ctx, Home::class.java), PendingIntent.FLAG_IMMUTABLE)
             val done = PendingIntent.getBroadcast(ctx, id, Intent(ctx, DoneReceiver::class.java).putExtra("need", n.key),
                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
             val b = NotificationCompat.Builder(ctx, CHANNEL)
@@ -95,7 +95,7 @@ object Reminders {
             anyDue = true
             if (!allowed || !canNotify(ctx) || now - last.optLong("posture") < 15 * 60_000) return@run
             last.put("posture", now)
-            val open = PendingIntent.getActivity(ctx, id, Intent(ctx, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
+            val open = PendingIntent.getActivity(ctx, id, Intent(ctx, Home::class.java), PendingIntent.FLAG_IMMUTABLE)
             val done = PendingIntent.getBroadcast(ctx, id, Intent(ctx, DoneReceiver::class.java).putExtra("posture", true),
                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
             val b = NotificationCompat.Builder(ctx, CHANNEL)

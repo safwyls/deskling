@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- each companion's background, as on the dial (firmware include/theme.h) -->
     <color name="bg">#FF111A2C</color>
+    <color name="bg_crumb">#FF1A2C20</color>
+    <color name="bg_sprig">#FF32223A</color>
 </resources>
