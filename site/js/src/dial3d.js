@@ -7,10 +7,10 @@ import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { buildPanel, petgMaterial } from './parts3d.js';
 
-export async function mountDial(canvas, screenCanvas, { led = '#4cc8ff', modelUrl, onLost = () => {} }) {
+export async function mountDial(canvas, screenCanvas, { led = '#4cc8ff', modelUrl, onLost = () => {}, dist = 228, lite: liteOpt }) {
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   // phones and tablets get a lighter scene: some mobile GPU drivers lose the WebGL context under the full one
-  const lite = matchMedia('(pointer: coarse)').matches;
+  const lite = liteOpt ?? matchMedia('(pointer: coarse)').matches;
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'low-power' });
   renderer.setPixelRatio(Math.min(devicePixelRatio, lite ? 1.5 : 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -47,7 +47,7 @@ export async function mountDial(canvas, screenCanvas, { led = '#4cc8ff', modelUr
   // the printed shell and base plate
   const petg = petgMaterial(led, { transmission: !lite });
   const loader = new STLLoader();
-  const [shellGeo, baseGeo] = await Promise.all(['shell', 'base'].map(async (n) =>
+  const [shellGeo, baseGeo] = await Promise.all(['shell_usbc', 'base_usbc'].map(async (n) =>
     loader.parse(await (await fetch(modelUrl(n))).arrayBuffer())));
   for (const geo of [shellGeo, baseGeo]) {
     geo.computeVertexNormals();
@@ -98,7 +98,6 @@ export async function mountDial(canvas, screenCanvas, { led = '#4cc8ff', modelUr
     px += (tx - px) * 0.05; py += (ty - py) * 0.05;
     const yaw = -0.34 + Math.sin(s * 0.25) * 0.08 + px * 0.2;
     const pitch = 0.78 - py * 0.06;                  // looking down at the screen, which faces up and forward
-    const dist = 228;
     camera.position.set(target.x + Math.sin(yaw) * Math.cos(pitch) * dist,
       target.y - Math.cos(yaw) * Math.cos(pitch) * dist, target.z + Math.sin(pitch) * dist);
     camera.lookAt(target);

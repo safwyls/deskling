@@ -14,10 +14,14 @@ const EXPLODE = {
   base: new THREE.Vector3(0, 0, -64),
   boards: new THREE.Vector3(0, 0, -64),        // they sit on the base and go with it
   cell: new THREE.Vector3(0, 0, -64),
+  cable: new THREE.Vector3(0, 0, -64),
   shell: new THREE.Vector3(),
 };
 
-export async function mountModels(canvas, { modelUrl, accent = '#9fd8f7', onLost = () => {} }) {
+// two versions of the stand: 'usbc' (breakout + battery inside) and 'cable' (the display's own cable, no battery)
+const INSIDE = { usbc: ['boards', 'cell'], cable: ['cable'] };
+
+export async function mountModels(canvas, { modelUrl, accent = '#9fd8f7', onLost = () => {}, variant: startVariant = 'usbc' }) {
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const lite = matchMedia('(pointer: coarse)').matches;
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'low-power' });
@@ -41,28 +45,41 @@ export async function mountModels(canvas, { modelUrl, accent = '#9fd8f7', onLost
   controls.maxDistance = 600;
 
   const loader = new STLLoader();
-  const load = async (n) => {
-    const g = loader.parse(await (await fetch(modelUrl(n))).arrayBuffer());
-    g.computeVertexNormals();
-    return g;
-  };
-  const [shellGeo, retGeo, baseGeo, boardsGeo, cellGeo] = await Promise.all(['shell', 'retainer', 'base', 'boards', 'cell'].map(load));
+  const geos = {};
+  const load = (n) => (geos[n] ??= fetch(modelUrl(n)).then((r) => {
+    if (!r.ok) throw new Error(`${n}: ${r.status}`);
+    return r.arrayBuffer();
+  }).then((b) => { const g = loader.parse(b); g.computeVertexNormals(); return g; }));
+  const need = (v) => [`shell_${v}`, `base_${v}`, 'retainer', ...INSIDE[v]];
+  await Promise.all(need(startVariant).map(load));
 
   const shellMat = new THREE.MeshStandardMaterial({ color: 0xe9eef4, roughness: 0.5, transparent: true, opacity: 1 });
+  const empty = new THREE.BufferGeometry();
   const parts = {
-    shell: new THREE.Mesh(shellGeo, shellMat),
-    retainer: new THREE.Mesh(retGeo, new THREE.MeshStandardMaterial({ color: new THREE.Color(accent), roughness: 0.55 })),
-    base: new THREE.Mesh(baseGeo, new THREE.MeshStandardMaterial({ color: 0x8d9bb0, roughness: 0.6 })),
+    shell: new THREE.Mesh(empty, shellMat),
+    retainer: new THREE.Mesh(await load('retainer'), new THREE.MeshStandardMaterial({ color: new THREE.Color(accent), roughness: 0.55 })),
+    base: new THREE.Mesh(empty, new THREE.MeshStandardMaterial({ color: 0x8d9bb0, roughness: 0.6 })),
     display: buildPanel({ lit: false }).group,
-    // stand-ins for the parts you buy: the USB-C breakout and IP5306 boards, and the 18350 cell
-    boards: new THREE.Mesh(boardsGeo, new THREE.MeshStandardMaterial({ color: 0x2b7a57, roughness: 0.6 })),
-    cell: new THREE.Mesh(cellGeo, new THREE.MeshStandardMaterial({ color: 0x5d6b80, roughness: 0.35, metalness: 0.3 })),
+    // stand-ins for the parts you buy: the USB-C breakout and IP5306 boards, the 18350 cell, or the stock cable
+    boards: new THREE.Mesh(empty, new THREE.MeshStandardMaterial({ color: 0x2b7a57, roughness: 0.6 })),
+    cell: new THREE.Mesh(empty, new THREE.MeshStandardMaterial({ color: 0x5d6b80, roughness: 0.35, metalness: 0.3 })),
+    cable: new THREE.Mesh(empty, new THREE.MeshStandardMaterial({ color: 0x2a2f38, roughness: 0.7 })),
   };
   for (const p of Object.values(parts)) { p.userData.home = p.position.clone(); scene.add(p); }
 
+  let variant = startVariant;
+  async function useVariant(v) {
+    const [shell, base, ...inside] = await Promise.all(need(v).map(load));
+    variant = v;
+    parts.shell.geometry = shell;
+    parts.base.geometry = base;
+    INSIDE[v].forEach((n, i) => { parts[n].geometry = inside[i]; });
+  }
+  await useVariant(startVariant);
+
   let show = 'all', exploded = false, explodeT = 0;
-  const visibleParts = () => (show === 'all' ? ['shell', 'retainer', 'base', 'display', 'boards', 'cell']
-    : show === 'base' ? ['base', 'boards', 'cell'] : [show]);
+  const visibleParts = () => (show === 'all' ? ['shell', 'retainer', 'base', 'display', ...INSIDE[variant]]
+    : show === 'base' ? ['base', ...INSIDE[variant]] : [show]);
 
   function frameView(instant) {
     // frame the parts where they're heading, not where they are mid-animation
@@ -123,6 +140,7 @@ export async function mountModels(canvas, { modelUrl, accent = '#9fd8f7', onLost
 
   return {
     show(name) { show = name; apply(); frameView(false); },
+    async variant(v) { await useVariant(v); apply(); },
     explode(on) { exploded = on; if (show === 'all') frameView(false); },
     stop() { cancelAnimationFrame(raf); controls.dispose(); renderer.dispose(); },
   };

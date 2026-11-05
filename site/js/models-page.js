@@ -28,4 +28,8 @@ export async function init(root, { cleanup }) {
     explode.disabled = b.dataset.show !== 'all';
   }));
   explode.addEventListener('change', () => viewer.explode(explode.checked));
+  box.querySelectorAll('[data-variant]').forEach((b) => b.addEventListener('click', async () => {
+    box.querySelectorAll('[data-variant]').forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
+    try { await viewer.variant(b.dataset.variant); } catch (e) { console.warn(e); }
+  }));
 }
