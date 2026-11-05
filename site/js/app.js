@@ -33,10 +33,20 @@ export function setPet(p) {
   if (!PETS[p] || p === pet) return;
   pet = p;
   document.documentElement.dataset.pet = p;
+  setFavicon(p);
   try { localStorage.setItem('deskling-pet', p); } catch { /* fine */ }
   for (const fn of listeners) fn(p);
 }
 document.documentElement.dataset.pet = pet;
+setFavicon(pet);
+
+/** The tab icon is the dial's ring in the companion's colours. */
+function setFavicon(p) {
+  const { bg, accent, led } = PETS[p];
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><radialGradient id="g"><stop offset=".78" stop-color="${led}" stop-opacity="0"/><stop offset=".88" stop-color="${led}" stop-opacity=".6"/><stop offset="1" stop-color="${led}" stop-opacity="0"/></radialGradient></defs><circle cx="32" cy="32" r="32" fill="url(#g)"/><circle cx="32" cy="32" r="24" fill="${bg}" stroke="${accent}" stroke-width="9"/></svg>`;
+  const link = document.querySelector('link[rel="icon"]');
+  if (link) link.href = `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
 
 // ---------- routing ----------
 const main = document.getElementById('main');
