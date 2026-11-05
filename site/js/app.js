@@ -6,6 +6,7 @@ export const WIKI = [
   { group: 'Start here', pages: [
     ['overview', 'What you need'],
     ['print', 'Print the stand'],
+    ['models', 'The 3D files'],
     ['display', 'Get the display ready'],
     ['flash', 'Flash the firmware'],
     ['setup', 'First run and Wi-Fi'],
@@ -68,6 +69,7 @@ async function render() {
   document.title = r.view === 'home' ? 'Deskling: a desk pet that looks after you' : `${title || 'Deskling'} – Deskling`;
   if (r.view === 'home') (await import('./home.js')).init(main, { cleanup });
   if (r.view === 'flash') (await import('./flash-page.js')).init(main, { cleanup });
+  if (r.view === 'wiki' && r.page === 'models') (await import('./models-page.js')).init(main, { cleanup });
   wirePetButtons(main);
   wireScreens(main);
 }

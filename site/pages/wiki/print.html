@@ -1,33 +1,38 @@
 <p class="kicker">Start here</p>
 <h1>Print the stand</h1>
-<p class="lede">The stand is the only thing you make. It&rsquo;s two parts: a shell that sits on your desk, and a bracket hidden inside it that holds the display tipped 30&deg; toward you. In translucent filament the shell turns the knob&rsquo;s LEDs into a soft glow.</p>
+<p class="lede">The stand is the only thing you make: a shell that holds the display tipped 30&deg; toward you, a retainer ring that clamps it in from below, and a base plate that closes the bottom. In translucent filament the shell picks up the display&rsquo;s LEDs as a glow around its edge.</p>
 
-<figure><img src="img/shell-render.webp" alt="The printed shell with the CrowPanel display sitting in its angled top, rendered from the model" loading="lazy"><figcaption>The shell with the display in it, rendered from the model on this site&rsquo;s home page. The bracket is inside, out of sight.</figcaption></figure>
+<figure><img src="img/shell-render.webp" alt="The printed shell with the CrowPanel display in its angled top, rendered from the model" loading="lazy"><figcaption>The shell with the display in it, rendered from the model on this site&rsquo;s home page. The retainer and base are inside and underneath.</figcaption></figure>
 
-<h2>The models</h2>
+<h2>The parts</h2>
 <table>
   <tr><th>Part</th><th>Size</th><th>What it does</th></tr>
-  <tr><td><b>Shell</b></td><td>About 65 &times; 91 &times; 53&nbsp;mm, 33&nbsp;cm&sup3; if solid</td><td>The part you see. Its top is a face tipped 30&deg; toward you with a round opening; the knob rests on the rim around it.</td></tr>
-  <tr><td><b>Bracket</b></td><td>About 60 &times; 63 &times; 43&nbsp;mm, 7&nbsp;cm&sup3; if solid</td><td>Sits inside the shell and grips the display&rsquo;s rear body (about 52&nbsp;mm across), with a lip that stops it sliding through. The tab at the front carries two holes.</td></tr>
+  <tr><td><b>Shell</b></td><td>65 &times; 91 &times; 53&nbsp;mm</td><td>The body you see. The display goes in from below through a tilted bore and stops against a printed shoulder; a collar at the top hides everything below its black grip band.</td></tr>
+  <tr><td><b>Retainer</b></td><td>60 &times; 66 &times; 12&nbsp;mm</td><td>A ring that pushes the display&rsquo;s bottom plate up against the shoulder. Two screws through its front ear hold it.</td></tr>
+  <tr><td><b>Base</b></td><td>65 &times; 91 &times; 18&nbsp;mm</td><td>A 3&nbsp;mm floor plate with clips for the USB-C pigtail and its cable, and a cradle for an 18350 cell.</td></tr>
 </table>
-<ul>
-  <li><a href="https://github.com/safwyls/deskling/tree/main/hardware">STEP and STL files for both parts</a>, in the repository&rsquo;s <code>hardware/</code> folder</li>
-</ul>
+<p>Turn them around, see them pulled apart, and download STEP or STL on <a href="#wiki-models">The 3D files</a>.</p>
 
 <h2>Material</h2>
-<p>We printed the shell in <b>translucent PETG</b>. The knob&rsquo;s LED ring sits just above the printed part, so a clear or frosted filament carries its colour down into the shell: blue when water is due, amber when it&rsquo;s time for an eye break. Opaque filament works fine too; you just lose the glow.</p>
+<p>We printed the shell in <b>translucent PETG</b>. The display&rsquo;s lit skirt, the ring of LEDs that turns with the knob, sits inside the shell just under its collar, so a clear or frosted filament carries its colour out around the display&rsquo;s edge: blue when water is due, amber when it&rsquo;s time for an eye break. Opaque filament works fine too; you just lose the glow. The retainer and base are hidden, so print them in whatever you have.</p>
 
 <h2>Settings to start from</h2>
 <p>These are sensible defaults for functional PETG parts, not a tuned profile. Adjust for your printer.</p>
 <table>
   <tr><th>Setting</th><th>Start with</th><th>Why</th></tr>
-  <tr><td>Orientation</td><td>Shell on its flat base, as modelled</td><td>The base is the one big flat face. The inside of the tipped top is an overhang, so look at it in the preview.</td></tr>
-  <tr><td>Layer height</td><td>0.2&nbsp;mm</td><td>Fine for a part this size.</td></tr>
-  <tr><td>Walls</td><td>3 or 4</td><td>Both parts are mostly wall. More walls on the shell also diffuse the LED light more evenly.</td></tr>
-  <tr><td>Infill</td><td>15&ndash;20%</td><td>Enough for the shell&rsquo;s base and the bracket&rsquo;s tab.</td></tr>
-  <tr><td>Supports</td><td>Check your slicer&rsquo;s preview</td><td>The shell&rsquo;s inner ceiling, and the bracket&rsquo;s tilted edge or tab, may want some depending on how you lay them.</td></tr>
+  <tr><td>Orientation</td><td>As the STL files come: shell and base on their flat bottoms, the retainer with its flange and ear on the bed</td><td>Each part&rsquo;s biggest flat face is already down.</td></tr>
+  <tr><td>Layer height</td><td>0.2&nbsp;mm</td><td>Fine for parts this size.</td></tr>
+  <tr><td>Walls</td><td>3 or 4</td><td>The shell is mostly 2.2&nbsp;mm wall. More walls also diffuse the LED light more evenly.</td></tr>
+  <tr><td>Infill</td><td>15&ndash;20%</td><td>Enough for the screw bosses and the base&rsquo;s clips.</td></tr>
+  <tr><td>Supports</td><td>Check your slicer&rsquo;s preview</td><td>The roof inside the shell&rsquo;s sloped top, and the stop shoulder in its bore, are overhangs.</td></tr>
 </table>
 
-<h2>Fit</h2>
-<p>The display&rsquo;s body goes into the bracket until the knob sits on the shell&rsquo;s rim. It should hold without glue. If it&rsquo;s too tight, scale the model up by 0.5% in X and Y and print again; if it rattles, scale down by the same.</p>
-<div class="callout"><p>Leave the back of the display reachable: you&rsquo;ll want the USB-C port, and the BOOT and RESET buttons if a flash ever needs a nudge.</p></div>
+<h2>Putting it together</h2>
+<ol>
+  <li><b>Inserts.</b> Melt four M3 heat-set inserts into the bosses on the shell&rsquo;s underside.</li>
+  <li><b>Display.</b> Feed the display up into the shell from underneath, screen first, until its base band stops against the printed shoulder. The black grip band comes out through the collar at the top.</li>
+  <li><b>Retainer.</b> Push the retainer ring up under the display&rsquo;s bottom plate and drive two M3 screws up through its front ear into the shell. The ring is drawn slightly proud, so tightening the screws preloads the display against the stop and it doesn&rsquo;t rattle.</li>
+  <li><b>Power.</b> Seat the USB-C breakout between the rails at the back of the base, with its socket facing the port in the shell&rsquo;s back wall, run the cable through the clips, and let it bend up through the hole in the floor to the display.</li>
+  <li><b>Base.</b> Close it up with four M3 countersunk screws from below, into the inserts.</li>
+</ol>
+<div class="callout"><p>Flash the firmware before you close the base. The display&rsquo;s own USB-C port and its BOOT and RESET buttons are on its underside: the retainer&rsquo;s open middle leaves them reachable, the base covers them.</p></div>

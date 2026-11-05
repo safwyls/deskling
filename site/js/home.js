@@ -1,7 +1,7 @@
 // Home: the 3D dial whose screen plays a little story, recoloured with the chosen companion.
 import { Screen, PETS, NEED_COLORS } from './screen.js';
 import { currentPet, onPet } from './app.js';
-import { MODEL } from './hosting.js';
+import { MODEL_EXT } from './hosting.js';
 
 const STORY = [
   { pose: 'content', status: (p) => ({ text: 'Water in 12 min', color: PETS[p].sub }), led: null,
@@ -28,7 +28,8 @@ export async function init(root, { cleanup }) {
   const { mountDial } = await import('./dial3d.js');
   let dial;
   try {
-    dial = await mountDial(gl, screenCanvas, { led: PETS[pet].led, modelUrl: new URL('../' + MODEL, import.meta.url) });
+    dial = await mountDial(gl, screenCanvas, { led: PETS[pet].led, modelUrl: (n) => new URL(`../model/${n}.${MODEL_EXT}`, import.meta.url) });
+    cleanup.push(() => dial.stop());
   } catch (e) {
     // no WebGL: show the screen flat instead
     gl.replaceWith(Object.assign(screenCanvas, { className: 'round', style: 'width:70%;margin:10% auto' }));
