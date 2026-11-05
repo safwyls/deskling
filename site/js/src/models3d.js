@@ -12,6 +12,8 @@ const EXPLODE = {
   display: AXIS.clone().multiplyScalar(48),
   retainer: AXIS.clone().multiplyScalar(-34),
   base: new THREE.Vector3(0, 0, -64),
+  boards: new THREE.Vector3(0, 0, -64),        // they sit on the base and go with it
+  cell: new THREE.Vector3(0, 0, -64),
   shell: new THREE.Vector3(),
 };
 
@@ -44,7 +46,7 @@ export async function mountModels(canvas, { modelUrl, accent = '#9fd8f7', onLost
     g.computeVertexNormals();
     return g;
   };
-  const [shellGeo, retGeo, baseGeo] = await Promise.all(['shell', 'retainer', 'base'].map(load));
+  const [shellGeo, retGeo, baseGeo, boardsGeo, cellGeo] = await Promise.all(['shell', 'retainer', 'base', 'boards', 'cell'].map(load));
 
   const shellMat = new THREE.MeshStandardMaterial({ color: 0xe9eef4, roughness: 0.5, transparent: true, opacity: 1 });
   const parts = {
@@ -52,11 +54,15 @@ export async function mountModels(canvas, { modelUrl, accent = '#9fd8f7', onLost
     retainer: new THREE.Mesh(retGeo, new THREE.MeshStandardMaterial({ color: new THREE.Color(accent), roughness: 0.55 })),
     base: new THREE.Mesh(baseGeo, new THREE.MeshStandardMaterial({ color: 0x8d9bb0, roughness: 0.6 })),
     display: buildPanel({ lit: false }).group,
+    // stand-ins for the parts you buy: the USB-C breakout and IP5306 boards, and the 18350 cell
+    boards: new THREE.Mesh(boardsGeo, new THREE.MeshStandardMaterial({ color: 0x2b7a57, roughness: 0.6 })),
+    cell: new THREE.Mesh(cellGeo, new THREE.MeshStandardMaterial({ color: 0x5d6b80, roughness: 0.35, metalness: 0.3 })),
   };
   for (const p of Object.values(parts)) { p.userData.home = p.position.clone(); scene.add(p); }
 
   let show = 'all', exploded = false, explodeT = 0;
-  const visibleParts = () => (show === 'all' ? ['shell', 'retainer', 'base', 'display'] : [show]);
+  const visibleParts = () => (show === 'all' ? ['shell', 'retainer', 'base', 'display', 'boards', 'cell']
+    : show === 'base' ? ['base', 'boards', 'cell'] : [show]);
 
   function frameView(instant) {
     // frame the parts where they're heading, not where they are mid-animation

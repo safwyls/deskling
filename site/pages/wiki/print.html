@@ -7,11 +7,11 @@
 <h2>The parts</h2>
 <table>
   <tr><th>Part</th><th>Size</th><th>What it does</th></tr>
-  <tr><td><b>Shell</b></td><td>65 &times; 91 &times; 53&nbsp;mm</td><td>The body you see. The display goes in from below through a tilted bore and stops against a printed shoulder; a collar at the top hides everything below its black grip band.</td></tr>
+  <tr><td><b>Shell</b></td><td>65 &times; 91 &times; 53&nbsp;mm</td><td>The body you see. The display goes in from below through a tilted bore and stops against a printed shoulder; a collar at the top hides everything below its black grip band. The USB-C port is in its back wall, and a small hole in its right side reaches the battery board&rsquo;s button.</td></tr>
   <tr><td><b>Retainer</b></td><td>60 &times; 66 &times; 12&nbsp;mm</td><td>A ring that pushes the display&rsquo;s bottom plate up against the shoulder. Two screws through its front ear hold it.</td></tr>
-  <tr><td><b>Base</b></td><td>65 &times; 91 &times; 18&nbsp;mm</td><td>A 3&nbsp;mm floor plate with clips for the USB-C pigtail and its cable, and a cradle for an 18350 cell.</td></tr>
+  <tr><td><b>Base</b></td><td>65 &times; 91 &times; 18&nbsp;mm</td><td>A 3&nbsp;mm floor plate carrying the electronics: pins for the USB-C breakout at the back, a pocket for the IP5306 charge board on the right, clips for the wires down the middle, and a cradle for an 18350 cell on the left.</td></tr>
 </table>
-<p>Put together, the stand is 65.5 &times; 90.7 &times; 56.1&nbsp;mm.</p>
+<p>Put together, the stand is 65.5 &times; 91.1 &times; 56.1&nbsp;mm. This is version 4 of the stand, the one with room for a battery; <a href="#wiki-models">The 3D files</a> says what changed.</p>
 <div class="callout"><p><b>Measure your display before you print the shell.</b> The printed shoulder the display stops against sits 7.0&nbsp;mm above the display&rsquo;s bottom plate, and the lip above it at 12.3&nbsp;mm. Both come from Elecrow&rsquo;s 3D model, which has been wrong around the skirt before. Measure from the bottom plate to the top of the fixed base (the part that doesn&rsquo;t turn) on your own display. If it isn&rsquo;t 7.0&nbsp;mm, change <code>STOP_A</code> in the script and regenerate the shell first.</p></div>
 <p>Turn them around, see them pulled apart, and download STEP or STL on <a href="#wiki-models">The 3D files</a>.</p>
 
@@ -34,9 +34,30 @@
   <li><b>Inserts.</b> Melt four M3 heat-set inserts into the bosses on the shell&rsquo;s underside, two at the front and two at the back (4.0&nbsp;mm holes, up to 6&nbsp;mm deep).</li>
   <li><b>Display.</b> Push the display up the bore from underneath, screen first, until its fixed base stops against the printed shoulder. Above it, the lip and collar cover the lit skirt, the gold groove and the notch, so only the black grip band shows; the turning parts clear the lip by about 0.2&nbsp;mm.</li>
   <li><b>Retainer.</b> Slide the retainer up behind the display, its front ear up the slot in the front of the shell, and drive two M3&times;8 socket-head screws up through the ear into the pilot holes (they bite about 5&nbsp;mm into the 6.5&nbsp;mm pilots; longer ones bottom out). The ring stands 0.25&nbsp;mm proud, so tightening the screws preloads the display against the stop and it doesn&rsquo;t rattle; its flange keeps the back pressed down too.</li>
-  <li><b>Power.</b> Clip the USB-C breakout into the rails at the back of the base, its socket facing the port in the shell&rsquo;s back wall, press the cable into the clips, and let it bend up through the hole in the floor to the display.</li>
+  <li><b>Electronics.</b> Wire the boards as in <i>Battery and charging</i> below, before they go in. Then press the USB-C breakout onto the two pins at the back of the base, its socket facing backwards; a touch of a hot soldering iron on the pin tips, or a drop of glue, keeps it there. Glue the IP5306 board into its pocket on the right, button facing the right-hand wall. Snap the cell into the cradle, press the wires into the clips down the middle, and lead the display&rsquo;s pair up through the hole in the floor.</li>
   <li><b>Base.</b> Close it up with four M3&times;8 countersunk screws from below, into the inserts. The 3&nbsp;mm base lets the heads sit flush.</li>
 </ol>
-<h3>The battery cradle</h3>
-<p>Left of the cable run, the base has a cradle for an 18350 cell: three snap-in saddles, and end walls with slots for standard 18650-holder contact plates (a flat one at the front, a spring at the back). It&rsquo;s groundwork for running without a cable, not a working battery option yet. A cell on its own can&rsquo;t run the display: it still needs a charger and 5&nbsp;V boost board (an IP5306, or a TP4056 plus a boost module) and a switch, and those aren&rsquo;t placed in the design. The open space for them is on the right of the base.</p>
+<h2>Battery and charging</h2>
+<p>The display itself only runs on 5&nbsp;V and has no battery input, so the cell needs a board that charges it and boosts it to 5&nbsp;V. The stand is designed around two cheap modules:</p>
+<table>
+  <tr><th>Part</th><th>What it does</th></tr>
+  <tr><td><b>USB-C breakout</b>, 22 &times; 13&nbsp;mm, pads marked VBUS, GND, CC1, D&minus;, D+, CC2</td><td>The socket in the stand&rsquo;s back wall. It already has the two 5.1&nbsp;k&Omega; resistors (marked 512) that make a USB-C charger supply power.</td></tr>
+  <tr><td><b>IP5306 charge and boost board</b> (HW-775), 25 &times; 16&nbsp;mm, pads OUT-5V, GND, BAT, GND, GND, VIN</td><td>Charges the cell from USB, turns it into 5&nbsp;V for the display, and keeps the display running while it charges. Its four LEDs show the charge level and glow through the right side of the shell.</td></tr>
+  <tr><td><b>18350 Li-ion cell</b>, and a flat and a spring contact plate from a standard 18650 holder</td><td>The battery. A protected cell is the safer choice.</td></tr>
+  <tr><td>Thin wire</td><td>Silicone-insulated, 26&ndash;28&nbsp;AWG is plenty.</td></tr>
+</table>
+<p>Wire it like this:</p>
+<table>
+  <tr><th>From</th><th>To</th></tr>
+  <tr><td>Breakout VBUS</td><td>IP5306 VIN</td></tr>
+  <tr><td>Breakout GND</td><td>IP5306 GND, the pad next to VIN</td></tr>
+  <tr><td>IP5306 BAT</td><td>The flat contact at the front of the cradle (the cell&rsquo;s +)</td></tr>
+  <tr><td>IP5306 GND</td><td>The spring contact at the back of the cradle (the cell&rsquo;s &minus;)</td></tr>
+  <tr><td>IP5306 OUT-5V and GND</td><td>The display&rsquo;s 5&nbsp;V input and ground on its underside (see <a href="#wiki-display">Get the display ready</a>)</td></tr>
+  <tr><td>Breakout CC1, CC2, D+, D&minus;</td><td>Nothing. The CC resistors are already on the board, and data stays on the display&rsquo;s own USB-C port.</td></tr>
+</table>
+<p>Plugging in a USB-C charger switches the board on and starts charging. Running on the battery, a short press of its button (through the hole in the right side, with a pen tip) switches it on, and on most IP5306 boards two quick presses switch it off. The board also switches itself off if the load stays very light for about half a minute, so if the dial goes dark during a long nap, that&rsquo;s why.</p>
+<p>How long a charge lasts depends on how much the display draws, which we haven&rsquo;t measured yet. Expect a few hours rather than days: an 18350 holds about 4&nbsp;Wh, and the dial with its screen and Bluetooth on probably uses somewhere around half a watt to a watt.</p>
+<p><b>No battery?</b> Leave out the IP5306 and the cell, and wire the breakout&rsquo;s VBUS and GND straight to the display&rsquo;s 5&nbsp;V input and ground. Everything else is the same.</p>
+<div class="callout"><p><b>Check your boards against the model.</b> The sizes come from the sellers&rsquo; listings, which are only good to a millimetre or two. Before printing, check the breakout&rsquo;s hole spacing (16.3&nbsp;mm in the model) and how far the IP5306&rsquo;s button sits from its end (3.5&nbsp;mm), and change <code>BRK_HOLE_X</code> or <code>KEY_IN</code> in the script if yours differ.</p></div>
 <div class="callout"><p>Flash the firmware before you close the base. The display&rsquo;s own USB-C port and its BOOT and RESET buttons are on its underside: the retainer&rsquo;s open middle leaves them reachable, the base covers them.</p></div>

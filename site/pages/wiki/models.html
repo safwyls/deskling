@@ -1,6 +1,6 @@
 <p class="kicker">Start here</p>
 <h1>The 3D files</h1>
-<p class="lede">The stand is three printed parts. Turn them around, look inside, pull them apart, and download the ones you want to print.</p>
+<p class="lede">The stand is three printed parts, with room inside for a battery. Turn them around, look inside, pull them apart, and download the ones you want to print.</p>
 
 <div class="viewer" id="viewer">
   <canvas aria-label="A 3D view of the stand's printed parts that you can turn and zoom"></canvas>
@@ -13,30 +13,34 @@
     </div>
     <label class="check"><input type="checkbox" id="explode"> Pull apart</label>
   </div>
-  <p class="viewer-hint">Drag to turn, right-drag to move, scroll or pinch to zoom. The display is a simple stand-in from Elecrow&rsquo;s model.</p>
+  <p class="viewer-hint">Drag to turn, right-drag to move, scroll or pinch to zoom. The display, the two boards and the cell are simple stand-ins, shown green and grey.</p>
 </div>
 
 <h2>The parts</h2>
 <table>
   <tr><th>Part</th><th>Size</th><th>PETG if solid</th><th>Files</th></tr>
-  <tr><td><b>Shell</b><br><span class="sub">The body you see. The display loads into it from below, through a tilted bore, and stops against a printed shoulder; a collar hides everything below the display&rsquo;s black grip band.</span></td><td>65 &times; 91 &times; 53&nbsp;mm</td><td>33&nbsp;cm&sup3;, 42&nbsp;g</td><td><a href="https://github.com/safwyls/deskling/raw/main/hardware/crowpanel_v3_shell.step">STEP</a> &middot; <a href="https://github.com/safwyls/deskling/raw/main/hardware/crowpanel_v3_shell.stl">STL</a></td></tr>
-  <tr><td><b>Retainer</b><br><span class="sub">A ring that pushes the display&rsquo;s bottom plate up against the stop, with a little preload. Its front ear takes two screws up into the shell, and its front is trimmed to sit flat on the base.</span></td><td>60 &times; 66 &times; 12&nbsp;mm</td><td>7&nbsp;cm&sup3;, 9&nbsp;g</td><td><a href="https://github.com/safwyls/deskling/raw/main/hardware/crowpanel_v3_retainer.step">STEP</a> &middot; <a href="https://github.com/safwyls/deskling/raw/main/hardware/crowpanel_v3_retainer.stl">STL</a></td></tr>
-  <tr><td><b>Base</b><br><span class="sub">The floor plate: clips for the USB-C pigtail and its cable, and a cradle for an 18350 cell (the charging and boost board for it isn&rsquo;t designed in yet).</span></td><td>65 &times; 91 &times; 18&nbsp;mm</td><td>18&nbsp;cm&sup3;, 23&nbsp;g</td><td><a href="https://github.com/safwyls/deskling/raw/main/hardware/crowpanel_v3_base.step">STEP</a> &middot; <a href="https://github.com/safwyls/deskling/raw/main/hardware/crowpanel_v3_base.stl">STL</a></td></tr>
+  <tr><td><b>Shell</b><br><span class="sub">The body you see. The display loads into it from below, through a tilted bore, and stops against a printed shoulder; a collar hides everything below the display&rsquo;s black grip band.</span></td><td>65 &times; 91 &times; 53&nbsp;mm</td><td>34&nbsp;cm&sup3;, 43&nbsp;g</td><td><a href="https://github.com/safwyls/deskling/raw/main/hardware/crowpanel_v4_shell.step">STEP</a> &middot; <a href="https://github.com/safwyls/deskling/raw/main/hardware/crowpanel_v4_shell.stl">STL</a></td></tr>
+  <tr><td><b>Retainer</b><br><span class="sub">A ring that pushes the display&rsquo;s bottom plate up against the stop, with a little preload. Its front ear takes two screws up into the shell, and its front is trimmed to sit flat on the base.</span></td><td>60 &times; 66 &times; 12&nbsp;mm</td><td>7&nbsp;cm&sup3;, 9&nbsp;g</td><td><a href="https://github.com/safwyls/deskling/raw/main/hardware/crowpanel_v4_retainer.step">STEP</a> &middot; <a href="https://github.com/safwyls/deskling/raw/main/hardware/crowpanel_v4_retainer.stl">STL</a></td></tr>
+  <tr><td><b>Base</b><br><span class="sub">The floor plate that carries the electronics: pins for the USB-C breakout, a pocket for the IP5306 charge board, wire clips, and a cradle for an 18350 cell.</span></td><td>65 &times; 91 &times; 18&nbsp;mm</td><td>18&nbsp;cm&sup3;, 23&nbsp;g</td><td><a href="https://github.com/safwyls/deskling/raw/main/hardware/crowpanel_v4_base.step">STEP</a> &middot; <a href="https://github.com/safwyls/deskling/raw/main/hardware/crowpanel_v4_base.stl">STL</a></td></tr>
 </table>
-<p>Assembled, the stand is 65.5 &times; 90.7 &times; 56.1&nbsp;mm. The STL files are laid out to print: the shell and base on their flat bottoms, the retainer flange down (its trimmed front needs a little support from the bed). The shell needs one painted-on support, under the ear seat in its front slot. Grams are for a solid part; with walls and infill you&rsquo;ll use less. <a href="#wiki-print">Printing and assembly</a> covers the rest.</p>
+<p>Assembled, the stand is 65.5 &times; 91.1 &times; 56.1&nbsp;mm. The STL files are laid out to print: the shell and base on their flat bottoms, the retainer flange down (its trimmed front needs a little support from the bed). The shell needs one painted-on support, under the ear seat in its front slot. Grams are for a solid part; with walls and infill you&rsquo;ll use less. <a href="#wiki-print">Printing and assembly</a> covers the rest.</p>
 
 <h2>Screws and bits</h2>
 <ul>
   <li><b>4 &times; M3 heat-set inserts</b> in the shell&rsquo;s bosses (4.0&nbsp;mm holes, up to 6&nbsp;mm deep), for the base.</li>
   <li><b>4 &times; M3&times;8 countersunk screws</b> up through the base into those inserts.</li>
   <li><b>2 &times; M3&times;8 socket-head screws</b> through the retainer&rsquo;s ear, threaded straight into 2.6&nbsp;mm pilot holes in the shell. Both are at the front: a slot at the back would have cut through the back wall at the USB port.</li>
-  <li><b>An inline USB-C breakout</b> (the JRC-B008 kind, about 15 &times; 10&nbsp;mm) and a 6&nbsp;mm cable for the pigtail.</li>
+  <li><b>A USB-C breakout board</b>, 22 &times; 13&nbsp;mm with VBUS, GND, CC1, D&minus;, D+ and CC2 pads, for the socket in the back.</li>
+  <li>For the battery: an <b>IP5306 charge and boost board</b> (HW-775, 25 &times; 16&nbsp;mm), an <b>18350 cell</b>, and a flat and a spring <b>contact plate</b> from an 18650 holder. Wiring is in <a href="#wiki-print">Print the stand</a>.</li>
 </ul>
 
+<h2>What changed in version 4</h2>
+<p>Version 3 took power through an inline USB-C pigtail and had an empty cradle for a cell. Version 4 makes the battery work: the back holds a USB-C breakout board on two pins, the right side holds an IP5306 charge and boost board with a hole in the wall for its button, and the wires run down the middle in the same clips. To fit the 22&nbsp;mm breakout, the back of the shell is a little squarer, the plastic in front of the socket is 1&nbsp;mm, and the two rear base screws moved 1&nbsp;mm outwards. The retainer hasn&rsquo;t changed, so a v3 retainer fits.</p>
+
 <h2>Changing the design</h2>
-<p>All three parts come from one parametric script, <a href="https://github.com/safwyls/deskling/blob/main/hardware/crowpanel_stand_v3.py"><code>hardware/crowpanel_stand_v3.py</code></a>, written with <a href="https://cadquery.readthedocs.io/">CadQuery</a>. Every dimension is a named parameter at the top: the tilt, wall thickness, clearances, the cable run, the screw positions. Change one and run it:</p>
+<p>All three parts come from one parametric script, <a href="https://github.com/safwyls/deskling/blob/main/hardware/crowpanel_stand_v4.py"><code>hardware/crowpanel_stand_v4.py</code></a>, written with <a href="https://cadquery.readthedocs.io/">CadQuery</a>. Every dimension is a named parameter at the top: the tilt, wall thickness, clearances, the cable run, the screw positions. Change one and run it:</p>
 <pre><code>pip install cadquery
-python3 crowpanel_stand_v3.py</code></pre>
-<p>It writes STEP and STL for each part, and prints a set of checks first: the display&rsquo;s path in from below, every part against the display and each other, the screwdriver path to the retainer, at least 1.15&nbsp;mm of wall around every screw hole, and the cable and cell against the walls.</p>
+python3 crowpanel_stand_v4.py</code></pre>
+<p>It writes STEP and STL for each part, and prints a set of checks first: the display&rsquo;s path in from below, every part against the display and each other, the screwdriver path to the retainer, at least 1.15&nbsp;mm of wall around every screw hole, the cable, the boards and the cell against the walls, and that the battery board&rsquo;s button hole is clear.</p>
 <p>One number to check against your own display first: <code>STOP_A</code>, the height of the display&rsquo;s fixed base above its bottom plate (7.0&nbsp;mm in Elecrow&rsquo;s model). See <a href="#wiki-print">Print the stand</a>.</p>
 <p>All the parts, and the display, share one coordinate frame (desk at z&nbsp;=&nbsp;0, the front toward &minus;Y), so the shell and base STEP files, and the assembled retainer the script also writes, drop into any CAD program already in place.</p>
