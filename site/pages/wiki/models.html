@@ -20,10 +20,10 @@
 <table>
   <tr><th>Part</th><th>Size</th><th>PETG if solid</th><th>Files</th></tr>
   <tr><td><b>Shell</b><br><span class="sub">The body you see. The display loads into it from below, through a tilted bore, and stops against a printed shoulder; a collar hides everything below the display&rsquo;s black grip band.</span></td><td>65 &times; 91 &times; 53&nbsp;mm</td><td>33&nbsp;cm&sup3;, 42&nbsp;g</td><td><a href="https://github.com/safwyls/deskling/raw/main/hardware/crowpanel_v3_shell.step">STEP</a> &middot; <a href="https://github.com/safwyls/deskling/raw/main/hardware/crowpanel_v3_shell.stl">STL</a></td></tr>
-  <tr><td><b>Retainer</b><br><span class="sub">A ring that pushes the display&rsquo;s bottom plate up against the stop, with a little preload. Its front ear takes two screws up into the shell.</span></td><td>60 &times; 66 &times; 12&nbsp;mm</td><td>7&nbsp;cm&sup3;, 9&nbsp;g</td><td><a href="https://github.com/safwyls/deskling/raw/main/hardware/crowpanel_v3_retainer.step">STEP</a> &middot; <a href="https://github.com/safwyls/deskling/raw/main/hardware/crowpanel_v3_retainer.stl">STL</a></td></tr>
+  <tr><td><b>Retainer</b><br><span class="sub">A ring that pushes the display&rsquo;s bottom plate up against the stop, with a little preload. Its front ear takes two screws up into the shell, and its front is trimmed to sit flat on the base.</span></td><td>60 &times; 66 &times; 12&nbsp;mm</td><td>7&nbsp;cm&sup3;, 9&nbsp;g</td><td><a href="https://github.com/safwyls/deskling/raw/main/hardware/crowpanel_v3_retainer.step">STEP</a> &middot; <a href="https://github.com/safwyls/deskling/raw/main/hardware/crowpanel_v3_retainer.stl">STL</a></td></tr>
   <tr><td><b>Base</b><br><span class="sub">The floor plate: clips for the USB-C pigtail and its cable, and a cradle for an 18350 cell.</span></td><td>65 &times; 91 &times; 18&nbsp;mm</td><td>18&nbsp;cm&sup3;, 23&nbsp;g</td><td><a href="https://github.com/safwyls/deskling/raw/main/hardware/crowpanel_v3_base.step">STEP</a> &middot; <a href="https://github.com/safwyls/deskling/raw/main/hardware/crowpanel_v3_base.stl">STL</a></td></tr>
 </table>
-<p>The STL files are laid out to print: the shell and base on their flat bottoms, the retainer with its flange and ear on the bed. Grams are for a solid part; with walls and infill you&rsquo;ll use less. <a href="#wiki-print">Printing and assembly</a> covers the rest.</p>
+<p>The STL files are laid out to print: the shell and base on their flat bottoms, the retainer flange down (its trimmed front needs a little support from the bed). Grams are for a solid part; with walls and infill you&rsquo;ll use less. <a href="#wiki-print">Printing and assembly</a> covers the rest.</p>
 
 <h2>Screws and bits</h2>
 <ul>
@@ -38,4 +38,4 @@
 <pre><code>pip install cadquery
 python3 crowpanel_stand_v3.py</code></pre>
 <p>It writes STEP and STL for each part, and prints a set of checks first: the display&rsquo;s path in from below, every part against the display, the screws&rsquo; wall thickness, and the cable and cell against the walls.</p>
-<p>All the parts, and the display, share one coordinate frame (desk at z&nbsp;=&nbsp;0, the front toward &minus;Y), so the assembled files drop into any CAD program already in place.</p>
+<p>All the parts, and the display, share one coordinate frame (desk at z&nbsp;=&nbsp;0, the front toward &minus;Y), so the shell and base STEP files, and the assembled retainer the script also writes, drop into any CAD program already in place.</p>

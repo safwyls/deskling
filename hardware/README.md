@@ -7,13 +7,12 @@ CadQuery script.
 | --- | --- |
 | `crowpanel_stand_v3.py` | The source. Every dimension is a named parameter at the top; run it to rebuild the parts and print a set of fit and clash checks. Needs `pip install cadquery`. |
 | `crowpanel_v3_shell.step` / `.stl` | The shell (65 × 91 × 53 mm). The display loads from below through a tilted bore and stops on a printed shoulder; a collar hides everything below its black grip band. Translucent PETG carries the display's LED skirt out as a glow. |
-| `crowpanel_v3_retainer.step` / `.stl` | The retainer ring, laid out to print (flange and ear on the bed). Pushes the display's bottom plate up against the stop; 2 × M3 screws through its ear into the shell. |
-| `crowpanel_v3_retainer_assembled.step` | The same retainer, in its place in the stand. |
+| `crowpanel_v3_retainer.step` / `.stl` | The retainer ring, laid out to print (flange down; its front is trimmed flat to sit on the base, so it needs up to about 5 mm of support from the bed). Pushes the display's bottom plate up against the stop; 2 × M3 screws through its ear into the shell. |
 | `crowpanel_v3_base.step` / `.stl` | The base plate: USB-C pigtail clips, cable trough, 18350 cell cradle. 4 × M3 countersunk into heat-set inserts in the shell. |
 
-The STEP files share one frame (desk at z = 0, the front toward -Y), so the shell, the assembled retainer and
-the base line up when imported together. The shell STL is moved down 3 mm onto the bed, and the retainer STL is
-in print orientation.
+The shell and base STEP files share one frame (desk at z = 0, the front toward -Y) and line up when imported
+together; running the script also writes `v3_retainer_assembled.step`, the retainer in its place. The shell STL is
+moved down 3 mm onto the bed, and the retainer files are in print orientation.
 
 The website shows them in 3D (`site/pages/wiki/models.html`) and covers printing and assembly
 (`site/pages/wiki/print.html`).

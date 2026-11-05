@@ -252,9 +252,11 @@ ear = box(-EAR_U, EAR_U, EAR_V[0], EAR_V[1], rf_a, 0.0).cut(lcyl(RET_RIN + 0.01,
 ret_local = ret_local.fuse(ear)
 for u, v in EAR_SCREWS:      # clearance hole + deep counterbore for the socket head (screw from beneath)
     ret_local = ret_local.cut(Solid.makeCylinder(CLEAR_D / 2, 20, Vector(u, v, rf_a - 1))) \
-                         .cut(Solid.makeCylinder(3.2, (-4.0) - (rf_a - 1), Vector(u, v, rf_a - 1)))
+                         .cut(Solid.makeCylinder(3.2, (-3.0) - (rf_a - 1), Vector(u, v, rf_a - 1)))
 ret_local = ret_local.clean()
-retainer = place(ret_local)
+# trim everything below the base plate's top so the retainer sits flush on the base
+RET_BASE_GAP = 0.0
+retainer = place(ret_local).intersect(box(-BIG, BIG, -BIG, BIG, BASE_T + RET_BASE_GAP, BIG)).clean()
 
 # ---------------- base plate ----------------
 base = plan_prism(0.0, 0, BASE_T)
@@ -344,6 +346,11 @@ if __name__ == "__main__":
     plate = place(lcyl(30.075, 0.0, 2.0))
     print("  retainer rim vs knob bottom plate (preload, expect ~%.2f mm deep ring): %.2f mm3" % (RET_PRELOAD, ov(retainer, plate)))
     print("  retainer vs shell %.3f   retainer->shell min gap %.3f" % (ov(retainer, shell), gap(retainer, shell)))
+    print("  retainer vs base %.3f   retainer->base min gap %.3f   retainer lowest z %.3f (base top %.1f)"
+          % (ov(retainer, base), gap(retainer, base), retainer.BoundingBox().zmin, BASE_T))
+    for u, v in EAR_SCREWS:   # socket head (5.5 x 3) sitting at the counterbore floor must stay above the base
+        head = place(Solid.makeCylinder(2.75, 3.0, Vector(u, v, -6.0)))
+        print("  retainer screw head (%.1f,%.1f): lowest z %.2f, overlap with base %.3f" % (u, v, head.BoundingBox().zmin, ov(head, base)))
     print("  shell vs base %.3f   pigtail vs shell %.3f / base %.3f" % (ov(shell, base), ov(pigtail, shell), ov(pigtail, base)))
     print("  cable+bend vs shell %.3f / base %.3f / retainer %.3f / knob %.3f" % (ov(cable, shell), ov(cable, base), ov(cable, retainer), ov(cable, knob_all)))
     print("  18350 cell vs shell %.3f / retainer %.3f / knob %.3f / base %.3f" % (ov(cell, shell), ov(cell, retainer), ov(cell, knob_all), ov(cell, base)))
@@ -369,7 +376,9 @@ if __name__ == "__main__":
     cq.exporters.export(cq.Workplane().add(shell), "v3_shell.step")
     cq.exporters.export(cq.Workplane().add(base), "v3_base.step")
     cq.exporters.export(cq.Workplane().add(retainer), "v3_retainer_assembled.step")
-    ret_print = ret_local.translate(Vector(0, 0, -rf_a))          # flange/ear bottom on the bed
+    # print in the ring's own frame, flange down (trimmed front needs <=5.3 mm build-plate supports)
+    ret_print = retainer.translate(Vector(0, 0, -CZ)).rotate(Vector(0, 0, 0), Vector(1, 0, 0), -TILT)
+    ret_print = ret_print.translate(Vector(0, 0, -ret_print.BoundingBox().zmin))
     cq.exporters.export(cq.Workplane().add(ret_print), "v3_retainer.step")
     def stl(shape, fn):
         import trimesh
