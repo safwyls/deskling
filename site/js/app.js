@@ -5,7 +5,7 @@ import { Screen, PETS, NEED_COLORS } from './screen.js';
 export const WIKI = [
   { group: 'Start here', pages: [
     ['overview', 'What you need'],
-    ['print', 'Print the ring'],
+    ['print', 'Print the stand'],
     ['display', 'Get the display ready'],
     ['flash', 'Flash the firmware'],
     ['setup', 'First run and Wi-Fi'],

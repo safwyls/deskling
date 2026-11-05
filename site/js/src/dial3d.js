@@ -1,16 +1,16 @@
-// The hero render: the printed retainer ring (the real STEP model, converted to STL) holding a modelled
-// CrowPanel 1.46" rotary display, whose screen is a live canvas running the pet. Bundled with three.js into
+// The hero render: the printed shell (the real STEP model, converted to STL) with a modelled CrowPanel 1.46"
+// rotary display sitting in its top, whose screen is a live canvas running the pet. Bundled with three.js into
 // js/dial3d.js by `npm run build` in site/.
 import * as THREE from 'three';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 
-// Ring geometry, measured from the model: its axis tilts 30° toward the front, the circle's centre sits on
-// that axis, and the panel's body drops into it while the knob rests on top.
-const AXIS = new THREE.Vector3(0.0013, -0.501, 0.8655).normalize();
-const CENTRE = new THREE.Vector3(0.0016, -0.33, 21.76);    // on the axis, at H = 19 mm
-const H0 = 19;
-const RING_TOP = 23.3;                                      // H of the ring's top face
+// Shell geometry, measured from the model: the opening in its top is a thin rim (r 27.25 to 28.8 mm) on a face
+// tipped 30° toward the front. The panel's body drops through it and the knob rests on the rim. (The bracket
+// that actually holds the display sits inside the shell, out of sight, so it isn't drawn.)
+const AXIS = new THREE.Vector3(0, -0.5, 0.8660254).normalize();
+const CENTRE = new THREE.Vector3(0, -8.75, 41.7);           // centre of the rim
+const DESK_Z = 3;                                            // the shell's base
 
 export async function mountDial(canvas, screenCanvas, { led = '#4cc8ff', modelUrl }) {
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -28,7 +28,7 @@ export async function mountDial(canvas, screenCanvas, { led = '#4cc8ff', modelUr
 
   const camera = new THREE.PerspectiveCamera(26, 1, 1, 2000);
   camera.up.set(0, 0, 1);
-  const target = new THREE.Vector3(0, -4, 20);
+  const target = new THREE.Vector3(0, 6, 22);
 
   // light: a soft key from the front left, a rim from behind, and the shadow on the desk
   const key = new THREE.DirectionalLight(0xffffff, 1.6);
@@ -43,11 +43,11 @@ export async function mountDial(canvas, screenCanvas, { led = '#4cc8ff', modelUr
   scene.add(rim);
 
   const desk = new THREE.Mesh(new THREE.PlaneGeometry(600, 600), new THREE.ShadowMaterial({ opacity: 0.28 }));
-  desk.position.z = -1.6;
+  desk.position.z = DESK_Z - 0.05;
   desk.receiveShadow = true;
   scene.add(desk);
 
-  // the printed ring: translucent PETG, lit from inside by the knob's LEDs
+  // the printed shell: translucent PETG, lit from inside by the knob's LEDs
   const ledColor = new THREE.Color(led);
   const ringMat = new THREE.MeshPhysicalMaterial({
     color: 0xf2f5f8, roughness: 0.42, transmission: 0.55, thickness: 2.4, ior: 1.57,
@@ -61,14 +61,15 @@ export async function mountDial(canvas, screenCanvas, { led = '#4cc8ff', modelUr
 
   // the panel, built along +Y and turned onto the ring's axis
   const panel = new THREE.Group();
-  const at = (h) => h - H0;                                   // heights along the axis, from the ring centre
+  const RING_TOP = 0;                                         // heights along the axis, from the rim
+  const at = (h) => h;
   const body = new THREE.Mesh(new THREE.CylinderGeometry(25.7, 25.2, 16, 96),
     new THREE.MeshStandardMaterial({ color: 0x1d2026, roughness: 0.75, metalness: 0.1 }));
   body.position.y = at(RING_TOP - 8);
-  const knob = new THREE.Mesh(new THREE.CylinderGeometry(30, 30, 9, 160, 1, false),
-    new THREE.MeshStandardMaterial({ color: 0x2a2d33, roughness: 0.38, metalness: 0.55, normalMap: knurl(), normalScale: new THREE.Vector2(0.6, 0.6) }));
-  knob.material.normalMap.repeat.set(1, 1);
-  knob.position.y = at(RING_TOP + 0.6 + 4.5);
+  // the knob is smooth moulded plastic, with a slightly softened top edge
+  const knob = new THREE.Mesh(new THREE.LatheGeometry(knobProfile(30, 9, 1.2), 160),
+    new THREE.MeshPhysicalMaterial({ color: 0x24272d, roughness: 0.48, metalness: 0, clearcoat: 0.25, clearcoatRoughness: 0.5 }));
+  knob.position.y = at(RING_TOP + 0.6);
   const glass = new THREE.Mesh(new THREE.CylinderGeometry(27.6, 27.6, 0.8, 128),
     new THREE.MeshPhysicalMaterial({ color: 0x050607, roughness: 0.06, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.04 }));
   glass.position.y = at(RING_TOP + 0.6 + 9 + 0.4);
@@ -126,7 +127,7 @@ export async function mountDial(canvas, screenCanvas, { led = '#4cc8ff', modelUr
     px += (tx - px) * 0.05; py += (ty - py) * 0.05;
     const yaw = -0.62 + Math.sin(s * 0.25) * 0.12 + px * 0.25;
     const pitch = 0.3 - py * 0.08;
-    const dist = 176;
+    const dist = 215;
     camera.position.set(target.x + Math.sin(yaw) * Math.cos(pitch) * dist,
       target.y - Math.cos(yaw) * Math.cos(pitch) * dist, target.z + Math.sin(pitch) * dist);
     camera.lookAt(target);
@@ -145,18 +146,13 @@ export async function mountDial(canvas, screenCanvas, { led = '#4cc8ff', modelUr
   };
 }
 
-/** A normal map of fine vertical ridges for the knob's grip. */
-function knurl() {
-  const c = document.createElement('canvas');
-  c.width = 1024; c.height = 8;
-  const g = c.getContext('2d');
-  for (let x = 0; x < 1024; x++) {
-    const v = Math.sin((x / 1024) * Math.PI * 2 * 180);
-    const nx = Math.round(128 + v * 90);
-    g.fillStyle = `rgb(${nx},128,255)`;
-    g.fillRect(x, 0, 1, 8);
+/** The knob's side profile for a LatheGeometry: a cylinder of radius r and height h, top edge rounded by e. */
+function knobProfile(r, h, e) {
+  const pts = [new THREE.Vector2(0, 0), new THREE.Vector2(r, 0), new THREE.Vector2(r, h - e)];
+  for (let i = 1; i <= 8; i++) {
+    const a = (i / 8) * Math.PI / 2;
+    pts.push(new THREE.Vector2(r - e + Math.cos(a) * e, h - e + Math.sin(a) * e));
   }
-  const t = new THREE.CanvasTexture(c);
-  t.wrapS = t.wrapT = THREE.RepeatWrapping;
-  return t;
+  pts.push(new THREE.Vector2(0, h));
+  return pts;
 }

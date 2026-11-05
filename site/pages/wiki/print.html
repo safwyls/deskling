@@ -1,30 +1,33 @@
 <p class="kicker">Start here</p>
-<h1>Print the ring</h1>
-<p class="lede">The ring is the only part you make. It grips the display&rsquo;s body and holds it tipped 30&deg; toward you, and in translucent filament it turns the LEDs into a soft glow on your desk.</p>
+<h1>Print the stand</h1>
+<p class="lede">The stand is the only thing you make. It&rsquo;s two parts: a shell that sits on your desk, and a bracket hidden inside it that holds the display tipped 30&deg; toward you. In translucent filament the shell turns the knob&rsquo;s LEDs into a soft glow.</p>
 
-<figure><img src="img/ring-render.webp" alt="The printed ring holding the CrowPanel display at an angle, rendered from the model" loading="lazy"><figcaption>The ring with the display in it, rendered from the model on this site&rsquo;s home page.</figcaption></figure>
+<figure><img src="img/shell-render.webp" alt="The printed shell with the CrowPanel display sitting in its angled top, rendered from the model" loading="lazy"><figcaption>The shell with the display in it, rendered from the model on this site&rsquo;s home page. The bracket is inside, out of sight.</figcaption></figure>
 
-<h2>The model</h2>
-<p>One solid part, about 60 &times; 62 &times; 43&nbsp;mm. Its opening is sized for the CrowPanel&rsquo;s rear body (about 52&nbsp;mm across), with a lip that stops the display from sliding through; the 60&nbsp;mm knob rests on top. The tab at the front carries two holes.</p>
+<h2>The models</h2>
+<table>
+  <tr><th>Part</th><th>Size</th><th>What it does</th></tr>
+  <tr><td><b>Shell</b></td><td>About 65 &times; 91 &times; 53&nbsp;mm, 33&nbsp;cm&sup3; if solid</td><td>The part you see. Its top is a face tipped 30&deg; toward you with a round opening; the knob rests on the rim around it.</td></tr>
+  <tr><td><b>Bracket</b></td><td>About 60 &times; 63 &times; 43&nbsp;mm, 7&nbsp;cm&sup3; if solid</td><td>Sits inside the shell and grips the display&rsquo;s rear body (about 52&nbsp;mm across), with a lip that stops it sliding through. The tab at the front carries two holes.</td></tr>
+</table>
 <ul>
-  <li><a href="https://github.com/safwyls/deskling/tree/main/hardware">STEP and STL in the repository</a> (<code>hardware/</code>)</li>
-  <li><a href="model/shell.stl">STL from this site</a></li>
+  <li><a href="https://github.com/safwyls/deskling/tree/main/hardware">STEP and STL files for both parts</a>, in the repository&rsquo;s <code>hardware/</code> folder</li>
 </ul>
 
 <h2>Material</h2>
-<p>We printed it in <b>translucent PETG</b>. The knob&rsquo;s LED ring sits just above the printed part, so a clear or frosted filament carries its colour down into the ring: blue when water is due, amber when it&rsquo;s time for an eye break. Opaque filament works fine too; you just lose the glow.</p>
+<p>We printed the shell in <b>translucent PETG</b>. The knob&rsquo;s LED ring sits just above the printed part, so a clear or frosted filament carries its colour down into the shell: blue when water is due, amber when it&rsquo;s time for an eye break. Opaque filament works fine too; you just lose the glow.</p>
 
 <h2>Settings to start from</h2>
-<p>These are sensible defaults for a small, round, functional part, not a tuned profile. Adjust for your printer.</p>
+<p>These are sensible defaults for functional PETG parts, not a tuned profile. Adjust for your printer.</p>
 <table>
   <tr><th>Setting</th><th>Start with</th><th>Why</th></tr>
-  <tr><td>Orientation</td><td>Ring lying flat (its opening facing up)</td><td>Round walls print round; the layer lines run around the ring rather than across it.</td></tr>
+  <tr><td>Orientation</td><td>Shell on its flat base, as modelled</td><td>The base is the one big flat face. The inside of the tipped top is an overhang, so look at it in the preview.</td></tr>
   <tr><td>Layer height</td><td>0.2&nbsp;mm</td><td>Fine for a part this size.</td></tr>
-  <tr><td>Walls</td><td>3 or 4</td><td>A ring is mostly wall. More walls also diffuse the LED light more evenly.</td></tr>
-  <tr><td>Infill</td><td>15&ndash;20%</td><td>Only the tab and the base have any.</td></tr>
-  <tr><td>Supports</td><td>Check your slicer&rsquo;s preview</td><td>Depending on orientation, the tilted lower edge or the tab may want a little.</td></tr>
+  <tr><td>Walls</td><td>3 or 4</td><td>Both parts are mostly wall. More walls on the shell also diffuse the LED light more evenly.</td></tr>
+  <tr><td>Infill</td><td>15&ndash;20%</td><td>Enough for the shell&rsquo;s base and the bracket&rsquo;s tab.</td></tr>
+  <tr><td>Supports</td><td>Check your slicer&rsquo;s preview</td><td>The shell&rsquo;s inner ceiling, and the bracket&rsquo;s tilted edge or tab, may want some depending on how you lay them.</td></tr>
 </table>
 
 <h2>Fit</h2>
-<p>Push the display&rsquo;s body into the ring from the top until the knob sits on the rim. It should hold without glue. If it&rsquo;s too tight, scale the model up by 0.5% in X and Y and print again; if it rattles, scale down by the same.</p>
+<p>The display&rsquo;s body goes into the bracket until the knob sits on the shell&rsquo;s rim. It should hold without glue. If it&rsquo;s too tight, scale the model up by 0.5% in X and Y and print again; if it rattles, scale down by the same.</p>
 <div class="callout"><p>Leave the back of the display reachable: you&rsquo;ll want the USB-C port, and the BOOT and RESET buttons if a flash ever needs a nudge.</p></div>
