@@ -1,5 +1,5 @@
 // The firmware page: choices, the settings form, a live preview, and the write over Web Serial.
-import { Screen, PETS } from './screen.js';
+import { Screen, PETS, timeIn } from './screen.js';
 import { currentPet, onPet } from './app.js';
 import { CAN_FLASH_HERE } from './hosting.js';
 
@@ -51,6 +51,35 @@ export async function init(root, { cleanup }) {
   // ---------- preview and summary ----------
   const preview = new Screen($(root, '#preview'), { pet, pose: 'happy', home: true, size: 360 });
   cleanup.push(() => preview.stop());
+  // the preview draws the home screen the way the firmware will with these settings, at the time it is now there
+  const TZ = ['America/Los_Angeles', 'America/Denver', 'America/Phoenix', 'America/Chicago', 'America/New_York', 'UTC', 'Europe/London', 'Europe/Berlin'];
+  const NEED_NAMES = ['Water', 'Eye break', 'Stretch', 'Move'];
+  const awakeAt = (H, a, b) => a === b || (a < b ? H >= a && H < b : H >= a || H < b);    // care_in_hours()
+  const showPreview = () => {
+    const s = settings(), P = PETS[pet], tz = TZ[s.tz] || TZ[0];
+    const awake = awakeAt(timeIn(tz).H, s.hourStart, s.hourEnd);
+    let next = null;
+    if (s.showNext) {
+      if (!awake) next = { text: `Asleep until ${s.hourStart}:00`, color: P.dim };
+      else {
+        // just after a fresh install every timer starts full, so the soonest is the shortest interval
+        let what = null, left = Infinity;
+        s.remind.forEach((m, i) => { if (m > 0 && m < left) { left = m; what = NEED_NAMES[i]; } });
+        if (s.postureOn && s.sitMin < left) { left = s.sitMin; what = 'Stand'; }
+        if (what) next = { text: left >= 60 ? `${what} in ${Math.floor(left / 60)}h ${String(left % 60).padStart(2, '0')}m` : `${what} in ${left} min`, color: P.dim };
+      }
+    }
+    const pose = awake ? 'happy' : 'asleep';
+    if (preview.pose !== pose || preview.pet !== pet) preview.set(pet, pose);
+    preview.setFace({ mode: s.clockMode, style: s.clockStyle, tz, date: s.showDate, wifi: s.showStatus && !!s.ssid, phone: s.showStatus, next });
+    preview.c.style.filter = `brightness(${(0.35 + 0.65 * s.bright / 100).toFixed(2)})`;
+    $(root, '#preview-caption').textContent = awake
+      ? `${P.name}’s home screen with these settings, at the time it is now in your time zone.`
+      : `It’s outside ${P.name}’s awake hours in your time zone right now, so it’s asleep.`;
+  };
+  const tick = setInterval(showPreview, 20000);
+  cleanup.push(() => clearInterval(tick));
+  Promise.all(['500 14px Montserrat', '900 100px Inter', '100 100px Inter'].map((f) => document.fonts?.load(f))).finally(showPreview);
   const summary = () => {
     const m = mode(), s = settings(), P = PETS[pet];
     const rows = [['Companion', P.name], ['Firmware', `${manifest.version}, ${mb(manifest.apps[pet].size)}`]];
@@ -61,7 +90,7 @@ export async function init(root, { cleanup }) {
       rows.push(['To write', `about ${mb(total)}`]);
     } else rows.push(['Settings', 'kept as they are'], ['To write', mb(manifest.apps[pet].size)]);
     $(root, '#summary').innerHTML = rows.map(([k, v]) => `<div><span>${k}</span><b>${escapeHtml(v)}</b></div>`).join('');
-    $(root, '#preview-caption').textContent = `${P.name} on your dial, in ${P.name}’s colours.`;
+    showPreview();
     $(root, '#settings-fields').disabled = m !== 'install';
     $(root, '#settings-off').hidden = m === 'install';
     $(root, '#settings-block').classList.toggle('collapsed', m !== 'install');
@@ -69,7 +98,7 @@ export async function init(root, { cleanup }) {
   summary();
   root.addEventListener('input', summary);
   root.addEventListener('change', summary);
-  onPet((p) => { pet = p; preview.set(p, 'happy'); summary(); });
+  onPet((p) => { pet = p; summary(); });
 
   // ---------- can this browser write to USB devices here? ----------
   const { serialStatus } = await import('./flasher.js');

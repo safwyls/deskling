@@ -4,12 +4,15 @@ import { PACK_EXT } from './hosting.js';
 // the pet standing on a ground line, the bubble up and to the right of its face.
 
 export const PETS = {
-  wisp:  { name: 'Wisp',  bg: '#111a2c', text: '#e8eef8', sub: '#8a94a8', accent: '#9fd8f7', led: '#4cc8ff',
-           shadow: [70, 105, 160, 110 / 255], thirstyBubble: false },
-  crumb: { name: 'Crumb', bg: '#1a2c20', text: '#f2ecda', sub: '#9aa88f', accent: '#f3b54a', led: '#ffa630',
-           shadow: [4, 9, 5, 150 / 255], thirstyBubble: false },
-  sprig: { name: 'Sprig', bg: '#32223a', text: '#f5f1e3', sub: '#ab9aae', accent: '#a9db7f', led: '#7cff4a',
-           shadow: [10, 4, 14, 150 / 255], thirstyBubble: true },
+  wisp:  { name: 'Wisp',  bg: '#111a2c', text: '#e8eef8', sub: '#8a94a8', accent: '#9fd8f7', led: '#4cc8ff', dim: '#4a5468',
+           shadow: [70, 105, 160, 110 / 255], thirstyBubble: false,
+           clk: { big: '#27395c', split: '#34496f', hand: '#2f4268', tick: '#3a4e78', word: '#3e5279', wordHi: '#6680b4' } },
+  crumb: { name: 'Crumb', bg: '#1a2c20', text: '#f2ecda', sub: '#9aa88f', accent: '#f3b54a', led: '#ffa630', dim: '#4c5c4e',
+           shadow: [4, 9, 5, 150 / 255], thirstyBubble: false,
+           clk: { big: '#2f4935', split: '#3d5b43', hand: '#37543d', tick: '#48684a', word: '#4d6a52', wordHi: '#84a476' } },
+  sprig: { name: 'Sprig', bg: '#32223a', text: '#f5f1e3', sub: '#ab9aae', accent: '#a9db7f', led: '#7cff4a', dim: '#655269',
+           shadow: [10, 4, 14, 150 / 255], thirstyBubble: true,
+           clk: { big: '#45324f', split: '#55405f', hand: '#4d3a58', tick: '#624c6c', word: '#664f70', wordHi: '#a58cae' } },
 };
 
 export const NEED_COLORS = { water: '#3fa9ff', eyes: '#ffc457', stretch: '#5cf08a', move: '#c77dff', posture: '#4fd6c8' };
@@ -69,6 +72,7 @@ export class Screen {
     this.size = size;
     this.home = home;              // draw the clock and status line too
     this.status = status;          // { text, color } for the bottom line
+    this.face = null;              // optional: the firmware's own home screen, see setFace()
     this.onFrame = onFrame;
     this.frame = 0; this.dir = 1; this.last = 0;
     this.visible = true;
@@ -95,6 +99,12 @@ export class Screen {
     this.loop = loop; this.bubble = bubble; this.frame = 0; this.dir = 1;
     this.draw();
   }
+
+  /**
+   * Draw the home screen the way the firmware does (src/clockface.cpp and status_render in src/pet.cpp):
+   * { mode: 0 off | 1 12-hour | 2 24-hour, style: 0 Classic … 5 Words, date, wifi, phone, tz, next: { text, color } }.
+   */
+  setFace(face) { this.face = face; this.draw(); }
 
   stop() { this.stopped = true; }
 
@@ -123,7 +133,8 @@ export class Screen {
     g.beginPath(); g.arc(this.size / 2, this.size / 2, this.size / 2, 0, Math.PI * 2); g.clip();
     g.fillStyle = P.bg; g.fillRect(0, 0, this.size, this.size);
     g.scale(s, s);
-    if (this.home) this.drawHome(P);
+    if (this.face) drawFace(g, P, this.face);
+    else if (this.home) this.drawHome(P);
     if (this.loop) this.drawPet(P);
     g.restore();
     if (this.onFrame) this.onFrame();
@@ -163,4 +174,134 @@ export class Screen {
       g.drawImage(this.bubble, x, Math.max(2, y), 44, 58);
     }
   }
+}
+
+// ---------------------------------------------------------------- the firmware's home screen
+const STYLE = { CLASSIC: 0, BIG: 1, SPLIT: 2, ANALOG: 3, RIM: 4, WORDS: 5 };
+const MONT = (px) => `500 ${px}px Montserrat, "Instrument Sans", system-ui, sans-serif`;   // LVGL's built-in font
+const HOUR_WORD = ['twelve', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
+const PAST = ['', 'five past', 'ten past', 'quarter past', 'twenty past', 'twenty-five past', 'half past'];
+const TO = ['', 'twenty-five to', 'twenty to', 'quarter to', 'ten to', 'five to'];
+
+/** Hours, minutes and the date line ("Thu Nov 5") right now in an IANA time zone. */
+export function timeIn(tz) {
+  const parts = Object.fromEntries(new Intl.DateTimeFormat('en-US', {
+    timeZone: tz, hour: 'numeric', minute: 'numeric', hourCycle: 'h23', weekday: 'short', month: 'short', day: 'numeric',
+  }).formatToParts(new Date()).map((p) => [p.type, p.value]));
+  return { H: Number(parts.hour) % 24, M: Number(parts.minute), date: `${parts.weekday} ${parts.month} ${parts.day}` };
+}
+
+// The big and split clocks are pre-rendered digits on the dial (tools/make_clock.py): Inter Display Black with
+// figures 72 px tall, and Inter Display Thin at 96 px. Each glyph image is its ink width plus 2 px either side.
+const digitFonts = new Map();
+function digitFont(g, weight, height) {
+  const key = `${weight}/${height}`;
+  if (digitFonts.has(key)) return digitFonts.get(key);
+  g.font = `${weight} 100px Inter, system-ui, sans-serif`;
+  const m = g.measureText('0'), h100 = m.actualBoundingBoxAscent + m.actualBoundingBoxDescent;
+  const f = { font: `${weight} ${(100 * height / h100).toFixed(2)}px Inter, system-ui, sans-serif`, height };
+  if (document.fonts?.check?.(f.font)) digitFonts.set(key, f);      // only cache once the real font is in
+  return f;
+}
+
+function digitRow(g, text, weight, height, gap, colour) {
+  const f = digitFont(g, weight, height);
+  g.font = f.font; g.textBaseline = 'alphabetic'; g.textAlign = 'left';
+  const asc = g.measureText('0').actualBoundingBoxAscent;
+  const glyphs = [...text].map((c) => {
+    const m = g.measureText(c);
+    return { c, left: m.actualBoundingBoxLeft, w: m.actualBoundingBoxLeft + m.actualBoundingBoxRight + 4 };
+  });
+  const width = glyphs.reduce((a, x) => a + x.w, 0) + gap * (glyphs.length - 1);
+  return {
+    width,
+    draw(cx, cy) {
+      g.font = f.font; g.fillStyle = colour; g.textBaseline = 'alphabetic'; g.textAlign = 'left';
+      let x = cx - width / 2;
+      const base = cy - f.height / 2 + asc;
+      for (const gl of glyphs) { g.fillText(gl.c, x + 2 + gl.left, base); x += gl.w + gap; }
+    },
+  };
+}
+
+const atAngle = (deg, r) => { const a = (deg - 90) * Math.PI / 180; return [180 + r * Math.cos(a), 180 + r * Math.sin(a)]; };
+function dot(g, x, y, d, colour, alpha = 1) { g.globalAlpha = alpha; g.fillStyle = colour; g.beginPath(); g.arc(x, y, d / 2, 0, Math.PI * 2); g.fill(); g.globalAlpha = 1; }
+function hand(g, deg, len, width, colour) {
+  const [x, y] = atAngle(deg, len);
+  g.strokeStyle = colour; g.lineWidth = width; g.lineCap = 'round';
+  g.beginPath(); g.moveTo(180, 180); g.lineTo(x, y); g.stroke();
+}
+
+function wifiIcon(g, x, y, colour) {             // LV_SYMBOL_WIFI, about 16 x 12
+  g.strokeStyle = colour; g.fillStyle = colour; g.lineWidth = 2; g.lineCap = 'round';
+  for (const r of [3.5, 7, 10.5]) { g.beginPath(); g.arc(x, y + 5, r, -Math.PI * 0.78, -Math.PI * 0.22); g.stroke(); }
+  g.beginPath(); g.arc(x, y + 5, 1.6, 0, Math.PI * 2); g.fill();
+}
+function bluetoothIcon(g, x, y, colour) {        // LV_SYMBOL_BLUETOOTH, about 8 x 14
+  g.strokeStyle = colour; g.lineWidth = 1.8; g.lineJoin = 'round'; g.lineCap = 'round';
+  g.beginPath(); g.moveTo(x - 4, y - 3.5); g.lineTo(x + 3.5, y + 3); g.lineTo(x, y + 6.5); g.lineTo(x, y - 6.5); g.lineTo(x + 3.5, y - 3); g.lineTo(x - 4, y + 3.5); g.stroke();
+}
+
+function drawFace(g, P, f) {
+  const { H, M, date } = timeIn(f.tz || 'America/Los_Angeles');
+  const on = f.mode !== 0, h12 = H % 12 === 0 ? 12 : H % 12, hShown = f.mode === 1 ? h12 : H;
+  const pad = (n) => String(n).padStart(2, '0');
+  const small = on && (f.style === STYLE.CLASSIC || f.style === STYLE.RIM);
+  g.save();
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  if (on) switch (f.style) {
+    case STYLE.CLASSIC: case STYLE.RIM:
+      if (f.style === STYLE.RIM) {
+        for (let i = 0; i < 12; i++) { const [x, y] = atAngle(i * 30, 162); dot(g, x, y, 3, P.accent, 0.3); }
+        g.globalAlpha = 0.4; g.strokeStyle = P.accent; g.lineWidth = 5; g.lineCap = 'round';
+        g.beginPath(); g.arc(180, 180, 174 - 2.5, -Math.PI / 2, -Math.PI / 2 + (M === 0 ? 60 : M) / 60 * Math.PI * 2); g.stroke();
+        g.globalAlpha = 1;
+        const [x, y] = atAngle((H % 12) * 30 + M * 0.5, 146); dot(g, x, y, 14, P.accent, 0.7);
+      }
+      g.font = MONT(20); g.fillStyle = f.style === STYLE.RIM ? P.sub : P.text;
+      g.fillText(f.mode === 1 ? `${h12}:${pad(M)} ${H < 12 ? 'AM' : 'PM'}` : `${pad(H)}:${pad(M)}`, 180, 34);
+      break;
+    case STYLE.BIG:
+      digitRow(g, f.mode === 1 ? `${hShown}:${pad(M)}` : `${pad(H)}:${pad(M)}`, 900, 72, 4, P.clk.big).draw(180, 120);
+      break;
+    case STYLE.SPLIT: {
+      const L = digitRow(g, f.mode === 1 ? `${hShown}` : pad(H), 100, 96, 2, P.clk.split);
+      const R = digitRow(g, pad(M), 100, 96, 2, P.clk.split);
+      L.draw(180 - 14 - L.width / 2, 174); R.draw(180 + 14 + R.width / 2, 174);
+      break;
+    }
+    case STYLE.ANALOG:
+      for (let i = 0; i < 12; i++) { const [x, y] = atAngle(i * 30, 160); dot(g, x, y, i % 3 === 0 ? 8 : 4, P.clk.tick); }
+      hand(g, (H % 12) * 30 + M * 0.5, 92, 9, P.clk.hand);
+      hand(g, M * 6, 148, 6, P.clk.hand);
+      dot(g, 180, 180, 16, P.clk.hand);
+      break;
+    case STYLE.WORDS: {
+      let m5 = Math.floor((M + 2) / 5) * 5, hr = H;
+      if (m5 === 60) { m5 = 0; hr++; }
+      if (m5 > 30) hr++;
+      g.font = MONT(20); g.fillStyle = P.clk.word;
+      g.fillText(m5 === 0 ? "it's" : m5 <= 30 ? PAST[m5 / 5] : TO[(m5 - 30) / 5], 180, 68);
+      g.font = MONT(48); g.fillStyle = P.clk.wordHi;
+      g.fillText(HOUR_WORD[hr % 12 === 0 ? 12 : hr % 12], 180, 106);
+      break;
+    }
+    default: break;
+  }
+
+  // the date and icon row: under the small clock, or at the very top when the clock is big or off
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  const items = [];
+  g.font = MONT(14);
+  if (f.date) items.push({ w: g.measureText(date).width, draw: (x, y) => { g.font = MONT(14); g.fillStyle = P.sub; g.fillText(date, x, y); } });
+  if (f.wifi) items.push({ w: 16, draw: (x, y) => wifiIcon(g, x, y, P.sub) });
+  if (f.phone) items.push({ w: 9, draw: (x, y) => bluetoothIcon(g, x, y, P.accent) });
+  if (items.length) {
+    const total = items.reduce((a, i) => a + i.w, 0) + 10 * (items.length - 1);
+    let x = 180 - total / 2;
+    const y = small ? 56 : 34;
+    for (const it of items) { it.draw(x + it.w / 2, y); x += it.w + 10; }
+  }
+  if (f.next) { g.font = MONT(14); g.fillStyle = f.next.color || P.dim; g.fillText(f.next.text, 180, 326); }
+  g.restore();
 }
