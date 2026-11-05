@@ -8,7 +8,7 @@ on:
     paths:
       - 'site/**'
       - 'firmware/**'
-      - 'app/app/src/main/assets/pets/**'
+      - 'app/**'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 
@@ -24,6 +24,9 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      # the app is only published when its signing key is set up (Settings > Secrets and variables > Actions)
+      HAS_APP_KEY: ${{ secrets.DESKLING_KEYSTORE_B64 != '' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -43,6 +46,27 @@ jobs:
       - name: Build the firmware for each companion
         working-directory: firmware
         run: pio run -e wisp -e crumb -e sprig
+
+      - uses: actions/setup-java@v4
+        if: env.HAS_APP_KEY == 'true'
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Build the Android app
+        if: env.HAS_APP_KEY == 'true'
+        env:
+          DESKLING_KEYSTORE_B64: ${{ secrets.DESKLING_KEYSTORE_B64 }}
+          DESKLING_KEYSTORE: ${{ runner.temp }}/deskling.jks
+          DESKLING_KEYSTORE_PASSWORD: ${{ secrets.DESKLING_KEYSTORE_PASSWORD }}
+          DESKLING_KEY_ALIAS: ${{ secrets.DESKLING_KEY_ALIAS }}
+          DESKLING_KEY_PASSWORD: ${{ secrets.DESKLING_KEY_PASSWORD }}
+        run: |
+          echo "$DESKLING_KEYSTORE_B64" | base64 -d > "$DESKLING_KEYSTORE"
+          cd app && ./gradlew --no-daemon :app:assembleRelease
+          cd .. && python3 site/tools/app_to_site.py app/app/build/outputs/apk/release site/app
+          rm "$DESKLING_KEYSTORE"
 
       - name: Assemble the site
         run: |

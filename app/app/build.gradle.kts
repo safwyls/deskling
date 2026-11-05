@@ -16,11 +16,23 @@ android {
         versionName = "1.7"
     }
 
+    // Release signing comes from the environment (the website workflow fills these from repository secrets).
+    // Every update must be signed with the same key, or Android refuses to install it over the old app.
+    // Without them, release builds fall back to this machine's debug key.
+    val keystore = System.getenv("DESKLING_KEYSTORE")?.let { file(it) }?.takeIf { it.exists() }
+    signingConfigs {
+        if (keystore != null) create("release") {
+            storeFile = keystore
+            storePassword = System.getenv("DESKLING_KEYSTORE_PASSWORD")
+            keyAlias = System.getenv("DESKLING_KEY_ALIAS")
+            keyPassword = System.getenv("DESKLING_KEY_PASSWORD")
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
-            // signed with the debug key so the APK installs straight away; use your own key for the Play Store
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
         }
     }
     compileOptions {

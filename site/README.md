@@ -19,6 +19,8 @@ npm install && npm run build                                             # the t
 python3 tools/pack_pets.py ../app/app/src/main/assets/pets pets          # the animation loops
 (cd ../firmware && pio run -e wisp -e crumb -e sprig)
 python3 tools/firmware_to_site.py ../firmware fw                          # the firmware images + manifest
+(cd ../app && ./gradlew :app:assembleRelease)
+python3 tools/app_to_site.py ../app/app/build/outputs/apk/release app    # the Android app + manifest
 python3 -m http.server 8000
 ```
 

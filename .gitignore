@@ -18,3 +18,4 @@ site/node_modules/
 site/fw/*.bin
 site/pets/
 site/tools/nvs_check/*.bin
+site/app/

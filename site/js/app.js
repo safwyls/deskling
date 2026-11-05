@@ -46,6 +46,7 @@ function route() {
   const h = location.hash.slice(1) || 'home';
   if (h === 'home' || h === '') return { view: 'home', file: 'pages/home.html' };
   if (h === 'flash') return { view: 'flash', file: 'pages/flash.html' };
+  if (h === 'app') return { view: 'app', file: 'pages/app.html' };
   if (h === 'wiki') return { view: 'wiki', file: 'pages/wiki/index.html', page: 'index' };
   if (h.startsWith('wiki-')) {
     const page = h.slice(5);
@@ -65,10 +66,11 @@ async function render() {
   if (r.view === 'wiki') html = wikiLayout(html, r.page);
   main.innerHTML = html;
   window.scrollTo(0, 0);
-  const title = main.querySelector('h1')?.textContent;
+  const title = main.querySelector('[data-title]')?.dataset.title || main.querySelector('h1')?.textContent;
   document.title = r.view === 'home' ? 'Deskling: a desk pet that looks after you' : `${title || 'Deskling'} – Deskling`;
   if (r.view === 'home') (await import('./home.js')).init(main, { cleanup });
   if (r.view === 'flash') (await import('./flash-page.js')).init(main, { cleanup });
+  if (r.view === 'app') (await import('./app-page.js')).init(main, { cleanup });
   if (r.view === 'wiki' && r.page === 'models') (await import('./models-page.js')).init(main, { cleanup });
   wirePetButtons(main);
   wireScreens(main);

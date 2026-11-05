@@ -48,5 +48,9 @@ The full commands, with every loop, are in `firmware/README.md`.
 ## The website
 
 Plain static files in `site/`, no framework. GitHub Actions (`.github/workflows/pages.yml`) builds the three
-firmwares, packs the pet loops from the app's assets and publishes `site/` to GitHub Pages on every push that
-touches the site, the firmware or the app's animations. To run it locally, see [`site/README.md`](site/README.md).
+firmwares and the Android app, packs the pet loops from the app's assets and publishes `site/` to GitHub Pages on
+every push that touches the site, the firmware or the app.
+
+The app is only built when its signing key is in the repository's Actions secrets: `DESKLING_KEYSTORE_B64` (the
+keystore, base64), `DESKLING_KEYSTORE_PASSWORD`, `DESKLING_KEY_ALIAS` and `DESKLING_KEY_PASSWORD`. Every release
+must be signed with the same key, or Android won't install it over the previous one. To run it locally, see [`site/README.md`](site/README.md).

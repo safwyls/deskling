@@ -72,7 +72,7 @@ p { margin: 0; text-wrap: pretty; }
   .diy { display: none; }
 }
 .top nav a .short { display: none; }
-@media (max-width: 480px) {
+@media (max-width: 640px) {
   .top nav a .long { display: none; }
   .top nav a .short { display: inline; }
 }
@@ -324,3 +324,31 @@ article.doc td .sub { color: var(--sub); font-size: var(--t-xs); line-height: 1.
 .stepblock.collapsed .collapse { grid-template-rows: 0fr; }
 .stepblock.collapsed .when-open { display: none; }
 .stepblock.collapsed #settings-off { margin-top: 0; }
+
+/* ---------- app page ---------- */
+.apppage { padding-block: clamp(36px, 6vw, 72px); }
+.app-hero { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: clamp(28px, 6vw, 80px); align-items: center; }
+.app-hero h1 { font-size: var(--t-3xl); }
+.app-hero .intro { color: var(--sub); font-size: var(--t-l); line-height: 1.5; margin-top: 18px; max-width: 46ch; }
+.download { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; margin-top: 28px; }
+.download p { color: var(--sub); font-size: var(--t-s); }
+.app-hero .honest { margin-top: 28px; max-width: 52ch; }
+.phones.solo img { width: min(44%, 220px); }
+.phones.solo img:nth-child(2) { transform: translateY(34px); }
+.app-steps { margin-top: clamp(64px, 9vw, 112px); max-width: 760px; }
+ol.numbered { counter-reset: n; padding: 0; margin: 28px 0 0; display: grid; gap: 22px; }
+ol.numbered li { list-style: none; counter-increment: n; position: relative; padding-left: 44px; color: var(--sub); line-height: 1.6; }
+ol.numbered li::before { content: counter(n); position: absolute; left: 0; top: 0; font: 800 var(--t-l)/1.35 var(--display); color: var(--accent); }
+ol.numbered li b { color: var(--text); }
+ol.numbered li em, .app-notes em { color: var(--text); font-style: normal; font-weight: 600; }
+.app-notes { margin-top: clamp(56px, 8vw, 96px); display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(24px, 4vw, 48px); padding-top: 32px; border-top: 1px solid var(--line); }
+.app-notes h3 { font-size: var(--t-l); margin-bottom: 10px; }
+.app-notes h3:not(:first-child) { margin-top: 28px; }
+.app-notes p, .app-notes li { color: var(--sub); font-size: var(--t-s); line-height: 1.6; }
+.app-notes p + p { margin-top: 10px; }
+.app-notes ul { padding-left: 18px; margin: 0 0 10px; display: grid; gap: 8px; }
+.app-notes b { color: var(--text); }
+.app-notes code { font: 0.9em var(--mono); background: var(--panel); padding: 2px 6px; border-radius: 6px; }
+.app-notes .hash { display: block; word-break: break-all; padding: 10px 12px; color: var(--text); }
+@media (max-width: 900px) { .app-notes { grid-template-columns: 1fr; } }
+@media (max-width: 760px) { .app-hero { grid-template-columns: 1fr; } .app-hero .phones { margin-top: 12px; } }

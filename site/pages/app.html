@@ -1,0 +1,52 @@
+<div class="wrap apppage" data-title="The Android app">
+  <div class="app-hero">
+    <div>
+      <h1>Your pet, in your pocket.</h1>
+      <p class="intro">Deskling for Android shares one pet with your dial. It counts your steps toward Move, reminds you when you&rsquo;re away from the desk, and stays in sync with the dial over Bluetooth while you&rsquo;re near it.</p>
+      <div class="download">
+        <a class="btn primary" id="apk" href="app/deskling.apk" download>Download for Android</a>
+        <p id="apk-meta">Android 8 or newer</p>
+      </div>
+      <p class="honest">It isn&rsquo;t on the Play Store. You install it straight from this page, which Android calls sideloading. The steps are below, and the <a href="https://github.com/safwyls/deskling/tree/main/app">source is in the repository</a> if you&rsquo;d rather build it yourself.</p>
+    </div>
+    <div class="phones solo">
+      <img id="app-shot" src="img/app-wisp.webp" alt="The app's pet screen with your companion" width="360" height="780">
+      <img src="img/app-stats.webp" alt="The app's stats screen: level, breaks today and steps over the last seven days" width="360" height="780" loading="lazy">
+    </div>
+  </div>
+
+  <section class="app-steps">
+    <h2>Install it</h2>
+    <ol class="numbered">
+      <li><b>Download it on your phone.</b> Open this page on the phone and tap <em>Download for Android</em>. If it&rsquo;s on your computer, send the file to the phone any way you like: a cable, a cloud drive, a message to yourself.</li>
+      <li><b>Open the file.</b> Tap the finished download in the notification shade, or find <code>deskling.apk</code> in the Files app under Downloads.</li>
+      <li><b>Let your browser install apps.</b> The first time, Android says your phone isn&rsquo;t allowed to install unknown apps from this source. Tap <em>Settings</em>, switch on <em>Allow from this source</em>, then go back. The setting is per app, so it only applies to the browser or file manager you opened it from, and you can switch it off again afterwards.</li>
+      <li><b>Install.</b> Tap <em>Install</em>. Google Play Protect may warn that it doesn&rsquo;t recognise the developer; that&rsquo;s because the app isn&rsquo;t from the Play Store. If you&rsquo;re happy to go ahead, choose <em>More details</em> and then <em>Install anyway</em>.</li>
+      <li><b>Open it and say yes to what it asks.</b> Then pair it with your dial; <a href="#wiki-app">The phone app</a> in the build guide walks through it.</li>
+    </ol>
+  </section>
+
+  <section class="app-notes">
+    <div>
+      <h3>What it asks for, and why</h3>
+      <ul>
+        <li><b>Nearby devices</b> (Bluetooth): to find your dial and stay linked to it. On Android 11 and older this shows up as <em>Location</em>, which is how those versions grant Bluetooth scanning; the app doesn&rsquo;t use your location.</li>
+        <li><b>Physical activity:</b> to count steps toward Move.</li>
+        <li><b>Notifications:</b> for reminders when you&rsquo;re away from the dial, and the quiet one that shows while it&rsquo;s linked.</li>
+      </ul>
+      <p>It talks only to your dial, over Bluetooth or your own Wi-Fi. There are no accounts and nothing goes to a server.</p>
+    </div>
+    <div>
+      <h3>Updating</h3>
+      <p>Download the new version from this page and install it the same way. It installs over the old one, and your pet, your pairing and your settings stay.</p>
+      <h3>Checking the file</h3>
+      <p>If you want to be sure the download wasn&rsquo;t changed on the way, compare its SHA-256 with this one:</p>
+      <p><code id="apk-sha" class="hash">shown once the app has been published</code></p>
+    </div>
+    <div>
+      <h3>Brazil, Indonesia, Singapore or Thailand</h3>
+      <p>Since September 30, 2026, phones in these countries only install apps from developers registered with Google. Deskling isn&rsquo;t registered, so there you&rsquo;ll need Android&rsquo;s <em>advanced flow</em>: in Developer options, switch on <em>Allow apps from unverified developers</em>. It asks you to wait 24 hours once, then installs work as above. Or install from a computer with <code>adb install deskling.apk</code>.</p>
+      <p>Google plans the same rules for everywhere else in 2027.</p>
+    </div>
+  </section>
+</div>
