@@ -69,7 +69,7 @@ export async function mountModels(canvas, { modelUrl, accent = '#9fd8f7', onLost
 
   let variant = startVariant;
   async function useVariant(v) {
-    const [shell, base, ...inside] = await Promise.all(need(v).map(load));
+    const [shell, base, , ...inside] = await Promise.all(need(v).map(load));   // need(): shell, base, retainer, inside
     variant = v;
     parts.shell.geometry = shell;
     parts.base.geometry = base;
