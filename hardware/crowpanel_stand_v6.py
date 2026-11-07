@@ -7,7 +7,7 @@ v6, from a printed v5:
            floating in v4/v5) now run up to the roof. USB-C cut-out +0.25 mm a side. KEY hole 1.6 mm further back.
   base   - the retainer is gone: the display is a press fit in the shell, and three posts on the base stand under the
            rim of its bottom plate so it can't be pushed down. 18350 cradle 2 mm longer (protected cells), bigger
-           solder windows behind the contacts, gussets on the contact walls, wire clips sized for the bare 3.5 mm
+           solder windows behind the contacts, gussets on the contact walls, wire clips sized for the bare 4 mm
            cable, no pocket under the IP5306 KEY (it is SMD, top side), taller breakout pins to heat-stake.
   PORT = "usbc" or "cable" as in v5:
   DESKLING_PORT=usbc python3 crowpanel_stand_v6.py     (default)
@@ -44,7 +44,7 @@ from cadquery import Solid, Vector
 # ---------------- parameters ----------------
 PORT        = os.environ.get("DESKLING_PORT", "usbc")   # "usbc" (breakout + battery) or "cable" (stock cable)
 assert PORT in ("usbc", "cable"), PORT
-CABLE2_D    = 3.5     # the display's MX1.25-to-USB cable (whole, or cut as the USB-C version's pigtail): measure yours
+CABLE2_D    = 4.0     # the display's MX1.25-to-USB cable (whole, or cut as the USB-C version's pigtail), measured 4.0 OD
 BETA        = 60.0    # screen-normal elevation; screen face is 90-BETA = 30 deg from horizontal
 BASE_D      = 60.15   # CrowPanel fixed base diameter (Elecrow STEP)
 POCKET_CLR  = 0.25
@@ -354,7 +354,7 @@ def clip(yc, d, zc, bore_r, mouth_h, drop=0.4):
                     (-mouth_h - d * 0.27, zc + d * 0.67)], yc - 3, yc + 3)
     return blk.cut(bore).cut(mouth).cut(lead)
 
-# snug clips for the display's 3.5 mm cable (bore 0.05 under, mouth 0.8 x d). v6: the USB-C version's pigtail is the
+# snug clips for the display's 4 mm cable (bore 0.05 under, mouth 0.8 x d). v6: the USB-C version's pigtail is the
 # same cable cut short, so it gets the same clips (v5's were drawn for a 6 mm bundle and only held it heat-shrunk)
 for d in ((24.0, 37.0, 49.0) if PORT == "usbc" else (6.0, 24.0, 37.0, 49.0)):   # cable: first one inside the back wall
     feats.append(clip(y_face - d, CABLE2_D, zcab2, CABLE2_D / 2 - 0.05, 0.4 * CABLE2_D))

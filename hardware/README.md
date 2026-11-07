@@ -13,7 +13,7 @@ parametric CadQuery script. Each comes in two versions. Pick one:
 | --- | --- |
 | `crowpanel_stand_v6.py` | The source. Every dimension is a named parameter at the top; run it to rebuild the parts and print a set of fit and clash checks. `DESKLING_PORT=usbc` (default) or `DESKLING_PORT=cable` picks the version. Needs `pip install cadquery`. |
 | `crowpanel_v6_shell_usbc.step` / `.stl` | The USB-C shell (65 × 92 × 54 mm). The display presses in from below through a tilted bore and stops on a printed shoulder; a collar hides everything below its black grip band. USB-C port in the back wall, a hole in the right side for the battery board's button. Translucent PETG carries the display's LED skirt out as a glow. |
-| `crowpanel_v6_shell_cable.step` / `.stl` | The cable shell: the same body with a 3.9 mm slot, open at the bottom, in the back wall, and no button hole. |
+| `crowpanel_v6_shell_cable.step` / `.stl` | The cable shell: the same body with a 4.4 mm slot, open at the bottom, in the back wall, and no button hole. |
 | `crowpanel_v6_base_usbc.step` / `.stl` | Base for the USB-C shell: three posts under the display, pins for the breakout, rails for the IP5306 board, cable clips, the 18350 cradle. |
 | `crowpanel_v6_base_cable.step` / `.stl` | Base for the cable shell: the same three posts, and four snug clips along the cable's run. |
 | `v5/`, `v4/`, `v3/` | Earlier versions. |
@@ -42,7 +42,7 @@ From a printed v5:
 - **Base:** cradle 2 mm longer for protected 18350 cells (the extra goes forward, away from the breakout); 7 ×
   6.5 mm solder windows behind each battery contact; buttresses behind both contact walls, the rear inner one kept
   0.8 mm off the breakout's edge; the USB-C version's wire clips are now the same snug clips as the cable version,
-  for the display's bare 3.5 mm cable (v5's were drawn for a 6 mm bundle); the breakout pins stand 1.5 mm proud, to
+  for the display's bare 4 mm cable (v5's were drawn for a 6 mm bundle); the breakout pins stand 1.5 mm proud, to
   melt over with a soldering iron; no pocket under the IP5306 button (it is SMD, top side).
 
 ## Electronics (USB-C version)
@@ -62,7 +62,7 @@ between its rails holds it and keeps its underside off the base.
 
 `STOP_A` (7.0 mm) is the height of the display's fixed base above its bottom plate, taken from Elecrow's 3D model,
 which has been wrong around the skirt before. It sets both the shoulder in the shell and the height of the posts in
-the base: measure yours before printing. Measure the display's cable too (`CABLE2_D`, 3.5 mm): the clips are drawn
+the base: measure yours before printing. The display's cable is 4.0 mm across (`CABLE2_D`, measured); if yours differs, change it: the clips are drawn
 to grip it 0.05 mm under size. For the USB-C version, the board sizes come from seller listings (±1–2 mm): check
 the breakout's hole spacing (`BRK_HOLE_X`) and the IP5306 button's position (`KEY_IN`) against yours.
 
