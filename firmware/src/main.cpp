@@ -6,6 +6,7 @@
 #include <Wire.h>
 #include <esp_heap_caps.h>
 #include <lvgl.h>
+#include <WiFi.h>
 #include "board.h"
 #include "config.h"
 #include "app.h"
@@ -123,6 +124,22 @@ static uint32_t tick_cb() { return millis(); }
 
 #define BOOT_STEP(msg) Serial.printf("[boot %5lu ms] %s\n", millis(), msg)
 
+// Keep an IP5306 battery board awake while the dial naps (see KEEPALIVE_EVERY_MS in config.h): every few
+// seconds, ~0.7 s with the Wi-Fi radio out of its power save and this core spinning. About 4 mA on average,
+// nothing on the screen or the ring. On USB power it does no harm.
+static void keepalive_task(void *) {
+  for (;;) {
+    vTaskDelay(pdMS_TO_TICKS(KEEPALIVE_EVERY_MS));
+    if (!pet_dimmed()) continue;
+    bool radio = WiFi.status() == WL_CONNECTED;
+    if (radio) WiFi.setSleep(false);
+    uint32_t start = millis();
+    volatile uint32_t spin = 0;
+    while (millis() - start < KEEPALIVE_PULSE_MS) spin = spin + 1;
+    if (radio) WiFi.setSleep(true);
+  }
+}
+
 void setup() {
   Serial.begin(115200);
   crashlog_begin();
@@ -187,6 +204,7 @@ void setup() {
   pet_enter();
   api_begin();
   ble_begin();
+  if (KEEPALIVE_EVERY_MS > 0) xTaskCreatePinnedToCore(keepalive_task, "keepalive", 2048, nullptr, 1, nullptr, 0);
   BOOT_STEP("setup done");
 }
 

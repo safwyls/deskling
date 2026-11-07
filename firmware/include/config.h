@@ -5,7 +5,7 @@
 // erased board, or after Settings > Reset settings, so leaving them empty is fine.
 #pragma once
 
-#define FW_VERSION "5.19"
+#define FW_VERSION "5.20"
 
 // Which pet this firmware is (set per build environment in platformio.ini)
 #ifndef PET_ID
@@ -23,6 +23,11 @@
 #define DEFAULT_NAP_MIN    10    // minutes without input before the pet naps and the screen dims; 0 = never
 #define DEFAULT_BRIGHTNESS 70    // screen, percent
 #define BACKLIGHT_ASLEEP   15    // screen while napping, percent
+// Battery boards built on the IP5306 switch their 5 V off once the load stays under about 45 mA for about
+// 32 s, and a napping dial (screen dimmed, ring off) draws less than that. While the screen is dimmed the
+// dial makes a short, invisible burst of load every few seconds so the board stays on. 0 turns it off.
+#define KEEPALIVE_EVERY_MS 10000
+#define KEEPALIVE_PULSE_MS 700
 
 // ---- LED ring ----
 #define DEFAULT_LED_BRIGHTNESS 60   // 0-255

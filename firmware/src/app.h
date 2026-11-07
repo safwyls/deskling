@@ -21,6 +21,7 @@ void pet_tick();
 void pet_activity();      // any input anywhere resets the sleep timer
 void pet_open_ring();     // show the activities (care) ring
 bool pet_is_idle();       // the bare home screen: no ring, stats or activity
+bool pet_dimmed();        // the screen is at its napping brightness
 void pet_remote_done(int need);   // a break logged on the phone: a happy moment here too
 // Poses: the moods and activities, and what each one plays (for Settings > Poses)
 int pet_pose_count();
