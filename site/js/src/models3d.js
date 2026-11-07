@@ -6,11 +6,10 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { AXIS, buildPanel } from './parts3d.js';
 
-// how far each part moves in the exploded view (mm): the display lifts out of the top, the retainer drops
-// out of the bottom along the display's axis, and the base drops straight down
+// how far each part moves in the exploded view (mm): the display lifts out of the top along its axis, and the
+// base drops straight down with what sits on it
 const EXPLODE = {
   display: AXIS.clone().multiplyScalar(48),
-  retainer: AXIS.clone().multiplyScalar(-34),
   base: new THREE.Vector3(0, 0, -64),
   boards: new THREE.Vector3(0, 0, -64),        // they sit on the base and go with it
   cell: new THREE.Vector3(0, 0, -64),
@@ -50,15 +49,14 @@ export async function mountModels(canvas, { modelUrl, accent = '#9fd8f7', onLost
     if (!r.ok) throw new Error(`${n}: ${r.status}`);
     return r.arrayBuffer();
   }).then((b) => { const g = loader.parse(b); g.computeVertexNormals(); return g; }));
-  const need = (v) => [`shell_${v}`, `base_${v}`, 'retainer', ...INSIDE[v]];
+  const need = (v) => [`shell_${v}`, `base_${v}`, ...INSIDE[v]];
   await Promise.all(need(startVariant).map(load));
 
   const shellMat = new THREE.MeshStandardMaterial({ color: 0xe9eef4, roughness: 0.5, transparent: true, opacity: 1 });
   const empty = new THREE.BufferGeometry();
   const parts = {
     shell: new THREE.Mesh(empty, shellMat),
-    retainer: new THREE.Mesh(await load('retainer'), new THREE.MeshStandardMaterial({ color: new THREE.Color(accent), roughness: 0.55 })),
-    base: new THREE.Mesh(empty, new THREE.MeshStandardMaterial({ color: 0x8d9bb0, roughness: 0.6 })),
+    base: new THREE.Mesh(empty, new THREE.MeshStandardMaterial({ color: new THREE.Color(accent), roughness: 0.6 })),
     display: buildPanel({ lit: false }).group,
     // stand-ins for the parts you buy: the USB-C breakout and IP5306 boards, the 18350 cell, or the stock cable
     boards: new THREE.Mesh(empty, new THREE.MeshStandardMaterial({ color: 0x2b7a57, roughness: 0.6 })),
@@ -69,7 +67,7 @@ export async function mountModels(canvas, { modelUrl, accent = '#9fd8f7', onLost
 
   let variant = startVariant;
   async function useVariant(v) {
-    const [shell, base, , ...inside] = await Promise.all(need(v).map(load));   // need(): shell, base, retainer, inside
+    const [shell, base, ...inside] = await Promise.all(need(v).map(load));
     variant = v;
     parts.shell.geometry = shell;
     parts.base.geometry = base;
@@ -78,7 +76,7 @@ export async function mountModels(canvas, { modelUrl, accent = '#9fd8f7', onLost
   await useVariant(startVariant);
 
   let show = 'all', exploded = false, explodeT = 0;
-  const visibleParts = () => (show === 'all' ? ['shell', 'retainer', 'base', 'display', ...INSIDE[variant]]
+  const visibleParts = () => (show === 'all' ? ['shell', 'base', 'display', ...INSIDE[variant]]
     : show === 'base' ? ['base', ...INSIDE[variant]] : [show]);
 
   function frameView(instant) {
