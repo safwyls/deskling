@@ -55,21 +55,67 @@
   <tr><td>Thin wire</td><td>Silicone-insulated, 26&ndash;28&nbsp;AWG is plenty.</td></tr>
 </table>
 <p>Wire it like this:</p>
+<figure class="wiring">
+<svg viewBox="0 0 680 420" role="img" aria-labelledby="wiring-t wiring-d">
+<title id="wiring-t">Wiring for the USB-C version</title>
+<desc id="wiring-d">USB-C breakout VBUS and GND go to the IP5306 VIN and GND. IP5306 BAT and GND go to the 18350 cell plus and minus. IP5306 OUT-5V and GND go to the display cable's red and black wires, pins 1 and 4. Breakout D minus and D plus go to the display cable's white and green wires, pins 2 and 3. CC1 and CC2 stay unconnected.</desc>
+<g class="w-board">
+<rect x="40" y="40" width="150" height="250" rx="10"/>
+<rect x="270" y="40" width="160" height="140" rx="10"/>
+<rect x="500" y="40" width="140" height="250" rx="10"/>
+<rect class="w-cell" x="270" y="240" width="160" height="60" rx="10"/>
+</g>
+<g class="w-title">
+<text x="115" y="66">USB-C breakout</text>
+<text x="350" y="66">IP5306 (HW-775)</text>
+<text x="570" y="66">Display cable</text>
+<text x="350" y="285">18350 cell</text>
+</g>
+<g class="w-pin" text-anchor="end">
+<text x="180" y="110">VBUS</text><text x="180" y="140">GND</text>
+<text x="180" y="170" class="w-off">CC1 · open</text>
+<text x="180" y="200">D&#8722;</text><text x="180" y="230">D+</text>
+<text x="180" y="260" class="w-off">CC2 · open</text>
+<text x="418" y="110">OUT-5V</text><text x="418" y="140">GND</text>
+</g>
+<g class="w-pin">
+<text x="282" y="110">VIN</text><text x="282" y="140">GND</text>
+<text x="512" y="110">1 red</text><text x="512" y="140">4 black</text>
+<text x="512" y="200">2 white</text><text x="512" y="230">3 green</text>
+</g>
+<g class="w-pin" text-anchor="middle">
+<text x="320" y="166">BAT</text><text x="380" y="166">GND</text>
+<text x="320" y="258">+</text><text x="380" y="258">&#8722;</text>
+</g>
+<g class="w-wire">
+<path class="w-5v" d="M190 110 H270 M430 110 H500 M320 180 V240"/>
+<path class="w-gnd" d="M190 140 H270 M430 140 H500 M380 180 V240"/>
+<path class="w-dm" d="M190 200 H215 V365 H475 V200 H500"/>
+<path class="w-dp" d="M190 230 H205 V380 H485 V230 H500"/>
+</g>
+<g class="w-dot">
+<circle class="w-5v" cx="190" cy="110" r="3.5"/><circle class="w-5v" cx="270" cy="110" r="3.5"/><circle class="w-5v" cx="430" cy="110" r="3.5"/><circle class="w-5v" cx="500" cy="110" r="3.5"/><circle class="w-5v" cx="320" cy="180" r="3.5"/><circle class="w-5v" cx="320" cy="240" r="3.5"/>
+<circle class="w-gnd" cx="190" cy="140" r="3.5"/><circle class="w-gnd" cx="270" cy="140" r="3.5"/><circle class="w-gnd" cx="430" cy="140" r="3.5"/><circle class="w-gnd" cx="500" cy="140" r="3.5"/><circle class="w-gnd" cx="380" cy="180" r="3.5"/><circle class="w-gnd" cx="380" cy="240" r="3.5"/>
+<circle class="w-dm" cx="190" cy="200" r="3.5"/><circle class="w-dm" cx="500" cy="200" r="3.5"/><circle class="w-dp" cx="190" cy="230" r="3.5"/><circle class="w-dp" cx="500" cy="230" r="3.5"/>
+</g>
+</svg>
+<figcaption>The USB-C version&rsquo;s wiring. The display cable&rsquo;s colours are the USB standard ones; the numbers are the pins at its plug (J37 on Elecrow&rsquo;s schematic). Twist white and green together.</figcaption>
+</figure>
 <table>
   <tr><th>From</th><th>To</th></tr>
   <tr><td>Breakout VBUS</td><td>IP5306 VIN</td></tr>
   <tr><td>Breakout GND</td><td>IP5306 GND, the pad next to VIN</td></tr>
   <tr><td>IP5306 BAT</td><td>The flat contact at the front of the cradle (the cell&rsquo;s +)</td></tr>
   <tr><td>IP5306 GND</td><td>The spring contact at the back of the cradle (the cell&rsquo;s &minus;)</td></tr>
-  <tr><td>IP5306 OUT-5V</td><td>The display cable&rsquo;s 5&nbsp;V wire (pin 1 at the plug)</td></tr>
-  <tr><td>IP5306 GND</td><td>The display cable&rsquo;s ground wire (pin 4)</td></tr>
-  <tr><td>Breakout D&minus; and D+</td><td>The display cable&rsquo;s D&minus; (pin 2) and D+ (pin 3). Twist the two together; at the ESP32&rsquo;s 12&nbsp;Mbit/s, short plain wires are fine.</td></tr>
+  <tr><td>IP5306 OUT-5V</td><td>The display cable&rsquo;s <b>red</b> wire, 5&nbsp;V (pin 1 at the plug)</td></tr>
+  <tr><td>IP5306 GND</td><td>The display cable&rsquo;s <b>black</b> wire, ground (pin 4)</td></tr>
+  <tr><td>Breakout D&minus; and D+</td><td>The display cable&rsquo;s <b>white</b> wire, D&minus; (pin 2), and <b>green</b> wire, D+ (pin 3). Twist the two together; at the ESP32&rsquo;s 12&nbsp;Mbit/s, short plain wires are fine.</td></tr>
   <tr><td>Breakout CC1, CC2</td><td>Nothing. The resistors they need are already on the board.</td></tr>
 </table>
 <p>Plugging in a USB-C charger switches the board on and starts charging. Running on the battery, a short press of its button (through the hole in the right side, with a pen tip) switches it on, and on most IP5306 boards two quick presses switch it off. The board also switches itself off if the load stays very light for about half a minute, so if the dial goes dark during a long nap, that&rsquo;s why.</p>
 <p>How long a charge lasts depends on how much the display draws, which we haven&rsquo;t measured yet. Expect a few hours rather than days: an 18350 holds about 4&nbsp;Wh, and the dial with its screen and Bluetooth on probably uses somewhere around half a watt to a watt.</p>
-<p>The colours inside the display cable aren&rsquo;t standardised, so check which wire is which with a multimeter against the pins of its plug before you solder. Plug it into the display with the cable led down through the hole in the stand&rsquo;s floor.</p>
+<p>The display cable uses the standard USB colours: red 5&nbsp;V, white D&minus;, green D+, black ground. Cheap cables occasionally swap them, so check red against pin 1 of the plug with a multimeter before you solder: 5&nbsp;V on a data wire goes straight into the ESP32&rsquo;s USB pins, which aren&rsquo;t 5&nbsp;V tolerant. If there&rsquo;s a bare drain wire or foil shield, trim it back. Plug it into the display with the cable led down through the hole in the stand&rsquo;s floor.</p>
 <p>With the data pair wired, a computer on the stand&rsquo;s USB-C port reaches the ESP32 directly, so the <a href="#flash">firmware page</a> can flash a closed-up stand. The IP5306 keeps the 5&nbsp;V coming while it does; the computer only carries data.</p>
-<p><b>No battery?</b> Leave out the IP5306 and the cell, and wire the breakout&rsquo;s VBUS, D&minus;, D+ and GND straight to the display cable&rsquo;s four wires. Everything else is the same.</p>
+<p><b>No battery?</b> Leave out the IP5306 and the cell, and wire the breakout&rsquo;s VBUS, D&minus;, D+ and GND straight to the display cable&rsquo;s red, white, green and black wires. Everything else is the same.</p>
 <div class="callout"><p><b>Check your boards against the model.</b> The sizes come from the sellers&rsquo; listings, which are only good to a millimetre or two. Before printing, check the breakout&rsquo;s hole spacing (16.3&nbsp;mm in the model) and how far the IP5306&rsquo;s button sits from its end (5.1&nbsp;mm), and change <code>BRK_HOLE_X</code> or <code>KEY_IN</code> in the script if yours differ.</p></div>
 <div class="callout"><p>Do the first flash before you close the base anyway, whichever version you built. The ESP32-S3 normally switches into its download mode over USB by itself, but if it ever doesn&rsquo;t, the fix is holding its BOOT button and tapping RESET, and those are on the display&rsquo;s underside, under the base.</p></div>

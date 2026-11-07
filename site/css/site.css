@@ -352,3 +352,19 @@ ol.numbered li em, .app-notes em { color: var(--text); font-style: normal; font-
 .app-notes .hash { display: block; word-break: break-all; padding: 10px 12px; color: var(--text); }
 @media (max-width: 900px) { .app-notes { grid-template-columns: 1fr; } }
 @media (max-width: 760px) { .app-hero { grid-template-columns: 1fr; } .app-hero .phones { margin-top: 12px; } }
+
+/* wiring diagram on the print page: boards wear the page palette, wires the cable's own colours */
+article.doc figure.wiring svg { display: block; width: 100%; height: auto; background: var(--panel); border-radius: 16px; }
+.wiring .w-board rect { fill: var(--raised); stroke: var(--line); stroke-width: 1; }
+.wiring .w-board .w-cell { stroke: var(--accent); }
+.wiring text { font-family: var(--body); fill: var(--text); dominant-baseline: central; }
+.wiring .w-title text { font-family: var(--display); font-weight: 600; font-size: 15px; text-anchor: middle; }
+.wiring .w-pin text { font-family: var(--mono); font-size: 13px; }
+.wiring .w-pin .w-off { fill: var(--sub); font-size: 12px; }
+.wiring .w-wire path { fill: none; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.wiring .w-dot circle { stroke: none; }
+.wiring .w-wire .w-5v { stroke: #e5484d; } .wiring .w-dot .w-5v { fill: #e5484d; }
+.wiring .w-wire .w-gnd { stroke: #5b6474; } .wiring .w-dot .w-gnd { fill: #5b6474; }
+.wiring .w-wire .w-dm { stroke: #f2f4f8; } .wiring .w-dot .w-dm { fill: #f2f4f8; }
+.wiring .w-wire .w-dp { stroke: #2fbf62; } .wiring .w-dot .w-dp { fill: #2fbf62; }
+@media (max-width: 560px) { article.doc figure.wiring { overflow-x: auto; } article.doc figure.wiring svg { min-width: 520px; } }
