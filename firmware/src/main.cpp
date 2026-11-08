@@ -124,19 +124,20 @@ static uint32_t tick_cb() { return millis(); }
 
 #define BOOT_STEP(msg) Serial.printf("[boot %5lu ms] %s\n", millis(), msg)
 
-// Keep an IP5306 battery board awake while the dial naps (see KEEPALIVE_EVERY_MS in config.h): every few
-// seconds, ~0.7 s with the Wi-Fi radio out of its power save and this core spinning. About 4 mA on average,
-// nothing on the screen or the ring. On USB power it does no harm.
+// Keep an IP5306 battery board awake while the dial naps (see KEEPALIVE_EVERY_MS in config.h): while the screen
+// is dimmed the Wi-Fi radio stays out of power save, and every few seconds this core spins for a moment.
+// Nothing shows on the screen or the ring. On USB power it costs nothing that matters.
 static void keepalive_task(void *) {
+  bool radioAwake = false;
   for (;;) {
     vTaskDelay(pdMS_TO_TICKS(KEEPALIVE_EVERY_MS));
-    if (!pet_dimmed()) continue;
-    bool radio = WiFi.status() == WL_CONNECTED;
-    if (radio) WiFi.setSleep(false);
+    bool dim = pet_dimmed(), conn = WiFi.status() == WL_CONNECTED;
+    if (dim && conn && !radioAwake) { WiFi.setSleep(false); radioAwake = true; }
+    else if ((!dim || !conn) && radioAwake) { WiFi.setSleep(true); radioAwake = false; }
+    if (!dim) continue;
     uint32_t start = millis();
     volatile uint32_t spin = 0;
     while (millis() - start < KEEPALIVE_PULSE_MS) spin = spin + 1;
-    if (radio) WiFi.setSleep(true);
   }
 }
 
