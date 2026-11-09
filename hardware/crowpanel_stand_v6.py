@@ -44,6 +44,7 @@ from cadquery import Solid, Vector
 # ---------------- parameters ----------------
 PORT        = os.environ.get("DESKLING_PORT", "usbc")   # "usbc" (breakout + battery) or "cable" (stock cable)
 assert PORT in ("usbc", "cable"), PORT
+LED_WINDOW  = os.environ.get("DESKLING_LEDS") == "1"   # PORT = "usbc" only: a window to see the IP5306's charge LEDs
 CABLE2_D    = 4.0     # the display's MX1.25-to-USB cable (whole, or cut as the USB-C version's pigtail), measured 4.0 OD
 BETA        = 60.0    # screen-normal elevation; screen face is 90-BETA = 30 deg from horizontal
 BASE_D      = 60.15   # CrowPanel fixed base diameter (Elecrow STEP)
@@ -81,6 +82,9 @@ PMU_Y0      = 13.5                # its front end (the LED / KEY end)
 KEY_IN      = 5.1                 # KEY centre, in from the front end (v5 3.5: measured 1.6 mm too far forward)
 KEY_OUT, KEY_HALF_H = 1.5, 1.6    # how far the KEY actuator stands past the edge; its half height
 KEY_HOLE_D  = 3.2                 # hole in the right wall: press the KEY with a pen tip
+LED_IN      = 2.0                 # HW-775: its four LEDs sit in a row across the board, this far in from the front end
+LED_WIN_TOP = 7.0                 # LED window: from the base up to this height above it, with a round top; it runs
+                                  # from just in front of the LEDs back to the KEY, so one opening shows both
 CABLE_D     = 6.0
 STRAIGHT    = 50.0    # wire run: from the breakout's pads forward to the bend
 TUNNEL_W, TUNNEL_H = 16.0, 7.6   # the wire trough's room in the shell
@@ -297,6 +301,12 @@ cable_slot = fuse(Solid.makeCylinder(SLOT_W / 2, 13, Vector(0, y_back - 8, zcab2
 
 key_y, key_z = PMU_Y0 + KEY_IN, BASE_T + PMU_T + KEY_HALF_H
 key_hole = Solid.makeCylinder(KEY_HOLE_D / 2, 20, Vector(PMU_X1, key_y, key_z), Vector(1, 0, 0))
+if LED_WINDOW:
+    wy0, wy1 = PMU_Y0 + LED_IN - 1.6, key_y + KEY_HOLE_D / 2
+    wr = (wy1 - wy0) / 2
+    ztop = BASE_T + LED_WIN_TOP
+    key_hole = fuse(key_hole, box(PMU_X1 + 0.2, PMU_X1 + 20, wy0, wy1, BASE_T - 1.0, ztop - wr),
+                    Solid.makeCylinder(wr, 20, Vector(PMU_X1 + 0.2, (wy0 + wy1) / 2, ztop - wr), Vector(1, 0, 0)))
 if PORT == "usbc":
     full = body.cut(cavity).cut(knob_bore).cut(port).cut(key_hole)
 else:
@@ -485,7 +495,7 @@ if __name__ == "__main__":
     sweep = place(fuse(lcyl(30.075, -80, 7.0), lcyl(28.83, -80, 12.1), lcyl(27.0, -80, 28.3)))
     print("  knob insertion sweep vs shell %.3f" % ov(sweep, shell))
 
-    sfx = "_" + PORT
+    sfx = "_" + PORT + ("_leds" if PORT == "usbc" and LED_WINDOW else "")
     cq.exporters.export(cq.Workplane().add(shell), "v6_shell%s.step" % sfx)
     cq.exporters.export(cq.Workplane().add(base), "v6_base%s.step" % sfx)
     def stl(shape, fn, tol=0.02):

@@ -13,6 +13,7 @@ parametric CadQuery script. Each comes in two versions. Pick one:
 | --- | --- |
 | `crowpanel_stand_v6.py` | The source. Every dimension is a named parameter at the top; run it to rebuild the parts and print a set of fit and clash checks. `DESKLING_PORT=usbc` (default) or `DESKLING_PORT=cable` picks the version. Needs `pip install cadquery`. |
 | `crowpanel_v6_shell_usbc.step` / `.stl` | The USB-C shell (65 × 92 × 54 mm). The display presses in from below through a tilted bore and stops on a printed shoulder; a collar hides everything below its black grip band. USB-C port in the back wall, a hole in the right side for the battery board's button. Translucent PETG carries the display's LED skirt out as a glow. |
+| `crowpanel_v6_shell_usbc_leds.step` / `.stl` | The USB-C shell with a charge window: one round-topped opening low in the right wall, from just in front of the IP5306's LED row back to its button, so you can see the charge LEDs (from the side, up to about 10° above level) and press the button with a fingertip. Takes the USB-C base. `DESKLING_LEDS=1` builds it. |
 | `crowpanel_v6_shell_cable.step` / `.stl` | The cable shell: the same body with a 4.4 mm slot, open at the bottom, in the back wall, and no button hole. |
 | `crowpanel_v6_base_usbc.step` / `.stl` | Base for the USB-C shell: three posts under the display, pins for the breakout, rails for the IP5306 board, cable clips, the 18350 cradle. |
 | `crowpanel_v6_base_cable.step` / `.stl` | Base for the cable shell: the same three posts, and four snug clips along the cable's run. |
