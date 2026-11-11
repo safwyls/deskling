@@ -1,31 +1,18 @@
 <p class="kicker">Start here</p>
 <h1>Print the stand</h1>
-<p class="lede">The stand is the only thing you make: a shell that holds the display tipped 30&deg; toward you, and a base plate that closes the bottom and stops the display being pushed in. In translucent filament the shell picks up the display&rsquo;s LEDs as a glow around its edge.</p>
-
-<figure><img src="img/shell-render.webp" alt="The printed shell with the CrowPanel display in its angled top, rendered from the model" loading="lazy"><figcaption>The shell with the display in it, rendered from the model on this site&rsquo;s home page. The base is underneath.</figcaption></figure>
-
-<h2>Pick a version</h2>
-<p>There are three versions. They look the same from the front.</p>
-<table>
-  <tr><th>Version</th><th>What you need</th><th>What you get</th></tr>
-  <tr><td><b>USB-C</b></td><td>A USB-C breakout and four solder joints. The display&rsquo;s cable gets cut.</td><td>A USB-C port in the back that powers and flashes the display.</td></tr>
-  <tr><td><b>USB-C and 18650</b></td><td>The same, plus an IP5306 charge board, an 18650 cell and a few more joints.</td><td>The USB-C stand on a 25&nbsp;mm tray with the battery inside: it runs off the desk, and the port charges it. A window in the tray&rsquo;s side shows the charge level.</td></tr>
-  <tr><td><b>Display&rsquo;s cable</b></td><td>Nothing beyond the printed parts and screws: the MX1.25-to-USB cable that came with the display goes in whole.</td><td>The cable leaves through a slot at the bottom of the back wall. Runs and flashes over that cable.</td></tr>
-</table>
+<p class="lede">The stand is the only thing you make: a shell that holds the display tipped 30&deg; toward you, and a deck that closes the bottom and back and carries a USB-C port. In translucent filament the shell picks up the display&rsquo;s LEDs as a glow around its edge.</p>
 
 <h2>The parts</h2>
 <table>
   <tr><th>Part</th><th>Size</th><th>What it does</th></tr>
-  <tr><td><b>Shell</b></td><td>65 &times; 92 &times; 54&nbsp;mm</td><td>The body you see. The display presses in from below through a tilted bore and stops against a printed shoulder; a collar at the top hides everything below its black grip band. The USB-C shell has the port in its back wall; the cable shell has a slot for the cable instead.</td></tr>
-  <tr><td><b>Base</b></td><td>65 &times; 91 &times; 19&nbsp;mm</td><td>A 3&nbsp;mm floor plate with three posts that stand under the rim of the display&rsquo;s bottom plate, so it can&rsquo;t be pushed down. The USB-C base has pins for the breakout at the back and clips for the cable down the middle; the cable base has four clips that grip the cable. For the 18650 version this part is the <b>deck</b>: the same plate with plain screw holes and a slot for the charge board&rsquo;s wires.</td></tr>
-  <tr><td><b>Tray</b> (18650 version)</td><td>65 &times; 91 &times; 25&nbsp;mm</td><td>Goes under the deck. A cradle for the 18650 with slots for its contact plates, rails for the IP5306 board, a window in the right side for its LEDs and button, and four columns the screws run up through.</td></tr>
+  <tr><td><b>Shell</b></td><td>65 &times; 65 &times; 54&nbsp;mm</td><td>The body you see. The display presses in from below through a tilted bore and stops against a printed shoulder; a collar at the top hides everything below its black grip band.</td></tr>
+  <tr><td><b>Deck</b></td><td>65 &times; 64 &times; 42&nbsp;mm</td><td>The floor and the curved back wall in one piece. The back wall has the USB-C port; the floor has pins for the USB-C breakout, clips for the cable, and three posts that stand under the rim of the display&rsquo;s bottom plate so it can&rsquo;t be pushed down. Two tall posts locate it in the shell.</td></tr>
 </table>
-<p>Put together, the stand is 65.5 &times; 91.9 &times; 56.5&nbsp;mm, or 81.5&nbsp;mm tall on the tray. This is version 7 of the stand; <a href="#wiki-models">The 3D files</a> says what changed.</p>
-<div class="callout"><p><b>Measure your display before you print.</b> The printed shoulder the display stops against sits 7.0&nbsp;mm above the display&rsquo;s bottom plate, and the base&rsquo;s posts reach up to that plate. Both come from Elecrow&rsquo;s 3D model, which has been wrong around the skirt before. Measure from the bottom plate to the top of the fixed base (the part that doesn&rsquo;t turn) on your own display. If it isn&rsquo;t 7.0&nbsp;mm, change <code>STOP_A</code> in the script and regenerate both parts. The clips are drawn for the display&rsquo;s cable at 4.0&nbsp;mm across (<code>CABLE2_D</code>); check yours.</p></div>
-<p>Turn them around, see them pulled apart, and download STEP or STL on <a href="#wiki-models">The 3D files</a>.</p>
+<p>Put together, the stand is 65 &times; 65 &times; 56.5&nbsp;mm. This is version 8 of the stand; <a href="#wiki-models">The 3D files</a> has the files to download, a 3D view, and what changed.</p>
+<div class="callout"><p><b>Measure your display before you print.</b> The printed shoulder the display stops against sits 7.0&nbsp;mm above the display&rsquo;s bottom plate, and the deck&rsquo;s posts reach up to that plate. Both come from Elecrow&rsquo;s 3D model, which has been wrong around the skirt before. Measure from the bottom plate to the top of the fixed base (the part that doesn&rsquo;t turn) on your own display. If it isn&rsquo;t 7.0&nbsp;mm, the shoulder and posts need moving to match before you print.</p></div>
 
 <h2>Material</h2>
-<p>We printed the shell in <b>translucent PETG</b>. The display&rsquo;s lit skirt, the ring of LEDs that turns with the knob, sits inside the shell just under its collar, so a clear or frosted filament carries its colour out around the display&rsquo;s edge: blue when water is due, amber when it&rsquo;s time for an eye break. Opaque filament works fine too; you just lose the glow. The base and tray don&rsquo;t need to glow, so print them in whatever you have.</p>
+<p>We printed the shell in <b>translucent PETG</b>. The display&rsquo;s lit skirt, the ring of LEDs that turns with the knob, sits inside the shell just under its collar, so a clear or frosted filament carries its colour out around the display&rsquo;s edge: blue when water is due, amber when it&rsquo;s time for an eye break. Opaque filament works fine too; you just lose the glow. The deck is mostly hidden, so print it in whatever you have.</p>
 
 <h2>Settings to start from</h2>
 <p>These are sensible defaults for functional PETG parts, not a tuned profile. Adjust for your printer.</p>
@@ -34,91 +21,35 @@
   <tr><td>Orientation</td><td>As the STL files come: every part on its flat bottom</td><td>Each part&rsquo;s biggest flat face is already down.</td></tr>
   <tr><td>Layer height</td><td>0.2&nbsp;mm</td><td>Fine for parts this size.</td></tr>
   <tr><td>Walls</td><td>3 or 4</td><td>The shell is mostly 2.2&nbsp;mm wall. More walls also diffuse the LED light more evenly.</td></tr>
-  <tr><td>Infill</td><td>15&ndash;20%</td><td>Enough for the screw bosses and the base&rsquo;s clips.</td></tr>
-  <tr><td>Supports</td><td>None</td><td>The shell&rsquo;s only ceilings are the shoulder inside the bore and the tops of the three pockets for the base&rsquo;s posts, all small enough to bridge. The base has no overhangs, and the tray is an open box; the round top of its window bridges.</td></tr>
+  <tr><td>Infill</td><td>15&ndash;20%</td><td>Enough for the screw bosses and the deck&rsquo;s posts and clips.</td></tr>
+  <tr><td>Supports</td><td>Check your slicer&rsquo;s preview</td><td>The shell&rsquo;s overhangs are inside the tilted bore: the shoulder the display stops on and the underside of the lip. The deck has almost none.</td></tr>
 </table>
 
 <h2>Putting it together</h2>
 <ol>
-  <li><b>Inserts.</b> Melt four M3 heat-set inserts into the bosses on the shell&rsquo;s underside, two at the front and two at the back (4.0&nbsp;mm holes, up to 6&nbsp;mm deep).</li>
-  <li><b>Display.</b> Push the display up the bore from underneath, screen first, until its fixed base stops against the printed shoulder. It&rsquo;s a press fit, so it stays put on its own. Above it, the lip and collar cover the lit skirt, the gold groove and the notch, so only the black grip band shows; the turning parts clear the shell by about 0.6&nbsp;mm. Turn the knob: it should turn as freely as it does out of the stand.</li>
-  <li><b>Electronics, USB-C versions.</b> Wire the breakout to the display&rsquo;s cable as in <i>Wiring the USB-C versions</i> below. Press the breakout onto the two pins at the back of the base, its socket facing backwards, and melt the pin tops over the holes with a soldering iron so it can&rsquo;t lift. Press the cable into the clips down the middle and lead its plug up through the hole in the floor, then plug it into the display.</li>
-  <li><b>Battery, 18650 version.</b> Wire the IP5306 and the cell contacts too, leading the board&rsquo;s four wires down through the slot in the deck. Stick the IP5306 between its rails in the tray with a square of double-sided foam tape, button facing the window. Push the contact plates into their slots at the ends of the cradle, flat one at the front, and snap the cell in.</li>
-  <li><b>Cable, cable version.</b> Plug the cable&rsquo;s small 4-pin plug into the display&rsquo;s USB connector, lead it down through the hole in the floor, then lay it along the middle of the base and press it into the four clips, the last one just inside the back wall. Set the shell onto the base with the cable in the slot at the bottom of the back wall; the base closes the slot underneath.</li>
-  <li><b>Close it.</b> Four M3&times;8 countersunk screws go up through the base into the inserts; for the 18650 version, four M3&times;30 socket-head screws go up through the tray&rsquo;s columns and the deck instead. As the base comes up, its three posts slide into pockets in the shell and finish under the rim of the display&rsquo;s bottom plate. If it won&rsquo;t pull flat, the posts are pushing the display up: your display&rsquo;s fixed base is taller than 7.0&nbsp;mm. Take a little off the post tops, or set <code>STOP_GAP</code> in the script.</li>
+  <li><b>Inserts.</b> Melt four M3 heat-set inserts into the bosses on the shell&rsquo;s underside, two at the front and one on each side (4.0&nbsp;mm holes, 6&nbsp;mm deep).</li>
+  <li><b>Display.</b> Push the display up the bore from underneath, screen first, until its fixed base stops against the printed shoulder. It&rsquo;s a press fit, so it stays put on its own. Above it, the lip and collar cover the lit skirt, the gold groove and the notch, so only the black grip band shows. Turn the knob: it should turn as freely as it does out of the stand.</li>
+  <li><b>Wiring.</b> Wire the breakout to the display&rsquo;s cable as below. Press the breakout onto the two pins at the back of the deck, its socket in the port in the back wall, and melt the pin tops over the holes with a soldering iron so it can&rsquo;t lift. Press the cable into the clips and plug it into the display.</li>
+  <li><b>Close it.</b> Slide the deck up into the shell, its two tall posts into the sockets inside, and fix it with four M3&times;8 countersunk screws from below into the inserts. As the deck comes up, its three short posts finish under the rim of the display&rsquo;s bottom plate. If it won&rsquo;t pull flat, the posts are pushing the display up: your display&rsquo;s fixed base is taller than 7.0&nbsp;mm. Take a little off the post tops.</li>
 </ol>
-<h2>Wiring the USB-C versions</h2>
-<p>Without a battery it&rsquo;s four wires: the breakout&rsquo;s VBUS, D&minus;, D+ and GND go straight to the display cable&rsquo;s red, white, green and black wires, once you&rsquo;ve cut its USB end off. Leave CC1 and CC2 unconnected.</p>
-<p>With the 18650, the display runs on 5&nbsp;V from the cell. Elecrow&rsquo;s schematic has a battery connector and charger on its board, but retail boards come with those parts left off (only their footprints are there), so the stand brings its own: a board that charges the cell and boosts it to 5&nbsp;V. It&rsquo;s designed around these parts:</p>
+
+<h2>Wiring</h2>
+<p>The stand&rsquo;s USB-C port is a small breakout board wired to the cable that came with the display.</p>
 <table>
   <tr><th>Part</th><th>What it does</th></tr>
-  <tr><td><b>USB-C breakout</b>, 22 &times; 13&nbsp;mm, pads marked VBUS, GND, CC1, D&minus;, D+, CC2</td><td>The socket in the stand&rsquo;s back wall, for charging and for flashing. It already has the two 5.1&nbsp;k&Omega; resistors (marked 512) that make a USB-C charger supply power.</td></tr>
+  <tr><td><b>USB-C breakout</b>, 22 &times; 13&nbsp;mm, pads marked VBUS, GND, CC1, D&minus;, D+, CC2</td><td>The socket in the stand&rsquo;s back wall, for power and for flashing. It already has the two 5.1&nbsp;k&Omega; resistors (marked 512) that make a USB-C charger supply power.</td></tr>
   <tr><td><b>The MX1.25-to-USB cable</b> that comes with the display</td><td>Its small 4-pin plug fits the display&rsquo;s USB connector (J37 on Elecrow&rsquo;s schematic): 5&nbsp;V in, D&minus;, D+ and ground, wired straight to the ESP32-S3&rsquo;s own USB pins. Cut off the USB end and it becomes the link from the stand&rsquo;s socket to the display, power and data both, with no soldering on the display.</td></tr>
-  <tr><td><b>IP5306 charge and boost board</b> (HW-775), 25 &times; 16&nbsp;mm, pads OUT-5V, GND, BAT, GND, GND, VIN</td><td>Charges the cell from USB, turns it into 5&nbsp;V for the display, and keeps the display running while it charges. Its four LEDs show the charge level through the window in the tray&rsquo;s right side.</td></tr>
-  <tr><td><b>18650 Li-ion cell</b>, and a flat and a spring contact plate from a standard 18650 holder</td><td>The battery. The IP5306 charges at up to about 2&nbsp;A and can&rsquo;t be turned down, so pick a cell whose datasheet allows a 2&nbsp;A charge; most 2500&ndash;3500&nbsp;mAh cells do. A protected cell is the safer choice; ones up to 69&nbsp;mm long fit.</td></tr>
-  <tr><td>Thin wire</td><td>Silicone-insulated, 26&ndash;28&nbsp;AWG is plenty.</td></tr>
 </table>
-<p>Wire it like this:</p>
-<figure class="wiring">
-<svg viewBox="0 0 680 420" role="img" aria-labelledby="wiring-t wiring-d">
-<title id="wiring-t">Wiring for the USB-C and 18650 version</title>
-<desc id="wiring-d">USB-C breakout VBUS and GND go to the IP5306 VIN and GND. IP5306 BAT and GND go to the 18650 cell plus and minus. IP5306 OUT-5V and GND go to the display cable's red and black wires, pins 1 and 4. Breakout D minus and D plus go to the display cable's white and green wires, pins 2 and 3. CC1 and CC2 stay unconnected.</desc>
-<g class="w-board">
-<rect x="40" y="40" width="150" height="250" rx="10"/>
-<rect x="270" y="40" width="160" height="140" rx="10"/>
-<rect x="500" y="40" width="140" height="250" rx="10"/>
-<rect class="w-cell" x="270" y="240" width="160" height="60" rx="10"/>
-</g>
-<g class="w-title">
-<text x="115" y="66">USB-C breakout</text>
-<text x="350" y="66">IP5306 (HW-775)</text>
-<text x="570" y="66">Display cable</text>
-<text x="350" y="285">18650 cell</text>
-</g>
-<g class="w-pin" text-anchor="end">
-<text x="180" y="110">VBUS</text><text x="180" y="140">GND</text>
-<text x="180" y="170" class="w-off">CC1 · open</text>
-<text x="180" y="200">D&#8722;</text><text x="180" y="230">D+</text>
-<text x="180" y="260" class="w-off">CC2 · open</text>
-<text x="418" y="110">OUT-5V</text><text x="418" y="140">GND</text>
-</g>
-<g class="w-pin">
-<text x="282" y="110">VIN</text><text x="282" y="140">GND</text>
-<text x="512" y="110">1 red</text><text x="512" y="140">4 black</text>
-<text x="512" y="200">2 white</text><text x="512" y="230">3 green</text>
-</g>
-<g class="w-pin" text-anchor="middle">
-<text x="320" y="166">BAT</text><text x="380" y="166">GND</text>
-<text x="320" y="258">+</text><text x="380" y="258">&#8722;</text>
-</g>
-<g class="w-wire">
-<path class="w-5v" d="M190 110 H270 M430 110 H500 M320 180 V240"/>
-<path class="w-gnd" d="M190 140 H270 M430 140 H500 M380 180 V240"/>
-<path class="w-dm" d="M190 200 H215 V365 H475 V200 H500"/>
-<path class="w-dp" d="M190 230 H205 V380 H485 V230 H500"/>
-</g>
-<g class="w-dot">
-<circle class="w-5v" cx="190" cy="110" r="3.5"/><circle class="w-5v" cx="270" cy="110" r="3.5"/><circle class="w-5v" cx="430" cy="110" r="3.5"/><circle class="w-5v" cx="500" cy="110" r="3.5"/><circle class="w-5v" cx="320" cy="180" r="3.5"/><circle class="w-5v" cx="320" cy="240" r="3.5"/>
-<circle class="w-gnd" cx="190" cy="140" r="3.5"/><circle class="w-gnd" cx="270" cy="140" r="3.5"/><circle class="w-gnd" cx="430" cy="140" r="3.5"/><circle class="w-gnd" cx="500" cy="140" r="3.5"/><circle class="w-gnd" cx="380" cy="180" r="3.5"/><circle class="w-gnd" cx="380" cy="240" r="3.5"/>
-<circle class="w-dm" cx="190" cy="200" r="3.5"/><circle class="w-dm" cx="500" cy="200" r="3.5"/><circle class="w-dp" cx="190" cy="230" r="3.5"/><circle class="w-dp" cx="500" cy="230" r="3.5"/>
-</g>
-</svg>
-<figcaption>The 18650 version&rsquo;s wiring. The display cable&rsquo;s colours are the USB standard ones; the numbers are the pins at its plug (J37 on Elecrow&rsquo;s schematic). Twist white and green together.</figcaption>
-</figure>
 <table>
-  <tr><th>From</th><th>To</th></tr>
-  <tr><td>Breakout VBUS</td><td>IP5306 VIN</td></tr>
-  <tr><td>Breakout GND</td><td>IP5306 GND, the pad next to VIN</td></tr>
-  <tr><td>IP5306 BAT</td><td>The flat contact at the front of the cradle (the cell&rsquo;s +)</td></tr>
-  <tr><td>IP5306 GND</td><td>The spring contact at the back of the cradle (the cell&rsquo;s &minus;)</td></tr>
-  <tr><td>IP5306 OUT-5V</td><td>The display cable&rsquo;s <b>red</b> wire, 5&nbsp;V (pin 1 at the plug)</td></tr>
-  <tr><td>IP5306 GND</td><td>The display cable&rsquo;s <b>black</b> wire, ground (pin 4)</td></tr>
-  <tr><td>Breakout D&minus; and D+</td><td>The display cable&rsquo;s <b>white</b> wire, D&minus; (pin 2), and <b>green</b> wire, D+ (pin 3). Twist the two together; at the ESP32&rsquo;s 12&nbsp;Mbit/s, short plain wires are fine.</td></tr>
-  <tr><td>Breakout CC1, CC2</td><td>Nothing. The resistors they need are already on the board.</td></tr>
+  <tr><th>Breakout</th><th>Display cable</th></tr>
+  <tr><td>VBUS</td><td><b>Red</b>, 5&nbsp;V (pin 1 at the plug)</td></tr>
+  <tr><td>D&minus;</td><td><b>White</b> (pin 2)</td></tr>
+  <tr><td>D+</td><td><b>Green</b> (pin 3)</td></tr>
+  <tr><td>GND</td><td><b>Black</b>, ground (pin 4)</td></tr>
+  <tr><td>CC1, CC2</td><td>Nothing. The resistors they need are already on the board.</td></tr>
 </table>
-<p>Plugging in a USB-C charger switches the board on and starts charging. Running on the battery, a short press of its button (through the window in the tray&rsquo;s right side) switches it on, and on most IP5306 boards two quick presses switch it off. The board also switches itself off if the load stays under about 45&nbsp;mA for about half a minute, which a napping dial with its screen dimmed and its ring off draws less than. From firmware 5.21 the dial keeps it awake: while the screen is dimmed, it keeps its Wi-Fi radio fully on and adds a burst of processor load every few seconds. Nothing shows, but napping then drains the battery about as fast as being awake. The dial needs to be on Wi-Fi for this; without Wi-Fi the bursts alone may not be enough.</p>
-<p>How long a charge lasts depends on how much the display draws, which we haven&rsquo;t measured yet. A 2500&ndash;3500&nbsp;mAh 18650 holds about 9&ndash;12&nbsp;Wh, and the dial with its screen and Bluetooth on probably uses somewhere around half a watt to a watt, so expect something like half a day to a day.</p>
-<p>The display cable uses the standard USB colours: red 5&nbsp;V, white D&minus;, green D+, black ground. Cheap cables occasionally swap them, so check red against pin 1 of the plug with a multimeter before you solder: 5&nbsp;V on a data wire goes straight into the ESP32&rsquo;s USB pins, which aren&rsquo;t 5&nbsp;V tolerant. If there&rsquo;s a bare drain wire or foil shield, trim it back. Plug it into the display with the cable led down through the hole in the stand&rsquo;s floor.</p>
-<p>With the data pair wired, a computer on the stand&rsquo;s USB-C port reaches the ESP32 directly, so the <a href="#flash">firmware page</a> can flash a closed-up stand. The IP5306 keeps the 5&nbsp;V coming while it does; the computer only carries data.</p>
-<div class="callout"><p><b>Check your boards against the model.</b> The sizes come from the sellers&rsquo; listings, which are only good to a millimetre or two. Before printing, check the breakout&rsquo;s hole spacing (16.3&nbsp;mm in the model) and how far the IP5306&rsquo;s button sits from its end (5.1&nbsp;mm), and change <code>BRK_HOLE_X</code> or <code>KEY_IN</code> in the script if yours differ.</p></div>
+<p>Twist the white and green wires together; at the ESP32&rsquo;s 12&nbsp;Mbit/s, short plain wires are fine. The cable uses the standard USB colours, but cheap cables occasionally swap them, so check red against pin 1 of the plug with a multimeter before you solder: 5&nbsp;V on a data wire goes straight into the ESP32&rsquo;s USB pins, which aren&rsquo;t 5&nbsp;V tolerant. If there&rsquo;s a bare drain wire or foil shield, trim it back.</p>
+<p>With the data pair wired, a computer on the stand&rsquo;s USB-C port reaches the ESP32 directly, so the <a href="#flash">firmware page</a> can flash a closed-up stand.</p>
+<p>Rather not solder? The <a href="#wiki-models">cable version</a> of the stand keeps the display&rsquo;s cable whole and leads it out of the back.</p>
+<div class="callout"><p><b>Check your breakout against the model.</b> The size comes from the seller&rsquo;s listing, which is only good to a millimetre or two. Before printing, check that its two holes are 16.4&nbsp;mm apart, centre to centre, to match the deck&rsquo;s pins.</p></div>
 <div class="callout"><p>Do the first flash before you close the stand anyway, whichever version you built. The ESP32-S3 normally switches into its download mode over USB by itself, but if it ever doesn&rsquo;t, the fix is holding its BOOT button and tapping RESET, and those are on the display&rsquo;s underside, under the base.</p></div>

@@ -6,24 +6,20 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { AXIS, buildPanel } from './parts3d.js';
 
-// three versions of the stand, and the file behind each part: 'usbc' (USB-C, no battery), '18650' (USB-C with an
-// 18650 and its charger in a tray under the base) and 'cable' (the display's own cable)
+// two versions of the stand, and the file behind each part: 'usbc' (the USB-C stand: shell and deck) and 'cable'
+// (the display's own cable, from the v7 design)
 const VARIANTS = {
-  usbc: { shell: 'shell_usbc', base: 'base_usbc', boards: 'breakout' },
-  18650: { shell: 'shell_usbc', base: 'deck_18650', tray: 'tray_18650', boards: 'breakout', charger: 'charger_18650', cell: 'cell_18650' },
+  usbc: { shell: 'shell_usbc', base: 'base_usbc', boards: 'breakout', cable: 'cable_usbc' },
   cable: { shell: 'shell_cable', base: 'base_cable', cable: 'cable' },
 };
-const INSIDE = ['boards', 'charger', 'cell', 'cable'];
+const INSIDE = ['boards', 'cable'];
 
-// how far each part moves in the exploded view (mm): the display lifts out of the top along its axis, the base
-// drops straight down, the tray further, and the bought parts go with whatever they sit on
+// how far each part moves in the exploded view (mm): the display lifts out of the top along its axis, and the
+// base drops straight down with what sits on it
 const DOWN = (z) => new THREE.Vector3(0, 0, z);
-function explodeOf(n, v) {
+function explodeOf(n) {
   if (n === 'display') return AXIS.clone().multiplyScalar(48);
   if (n === 'shell') return DOWN(0);
-  if (n === 'tray') return DOWN(-110);
-  if (n === 'base') return DOWN(-64);
-  if (n === 'cell' || n === 'charger') return DOWN(-110);     // the 18650 and its charger sit in the tray
   return DOWN(-64);
 }
 
@@ -64,12 +60,9 @@ export async function mountModels(canvas, { modelUrl, accent = '#9fd8f7', onLost
   const parts = {
     shell: new THREE.Mesh(empty, shellMat),
     base: new THREE.Mesh(empty, new THREE.MeshStandardMaterial({ color: new THREE.Color(accent), roughness: 0.6 })),
-    tray: new THREE.Mesh(empty, new THREE.MeshStandardMaterial({ color: 0x8d9bb0, roughness: 0.6 })),
     display: buildPanel({ lit: false }).group,
-    // stand-ins for the parts you buy: the USB-C breakout (and IP5306) boards, the 18650 cell, or the stock cable
+    // stand-ins for the parts you buy: the USB-C breakout and the display's cable
     boards: new THREE.Mesh(empty, new THREE.MeshStandardMaterial({ color: 0x2b7a57, roughness: 0.6 })),
-    charger: new THREE.Mesh(empty, new THREE.MeshStandardMaterial({ color: 0x2b7a57, roughness: 0.6 })),
-    cell: new THREE.Mesh(empty, new THREE.MeshStandardMaterial({ color: 0x5d6b80, roughness: 0.35, metalness: 0.3 })),
     cable: new THREE.Mesh(empty, new THREE.MeshStandardMaterial({ color: 0x2a2f38, roughness: 0.7 })),
   };
   for (const p of Object.values(parts)) { p.userData.home = p.position.clone(); scene.add(p); }
@@ -85,8 +78,8 @@ export async function mountModels(canvas, { modelUrl, accent = '#9fd8f7', onLost
   await useVariant(startVariant);
 
   let show = 'all', exploded = false, explodeT = 0;
-  const visibleParts = () => (show === 'all' ? ['shell', 'base', 'tray', 'display', ...INSIDE]
-    : show === 'base' ? ['base', 'tray', ...INSIDE] : [show]).filter(has);
+  const visibleParts = () => (show === 'all' ? ['shell', 'base', 'display', ...INSIDE]
+    : show === 'base' ? ['base', ...INSIDE] : [show]).filter(has);
 
   function frameView(instant) {
     // frame the parts where they're heading, not where they are mid-animation
@@ -94,7 +87,7 @@ export async function mountModels(canvas, { modelUrl, accent = '#9fd8f7', onLost
     const box = new THREE.Box3();
     for (const n of visibleParts()) {
       const p = parts[n], was = p.position.clone();
-      p.position.copy(p.userData.home).addScaledVector(explodeOf(n, variant), t);
+      p.position.copy(p.userData.home).addScaledVector(explodeOf(n), t);
       p.updateMatrixWorld(true);
       box.expandByObject(p);
       p.position.copy(was);
@@ -129,7 +122,7 @@ export async function mountModels(canvas, { modelUrl, accent = '#9fd8f7', onLost
     resize();
     const want = exploded && show === 'all' ? 1 : 0;
     explodeT += reduce ? want - explodeT : (want - explodeT) * 0.12;
-    for (const [n, p] of Object.entries(parts)) p.position.copy(p.userData.home).addScaledVector(explodeOf(n, variant), explodeT);
+    for (const [n, p] of Object.entries(parts)) p.position.copy(p.userData.home).addScaledVector(explodeOf(n), explodeT);
     if (goal) {
       const k = reduce ? 1 : 0.12;
       controls.target.lerp(goal.target, k);
