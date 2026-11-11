@@ -19,6 +19,7 @@ ways:
 | `crowpanel_v7_tray_18650.step` / `.stl` | The tray under the deck (65 × 91 × 25 mm): an 18650 cradle with contact-plate slots (protected cells up to 69 mm), rails for the IP5306, a window in the right side for its LEDs and button, four screw columns. |
 | `crowpanel_v7_shell_cable.step` / `.stl` | The cable shell: a 4.4 mm slot, open at the bottom, in the back wall. |
 | `crowpanel_v7_base_cable.step` / `.stl` | Base for the cable shell: the same three posts, and four snug clips along the cable's run. |
+| `crowpanel_v7_assembly_18650.step`, `_usbc.step`, `_cable.step` | Each version as one STEP assembly: the printed parts named and in place, with stand-ins for the display, the cable, the breakout, the IP5306 and the cell (named `ref_...`). Written by `make_assembly.py`, e.g. `DESKLING_PORT=usbc DESKLING_POWER=18650 python3 make_assembly.py crowpanel_v7_assembly_18650`. |
 | `v6/`, `v5/`, `v4/`, `v3/` | Earlier versions. |
 
 The base fixes to the shell with 4 × M3×8 countersunk screws into heat-set inserts; on the 18650 version, 4 × M3×30
