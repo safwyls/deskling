@@ -1,6 +1,9 @@
 package app.deskling.sync
 
 import android.Manifest
+import android.annotation.SuppressLint
+import android.bluetooth.BluetoothManager
+import android.provider.Settings
 import android.content.Context
 import android.content.pm.PackageManager
 import android.net.ConnectivityManager
@@ -55,8 +58,22 @@ object Sync {
         return cm.allNetworks.any { cm.getNetworkCapabilities(it)?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true }
     }
 
-    /** What this phone is called on the dials ("Wisp is with Pixel 8"). */
-    val phoneName: String get() = (Build.MODEL ?: "").ifBlank { "your phone" }.take(32)
+    /**
+     * What this phone is called on the dials ("Wisp is with Sam's S26"): its Bluetooth name, which is the name
+     * the owner gave it. Without the Bluetooth permission, the device name from Settings (the same thing on most
+     * phones); failing both, the model.
+     */
+    @SuppressLint("MissingPermission")
+    fun phoneName(ctx: Context): String {
+        val bt = if (hasBlePermission(ctx)) runCatching {
+            (ctx.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager)?.adapter?.name
+        }.getOrNull() else null
+        val dev = runCatching { Settings.Global.getString(ctx.contentResolver, Settings.Global.DEVICE_NAME) }.getOrNull()
+        // the dial's font is plain ASCII: straighten curly quotes, drop what it can't draw
+        val ascii = { n: String -> n.replace('\u2019', '\'').replace('\u2018', '\'').replace('\u201C', '"').replace('\u201D', '"')
+            .filter { it in ' '..'~' }.replace(Regex("\\s+"), " ").trim() }
+        return listOf(bt, dev, Build.MODEL).map { ascii(it ?: "") }.firstOrNull { it.isNotBlank() }?.take(32) ?: "your phone"
+    }
 
     /** A working link to a paired dial: Wi-Fi first (when the phone is on Wi-Fi), then Bluetooth. */
     private suspend fun open(ctx: Context, d: DialInfo, allowBle: Boolean): DialLink? {
@@ -95,7 +112,7 @@ object Sync {
             if (!st.optBoolean("ok")) {
                 if (st.optString("err") == "not paired") { _message.value = "${d.name} no longer knows this phone: pair again"; return false }
             } else {
-                val atDial = learn(store, d, st)
+                val atDial = learn(ctx, store, d, st)
                 if (atDial && store.pending().isNotEmpty()) {
                     // what was logged here while the companion was at the dial, oldest first
                     for (op in store.pending()) {
@@ -105,7 +122,7 @@ object Sync {
                         store.dropFirst(1)
                     }
                     st = l.request(JSONObject().put("op", "state").put("now", now()))
-                    if (st.optBoolean("ok")) learn(store, d, st)
+                    if (st.optBoolean("ok")) learn(ctx, store, d, st)
                 } else if (!atDial && !store.travel.here) store.dropFirst(store.pending().size)   // it isn't there to take them
                 tellWhere?.let { (cid, epoch, at) -> l.request(JSONObject().put("op", "where").put("cid", cid).put("epoch", epoch).put("at", at)) }
                 tellWhere = null
@@ -136,7 +153,7 @@ object Sync {
     private var tellWhere: Triple<String, Long, String>? = null
 
     /** Take in a dial's state reply: where the companion is, and, when it's at that dial, its state. */
-    private fun learn(store: Store, d: DialInfo, st: JSONObject): Boolean {
+    private fun learn(ctx: Context, store: Store, d: DialInfo, st: JSONObject): Boolean {
         store.dialState = st
         st.optJSONObject("wifi")?.let { w ->
             val ip = w.optString("ip")
@@ -148,7 +165,7 @@ object Sync {
             if (store.travel.here && store.travel.cid.isNotEmpty() && store.travel.epoch > 1) false
             else { Travel("", 0, false, d.name).let { if (store.travel != it) store.travel = it }; true }
         } else {
-            val m = Travels.merge(store.travel, d.name, dt, phoneName)
+            val m = Travels.merge(store.travel, d.name, dt, phoneName(ctx))
             if (m.travel != store.travel) store.travel = m.travel
             m.tellWhere?.let { tellWhere = Triple(m.travel.cid, m.travel.epoch, it) }
             m.atDial
@@ -179,10 +196,10 @@ object Sync {
         val store = Store.get(ctx)
         val l = open(ctx, from, true) ?: return Move.Failed("Couldn't reach ${from.name}. Bluetooth reaches it nearby; Wi-Fi when you're on the same network.")
         try {
-            val r = l.request(JSONObject().put("op", "leave").put("to", phoneName).put("now", System.currentTimeMillis() / 1000))
+            val r = l.request(JSONObject().put("op", "leave").put("to", phoneName(ctx)).put("now", System.currentTimeMillis() / 1000))
             val rec = CompanionRecord.fromJson(r.optJSONObject("companion"))
             if (!r.optBoolean("ok") || rec == null) {
-                if (r.optString("err") == "away") DialTravel.of(r)?.let { dt -> store.travel = Travels.merge(store.travel, from.name, dt, phoneName).travel }
+                if (r.optString("err") == "away") DialTravel.of(r)?.let { dt -> store.travel = Travels.merge(store.travel, from.name, dt, phoneName(ctx)).travel }
                 return Move.Failed(when (r.optString("err")) {
                     "away" -> "It isn't at ${from.name}: it's with ${r.optString("where").ifBlank { "someone else" }}"
                     "unknown op" -> "${from.name} needs newer firmware for this (6.0 or later)"
@@ -267,7 +284,7 @@ object Sync {
 
     /** Pair with a dial showing [code] (Settings > Phone app > Pair a phone). Over Bluetooth if [address] is set. */
     suspend fun pair(ctx: Context, name: String, code: String, address: String = "", ip: String = ""): String? = mutex.withLock {
-        val phone = Build.MODEL ?: "phone"
+        val phone = phoneName(ctx)
         val op = JSONObject().put("op", "pair").put("code", code.filter { it.isDigit() }).put("phone", phone)
         val link: DialLink = when {
             address.isNotBlank() -> runCatching { BleLink.connect(ctx, address) }.getOrElse { return it.message ?: "couldn't connect" }
