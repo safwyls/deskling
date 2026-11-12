@@ -107,6 +107,9 @@ class ScreensRenderTest {
         compose.onNodeWithContentDescription("companion").performClick(); compose.mainClock.advanceTimeBy(600); compose.waitForIdle()
         shot("1b_wheel")
         tap("Eyes"); shot("5_eye_break")
+        tap("Stop"); appRef?.toast = null
+        compose.onNodeWithContentDescription("companion").performClick(); compose.mainClock.advanceTimeBy(600); compose.waitForIdle()
+        tap("Play"); shot("5b_catch")
         tap("Stop")
         appRef?.toast = null
         // a phone with one day of steps, as on a fresh install

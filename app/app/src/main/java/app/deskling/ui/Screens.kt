@@ -153,9 +153,9 @@ fun ActivityScreen(app: AppState, a: Activity) {
         if (a == Activity.EYES && el >= EYES_MS) { app.stop(); app.done(Need.EYES, "Eyes rested") }
         if (a == Activity.STRETCH && el >= STRETCH_MS) { app.stop(); app.done(Need.STRETCH, "Nice stretch") }
     }
+    if (a == Activity.PLAY) { CatchGame(app); return }
     Column(Modifier.fillMaxSize().padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Text(if (a == Activity.STRETCH) "Stretch with ${app.store.pet.title}" else a.title, color = TextC, fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
-        if (a == Activity.PLAY) { CatchGame(app); return@Column }
         val prompt = when (a) {
             Activity.EYES -> "Look at something 20 feet away"
             Activity.STRETCH -> STRETCHES[min(3L, el / 15_000).toInt()]
@@ -189,7 +189,14 @@ fun ActivityScreen(app: AppState, a: Activity) {
     }
 }
 
-/** The dial's catch game: a dot runs around the ring; tap when it passes the mark at the bottom. */
+/** The catch zone, either side of the top, in degrees (the dial's is the same). */
+private const val CATCH_ZONE = 30f
+
+/**
+ * The dial's catch game: a dot runs around the ring; tap anywhere when it's in the green zone at the top. A catch
+ * counts if any of the dot touches the zone, and it's judged the moment the finger lands (a click only fires on
+ * release, by when the dot has moved on).
+ */
 @Composable
 private fun CatchGame(app: AppState) {
     val rounds = 5
@@ -199,6 +206,7 @@ private fun CatchGame(app: AppState) {
     var pauseUntil by remember { mutableLongStateOf(0L) }
     var angle by remember { mutableFloatStateOf(180f) }
     var flash by remember { mutableStateOf<Color?>(null) }
+    var dotDeg by remember { mutableFloatStateOf(4f) }        // the dot's radius as an angle on the ring, set when drawn
     fun period(): Long { var p = 1900L; repeat(round) { p = p * 82 / 100 }; return p }
     LaunchedEffect(Unit) {
         while (round < rounds) {
@@ -211,29 +219,36 @@ private fun CatchGame(app: AppState) {
         }
         app.played(hits, rounds)
     }
-    Text("Round ${min(round + 1, rounds)} of $rounds  •  $hits caught", color = Dim, fontSize = 16.sp, modifier = Modifier.padding(top = 6.dp))
-    // judged the moment the finger lands: a click only fires on release, by when the dot has moved on
-    Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(vertical = 16.dp).size(320.dp).pointerInput(Unit) { detectTapGestures(onPress = {
+    Column(Modifier.fillMaxSize().pointerInput(Unit) { detectTapGestures(onPress = {
         if (pauseUntil != 0L || round >= rounds) return@detectTapGestures
         angle = (180f + 360f * (System.currentTimeMillis() - start) / period()) % 360f
-        val d = min(angle, 360 - angle)
-        val hit = d <= 24
+        val hit = min(angle, 360 - angle) <= CATCH_ZONE + dotDeg
         if (hit) hits++
         flash = if (hit) Ok else Bad
         round++
         pauseUntil = System.currentTimeMillis() + 600
-    }) }) {
-        Canvas(Modifier.fillMaxSize()) {
-            val r = size.minDimension / 2 - 16.dp.toPx()
-            val c = center
-            drawCircle(Line, r, c, style = Stroke(6.dp.toPx()))
-            drawCircle(flash ?: Accent, 12.dp.toPx(), Offset(c.x, c.y + r))                  // the mark, at the bottom
-            val rad = Math.toRadians((angle - 90).toDouble())
-            drawCircle(Color.White, 10.dp.toPx(), Offset(c.x + r * cos(rad).toFloat(), c.y + r * sin(rad).toFloat()))
+    }) }.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(Activity.PLAY.title, color = TextC, fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
+        Text("Round ${min(round + 1, rounds)} of $rounds  •  $hits caught", color = Dim, fontSize = 16.sp, modifier = Modifier.padding(top = 6.dp))
+        Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(vertical = 16.dp).size(320.dp)) {
+            Canvas(Modifier.fillMaxSize()) {
+                val r = size.minDimension / 2 - 16.dp.toPx()
+                val c = center
+                val dot = 10.dp.toPx()
+                dotDeg = Math.toDegrees((dot / r).toDouble()).toFloat()
+                drawCircle(Line, r, c, style = Stroke(6.dp.toPx()))
+                // the catch zone: on the ring, at the top
+                drawArc((flash ?: Ok).copy(alpha = if (flash != null) 0.9f else 0.45f), -90f - CATCH_ZONE, 2 * CATCH_ZONE, false,
+                    topLeft = Offset(c.x - r, c.y - r), size = Size(2 * r, 2 * r), style = Stroke(dot * 2.2f, cap = StrokeCap.Round))
+                val rad = Math.toRadians((angle - 90).toDouble())
+                drawCircle(Color.White, dot, Offset(c.x + r * cos(rad).toFloat(), c.y + r * sin(rad).toFloat()))
+            }
+            WispView(Pose(Loop.RUN, null), Modifier.width(200.dp))
         }
-        WispView(Pose(Loop.RUN, null), Modifier.width(200.dp))
+        Text("Tap anywhere when the light is in the green", color = Dim, fontSize = 14.sp, textAlign = TextAlign.Center)
+        Spacer(Modifier.weight(1f))
+        TextButton(onClick = { app.stop("Stopped") }) { Text("Stop") }
     }
-    TextButton(onClick = { app.stop("Stopped") }) { Text("Stop") }
 }
 
 // ---------------------------------------------------------------- stats

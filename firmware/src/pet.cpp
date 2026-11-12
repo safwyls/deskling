@@ -353,7 +353,10 @@ static void stats_show(bool on) {
 }
 
 // ============================================================ activities
-static lv_obj_t *actLayer, *aArc, *aTitle, *aPrompt, *aTime, *aHint, *gDot, *gMark;
+static lv_obj_t *actLayer, *aArc, *aTitle, *aPrompt, *aTime, *aHint, *gDot, *gMark, *gZone;
+// The catch zone, either side of the top, in degrees. A catch counts if the dot touches it: the dot is 16 px
+// across on a 158 px ring, about 3 degrees each side of its centre.
+static const float CATCH_ZONE = 30, CATCH_DOT = 3;
 static const char *const STRETCHES[] = { "Reach up high", "Roll your shoulders back", "Twist left and right", "Tilt your head side to side" };
 static const uint32_t EYES_MS = 20000, STRETCH_MS = 60000, MOVE_MIN_MS = 120000;
 
@@ -382,7 +385,7 @@ static void game_catch(uint32_t at) {
   gAngle = game_angle(at);
   game_place_dot();                                      // freeze it where you caught it
   float d = fminf(gAngle, 360 - gAngle);
-  bool hit = d <= 24;
+  bool hit = d <= CATCH_ZONE + CATCH_DOT;
   if (hit) gHits++;
   leds_flash(hit ? C_OK : C_BAD);
   led(RING_POSITION, hit ? C_OK : C_BAD, (uint16_t)(gAngle / 360.0f * 1000));
@@ -426,6 +429,7 @@ static void act_start(Act a) {
   show(actLayer, true);
   show(gDot, a == A_PLAY);
   show(gMark, a == A_PLAY);
+  show(gZone, a == A_PLAY);
   show(aArc, a != A_PLAY && a != A_MOVE);
   lv_label_set_text(aHint, a == A_MOVE ? "press when you're back" : a == A_PLAY ? "hold to stop" : "press: done  " LV_SYMBOL_BULLET "  hold: stop");
   switch (a) {
@@ -782,6 +786,14 @@ void pet_create() {
   lv_obj_set_style_radius(gDot, LV_RADIUS_CIRCLE, 0);
   lv_obj_set_style_bg_color(gDot, lv_color_white(), 0);
   lv_obj_set_style_bg_opa(gDot, LV_OPA_COVER, 0);
+  gZone = mk_arc(actLayer, 332, 16, C_OK);              // the catch zone on the dot's ring, drawn under it
+  lv_arc_set_bg_angles(gZone, 270 - CATCH_ZONE, 270 + CATCH_ZONE);
+  lv_obj_set_style_arc_color(gZone, lv_color_hex(C_OK), LV_PART_MAIN);
+  lv_obj_set_style_arc_rounded(gZone, true, LV_PART_MAIN);
+  lv_obj_set_style_arc_opa(gZone, LV_OPA_40, LV_PART_MAIN);
+  lv_obj_set_style_arc_opa(gZone, LV_OPA_TRANSP, LV_PART_INDICATOR);
+  lv_obj_center(gZone);
+  lv_obj_move_to_index(gZone, 0);
   gMark = mk_label(actLayer, &lv_font_montserrat_20, -136, 40, C_OK);
   lv_label_set_text(gMark, LV_SYMBOL_UP);
 
