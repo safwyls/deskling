@@ -273,7 +273,7 @@ private fun PhoneSettings(app: AppState) {
     Item(if (missing.isEmpty()) "All set" else "Missing", if (missing.isEmpty()) "Bluetooth, steps and notifications" else missing.joinToString(", "),
         if (missing.isEmpty()) null else "Allow") { ask.launch(perms) }
     Header("About")
-    Text("Deskling 1.10  •  ${s.pet.title} and the care game, travelling between your dials and this phone over Bluetooth or Wi-Fi.", color = Dim, fontSize = 13.sp)
+    Text("Deskling 1.10  •  ${s.pet.title} and the care game, travelling between your dials and this phone over Bluetooth or Wi-Fi. Open source under the MIT licence: github.com/safwyls/deskling", color = Dim, fontSize = 13.sp)
 }
 
 /** Which companion it is, and taking one in from a link. */

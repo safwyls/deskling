@@ -57,3 +57,9 @@ every push that touches the site, the firmware or the app.
 The app is only built when its signing key is in the repository's Actions secrets: `DESKLING_KEYSTORE_B64` (the
 keystore, base64), `DESKLING_KEYSTORE_PASSWORD`, `DESKLING_KEY_ALIAS` and `DESKLING_KEY_PASSWORD`. Every release
 must be signed with the same key, or Android won't install it over the previous one. To run it locally, see [`site/README.md`](site/README.md).
+
+## Licence
+
+MIT: see [`LICENSE`](LICENSE). That covers Deskling's own code, the stand's models, the art and the animations.
+The libraries vendored in `firmware/lib/` keep their own licences: LVGL (MIT), ArduinoJson (MIT), LovyanGFX
+(FreeBSD, with parts under its original authors' terms) and Adafruit NeoPixel (LGPL 3.0).
