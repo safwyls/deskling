@@ -74,12 +74,13 @@ class CareState {
     var standing = false              // sit/stand: which you said you're doing
     var postureElapsed = 0L           // active seconds in it
     var standsToday = 0
+    var wokeEarly = false             // woken by hand outside active hours: awake until they next begin, or bedtime
 
     fun toJson(): JSONObject = JSONObject()
         .put("elapsed", JSONArray(elapsed.toList())).put("happy", happy).put("xp", xp)
         .put("today", JSONArray(today.toList())).put("day", day).put("streak", streak).put("bedtime", bedtime)
         .put("pauseUntil", pauseUntil).put("lastPet", lastPet).put("lastUpdate", lastUpdate).put("wasInHours", wasInHours)
-        .put("standing", standing).put("postureElapsed", postureElapsed).put("standsToday", standsToday)
+        .put("standing", standing).put("postureElapsed", postureElapsed).put("standsToday", standsToday).put("wokeEarly", wokeEarly)
 
     companion object {
         fun fromJson(o: JSONObject?): CareState {
@@ -99,6 +100,7 @@ class CareState {
             s.standing = o.optBoolean("standing")
             s.postureElapsed = o.optLong("postureElapsed")
             s.standsToday = o.optInt("standsToday")
+            s.wokeEarly = o.optBoolean("wokeEarly")
             return s
         }
     }
@@ -113,7 +115,10 @@ class CareEngine(
     private fun local(ms: Long): ZonedDateTime = Instant.ofEpochMilli(ms).atZone(zone())
     fun dateOf(ms: Long): Int = local(ms).let { it.year * 10000 + it.monthValue * 100 + it.dayOfMonth }
 
-    fun inHours(ms: Long): Boolean {
+    /** Active hours, or woken by hand outside them (see wake). */
+    fun inHours(ms: Long): Boolean = st.wokeEarly || rawInHours(ms)
+
+    fun rawInHours(ms: Long): Boolean {
         val (a, b) = config.hourStart to config.hourEnd
         if (a == b) return true
         val h = local(ms).hour
@@ -179,6 +184,7 @@ class CareEngine(
             val from = t                                      // a minute counts as active by how it started
             t += step
             checkDay(t)
+            if (st.wokeEarly && rawInHours(t)) st.wokeEarly = false     // the active hours caught up
             val ih = inHours(t)
             if (ih && !st.wasInHours) {                      // a new active day: fresh timers, bedtime over
                 st.bedtime = false
@@ -291,7 +297,9 @@ class CareEngine(
 
     fun played(hits: Int) { addHappy(min(20, hits * 4).toDouble()); st.xp += hits }
     fun pause(minutes: Int, now: Long = System.currentTimeMillis()) { st.pauseUntil = if (minutes > 0) now + minutes * 60_000L else 0 }
-    fun setBedtime(on: Boolean) { st.bedtime = on }
+    fun setBedtime(on: Boolean) { st.bedtime = on; if (on) st.wokeEarly = false }
+    /** Wake up now: bedtime ends and, outside active hours, it stays awake until they next begin (or bedtime). */
+    fun wake(now: Long = System.currentTimeMillis()) { st.bedtime = false; if (!rawInHours(now)) st.wokeEarly = true }
 
     /** Active seconds until [n] falls due turned into a wall-clock time, walking forward through active hours. */
     fun dueAt(n: Need, now: Long = System.currentTimeMillis()): Long? {
@@ -332,6 +340,7 @@ class CareEngine(
         st.xp = o.optLong("xp", st.xp)
         st.streak = o.optInt("streak", st.streak)
         st.bedtime = o.optBoolean("bedtime", st.bedtime)
+        st.wokeEarly = o.optBoolean("woke", false)
         val p = o.optLong("paused")
         st.pauseUntil = if (p > 0) now + p * 1000 else 0
         o.optInt("day").takeIf { it != 0 }?.let { st.day = it }

@@ -55,6 +55,8 @@ static bool ntpStarted = false, wasInHours = true;   // true: a reboot during th
 static char cid[17], where[33];
 static uint32_t epoch = 1;
 static bool here = true;
+// Woken by hand outside active hours: awake (timers running) until the hours next begin, or bedtime
+static bool wokeEarly = false;
 
 static void save() {
   prefs.putBytes("state", &st, sizeof(st));
@@ -103,6 +105,7 @@ void care_begin() {
   }
   epoch = prefs.getUInt("epoch", 1);
   here = prefs.getBool("here", true);
+  wokeEarly = prefs.getBool("woke", false);
   if (prefs.getString("where", where, sizeof(where)) == 0) where[0] = 0;
   for (int i = 0; i < NEED_COUNT; i++) wasDue[i] = care_need_due((Need)i);
   lastSecond = millis();
@@ -166,7 +169,11 @@ void care_clock_hint(time_t utc) {
 const char *care_tz_name(int i) { return TZS[constrain(i, 0, TZ_COUNT - 1)].name; }
 int care_tz_count() { return TZ_COUNT; }
 
-bool care_in_hours() {
+static bool raw_in_hours();
+bool care_in_hours() { return wokeEarly || raw_in_hours(); }
+bool care_woke_early() { return wokeEarly; }
+
+static bool raw_in_hours() {
   struct tm t;
   if (!local_now(t) || hourStart == hourEnd) return true;      // no clock yet: don't hold the reminders back
   int h = t.tm_hour;
@@ -342,7 +349,21 @@ void care_played(int hits, int rounds) {
 
 void care_pause(int minutes) { pauseUntil = minutes > 0 ? millis() + (uint32_t)minutes * 60000UL : 0; changed(); }
 
+static void set_woke(bool on) {
+  if (wokeEarly == on) return;
+  wokeEarly = on;
+  prefs.putBool("woke", on);
+}
+
+void care_wake() {
+  st.bedtime = 0;
+  if (!raw_in_hours()) set_woke(true);
+  changed();
+  save();
+}
+
 void care_set_bedtime(bool on) {
+  if (on) set_woke(false);
   if (st.bedtime == on) return;
   st.bedtime = on;
   changed();
@@ -390,6 +411,7 @@ void care_tick() {
     int32_t today = (t.tm_year + 1900) * 10000 + (t.tm_mon + 1) * 100 + t.tm_mday;
     if (today != st.day) new_day(today);
   }
+  if (wokeEarly && raw_in_hours()) set_woke(false);   // the active hours caught up with you
   bool inHours = care_in_hours();
   if (inHours && !wasInHours) {
     // a new active day: bedtime ends, and the timers start fresh rather than carrying last night's debts
@@ -469,6 +491,7 @@ void care_snapshot(CareSnapshot &o) {
   o.day = st.day; o.streak = st.streak; o.bedtime = st.bedtime;
   o.standing = standing; o.postSec = postSec; o.standsToday = standsToday;
   o.pauseS = care_pause_left_s();
+  o.woke = wokeEarly;
 }
 
 static void save_travel() {
@@ -497,6 +520,7 @@ void care_arrive(const char *id, uint32_t e, const CareSnapshot &in) {
   st.day = in.day; st.streak = in.streak; st.bedtime = in.bedtime;
   standing = in.standing; postSec = in.postSec; standsToday = in.standsToday;
   pauseUntil = in.pauseS ? millis() + in.pauseS * 1000UL : 0;
+  set_woke(in.woke && !raw_in_hours());
   for (int i = 0; i < NEED_COUNT; i++) wasDue[i] = care_need_due((Need)i);
   postWasDue = care_posture_due();
   wasInHours = care_in_hours();           // arriving isn't the start of a new active day

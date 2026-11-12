@@ -159,7 +159,7 @@ static void put_companion(JsonObject o) {
   JsonArray el = k["elapsed"].to<JsonArray>(), td = k["today"].to<JsonArray>();
   for (int i = 0; i < NEED_COUNT; i++) { el.add(c.elapsed[i]); td.add(c.today[i]); }
   k["happy"] = c.happy; k["xp"] = c.xp; k["day"] = c.day; k["streak"] = c.streak; k["bedtime"] = c.bedtime;
-  k["standing"] = c.standing; k["postSec"] = c.postSec; k["stands"] = c.standsToday; k["pause"] = c.pauseS;
+  k["standing"] = c.standing; k["postSec"] = c.postSec; k["stands"] = c.standsToday; k["pause"] = c.pauseS; k["woke"] = c.woke;
 }
 
 static bool is_cid(const char *s) {
@@ -180,6 +180,7 @@ static bool read_companion(JsonObjectConst o, const char *&cid, int &pet, uint32
   c.happy = k["happy"] | 70.0f; c.xp = k["xp"] | 0u; c.day = k["day"] | 0; c.streak = k["streak"] | 0;
   c.bedtime = k["bedtime"] | false; c.standing = k["standing"] | false; c.postSec = k["postSec"] | 0u;
   c.standsToday = k["stands"] | 0; c.pauseS = min(24u * 3600, k["pause"] | 0u);
+  c.woke = k["woke"] | false;
   return true;
 }
 
@@ -206,6 +207,7 @@ static void put_state(JsonObject o) {
   o["active"] = care_active();
   o["paused"] = care_paused() ? care_pause_left_s() : 0;
   o["bedtime"] = care_bedtime();
+  o["woke"] = care_woke_early();
   o["urgent"] = care_most_urgent() >= 0 ? NEED_KEY[care_most_urgent()] : nullptr;
   JsonArray needs = o["needs"].to<JsonArray>();
   for (int i = 0; i < NEED_COUNT; i++) {
@@ -328,7 +330,7 @@ static void handle(Req *r) {
   } else {
     // the phone's clock is a good time source when the dial has none yet
     if (in["now"].is<uint32_t>() && in["now"].as<uint32_t>() > 1700000000u) care_clock_hint((time_t)in["now"].as<uint32_t>());
-    static const char *const CARE_OPS[] = { "done", "pet", "played", "pause", "bedtime", "posture" };
+    static const char *const CARE_OPS[] = { "done", "pet", "played", "pause", "bedtime", "wake", "posture" };
     bool careOp = false;
     for (const char *c : CARE_OPS) careOp |= !strcmp(op, c);
     if (careOp && !care_here()) { out["ok"] = false; out["err"] = "away"; put_state(out); }
@@ -351,6 +353,7 @@ static void handle(Req *r) {
     else if (!strcmp(op, "played")) { care_played(in["hits"] | 0, in["rounds"] | 5); put_state(out); }
     else if (!strcmp(op, "pause")) { care_pause(in["minutes"] | 0); put_state(out); }
     else if (!strcmp(op, "bedtime")) { care_set_bedtime(in["on"] | false); put_state(out); }
+    else if (!strcmp(op, "wake")) { care_wake(); put_state(out); }
     else if (!strcmp(op, "posture")) { care_posture_set(in["standing"] | false); put_state(out); }
     else if (!strcmp(op, "steps")) { care_set_steps(in["day"] | 0, in["count"] | 0u); out["steps"] = care_steps_today(); }
     else if (!strcmp(op, "leave")) {

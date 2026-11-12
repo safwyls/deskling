@@ -156,6 +156,16 @@ class AppState(val ctx: Context, val scope: CoroutineScope) {
         syncSoon()
     }
 
+    /** Wake it now: from bedtime, or out of its active hours (it stays up until they begin, or bedtime). */
+    fun wake() {
+        store.engine.wake(now)
+        store.queueForDial(JSONObject().put("op", "wake"))
+        store.saveCare()
+        react(2)
+        say("Good morning")
+        syncSoon()
+    }
+
     fun bedtime(on: Boolean) {
         store.engine.setBedtime(on)
         store.queueForDial(JSONObject().put("op", "bedtime").put("on", on))

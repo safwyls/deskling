@@ -41,7 +41,8 @@ int care_level_progress();              // 0-100 within the level
 int care_today(Need n);
 int care_streak();                      // days in a row with at least 4 breaks logged
 bool care_active();                     // timers running right now
-bool care_in_hours();
+bool care_in_hours();                   // active hours, or woken by hand outside them (care_wake)
+bool care_woke_early();
 bool care_paused();
 uint32_t care_pause_left_s();
 bool care_bedtime();
@@ -67,6 +68,9 @@ bool care_pet();                        // a pat on the screen; false while on c
 void care_played(int hits, int rounds);
 void care_pause(int minutes);           // 0 = resume
 void care_set_bedtime(bool on);
+// Wake up now: ends bedtime and, outside active hours, keeps the companion awake until they next begin
+// (or until bedtime).
+void care_wake();
 // Sit/stand alternation (optional, Settings > Reminders). Not a need: it never affects the mood. The timer
 // counts active time in the current posture; when it reaches that posture's limit it's "due" and cues like a
 // need. You say when you switch (there's no sensor).
@@ -109,6 +113,7 @@ struct CareSnapshot {
   uint32_t postSec;
   uint16_t standsToday;
   uint32_t pauseS;                      // pause left, seconds
+  bool woke;                            // woken outside active hours
 };
 const char *care_cid();
 uint32_t care_epoch();

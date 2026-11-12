@@ -274,6 +274,7 @@ static void ring_render() {
                     snprintf(det, sizeof(det), "level %d  " LV_SYMBOL_BULLET "  %d%% happy", care_level(), care_happiness()); break;
     case R_BED:
       if (care_bedtime()) { snprintf(name, sizeof(name), "Wake up"); snprintf(det, sizeof(det), "reminders back on"); }
+      else if (care_mood() == MOOD_ASLEEP) { snprintf(name, sizeof(name), "Wake up"); snprintf(det, sizeof(det), "awake until bedtime, outside active hours"); }
       else { snprintf(name, sizeof(name), "Bedtime"); snprintf(det, sizeof(det), "reminders off until morning"); }
       break;
     case R_PAUSE:
@@ -543,9 +544,11 @@ static void ring_do(int i) {
     case R_PLAY: act_start(A_PLAY); break;
     case R_STATS: ring_show(false); stats_show(true); break;
     case R_BED:
-      care_set_bedtime(!care_bedtime());
+      if (care_mood() == MOOD_ASLEEP) care_wake();      // bedtime, or asleep outside active hours
+      else care_set_bedtime(true);
       ring_show(false);
       say(care_bedtime() ? "Goodnight" : "Good morning");
+      if (!care_bedtime()) react(P_BOUNCE, 2);
       break;
     case R_PAUSE:
       if (care_paused()) { care_pause(0); say("Reminders back on"); }
@@ -680,7 +683,7 @@ static void status_render() {
 // ============================================================ screen
 static void pat() {
   char b[48];
-  if (care_mood() == MOOD_ASLEEP) { snprintf(b, sizeof(b), "Shh, %s is asleep", PET_NAME); say(b); return; }
+  if (care_mood() == MOOD_ASLEEP) { snprintf(b, sizeof(b), "Shh, %s is asleep: Wake up is on the ring", PET_NAME); say(b); return; }
   bool counted = care_pet();
   react(P_HAPPY, 2);
   if (counted) { snprintf(b, sizeof(b), "%s likes that", PET_NAME); say(b, 1500); }

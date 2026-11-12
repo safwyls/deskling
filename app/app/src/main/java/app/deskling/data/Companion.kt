@@ -85,7 +85,8 @@ data class CompanionRecord(val cid: String, val pet: Pet, val epoch: Long, val c
         val pause = care.optLong("pause").coerceIn(0, 24 * 3600)
         s.pauseUntil = if (pause > 0) now + pause * 1000 else 0
         s.lastUpdate = now
-        s.wasInHours = engine.inHours(now)           // arriving isn't the start of a new active day
+        s.wokeEarly = care.optBoolean("woke") && !engine.rawInHours(now)
+        s.wasInHours = s.wokeEarly || engine.rawInHours(now)       // arriving isn't the start of a new active day
         return s
     }
 
@@ -99,7 +100,7 @@ data class CompanionRecord(val cid: String, val pet: Pet, val epoch: Long, val c
             .put("elapsed", JSONArray(st.elapsed.toList())).put("today", JSONArray(st.today.toList()))
             .put("happy", st.happy).put("xp", st.xp).put("day", st.day).put("streak", st.streak).put("bedtime", st.bedtime)
             .put("standing", st.standing).put("postSec", st.postureElapsed).put("stands", st.standsToday)
-            .put("pause", maxOf(0L, (st.pauseUntil - now) / 1000)))
+            .put("pause", maxOf(0L, (st.pauseUntil - now) / 1000)).put("woke", st.wokeEarly))
 
         /** Null unless it's a whole, sensible record. */
         fun fromJson(o: JSONObject?): CompanionRecord? {

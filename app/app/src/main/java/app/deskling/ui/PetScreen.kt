@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SelfImprovement
 import androidx.compose.material.icons.filled.SportsEsports
 import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
@@ -90,7 +91,7 @@ fun WispScreen(app: AppState) {
         Stage(app, wheel, { wheel = it }, poseFor(mood, urgent, now < app.reactUntil, postureDue, app.store.pet), Modifier.weight(1f))
         val hint = when {
             wheel -> "Tap $name for a pat, or anywhere else to close"
-            mood == Mood.ASLEEP -> if (e.st.bedtime) "Asleep: bedtime. Tap $name to wake it" else "Asleep until ${e.config.hourStart}:00"
+            mood == Mood.ASLEEP -> if (e.st.bedtime) "Asleep: bedtime. Tap $name to wake it" else "Asleep until ${e.config.hourStart}:00. Tap $name to wake it"
             e.paused(now) -> "Paused, ${mmss((e.st.pauseUntil - now) / 1000)} left"
             urgent != null -> "${urgent.title} is due: tap $name"
             postureDue -> "Time to ${if (e.st.standing) "sit down" else "stand up"}: tap $name"
@@ -123,7 +124,10 @@ private fun Stage(app: AppState, open: Boolean, setOpen: (Boolean) -> Unit, pose
         if (e.config.postureOn) add(WheelItem(if (e.st.standing) "Sit" else "Stand", if (e.st.standing) Icons.Filled.Chair else Icons.Filled.Accessibility,
             Color(CareEngine.POSTURE_COLOR), e.postureDue() && !e.paused(now)) { app.switchPosture() })
         add(WheelItem("Play", Icons.Filled.SportsEsports, Accent, false) { app.start(Activity.PLAY) })
-        add(WheelItem(if (e.st.bedtime) "Wake" else "Bedtime", Icons.Filled.Bedtime, Accent, false) { app.bedtime(!e.st.bedtime) })
+        val asleep = e.mood(now) == Mood.ASLEEP
+        add(WheelItem(if (asleep) "Wake" else "Bedtime", if (asleep) Icons.Filled.WbSunny else Icons.Filled.Bedtime, Accent, false) {
+            if (asleep) app.wake() else app.bedtime(true)
+        })
         add(WheelItem(if (e.paused(now)) "Resume" else "Pause", if (e.paused(now)) Icons.Filled.PlayArrow else Icons.Filled.Pause, Accent, false) {
             app.pause(if (e.paused(now)) 0 else 60)
         })

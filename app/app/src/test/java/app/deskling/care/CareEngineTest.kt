@@ -17,6 +17,28 @@ class CareEngineTest {
     private fun engine(start: Long = at(9)) = CareEngine(CareConfig(intArrayOf(45, 20, 50, 60), 8, 20), CareState(), { ZoneId.of("UTC") })
         .also { it.advanceTo(start) }
 
+    @Test fun wakingOutsideActiveHoursKeepsItUpUntilTheyBegin() {
+        val e = engine(at(21))                    // active 8 to 20: asleep
+        assertEquals(Mood.ASLEEP, e.mood(at(21)))
+        e.wake(at(21))
+        assertTrue(e.inHours(at(21)))
+        e.advanceTo(at(22))
+        assertTrue(e.mood(at(22)) != Mood.ASLEEP)
+        assertTrue(e.st.elapsed[Need.WATER.ordinal] > 0)   // timers run while it's up
+        e.advanceTo(at(9, day = 3))               // the hours begin: the override has done its job
+        assertFalse(e.st.wokeEarly)
+        e.advanceTo(at(21, day = 3))
+        assertEquals(Mood.ASLEEP, e.mood(at(21, day = 3)))  // and the next night it sleeps as usual
+    }
+
+    @Test fun bedtimeEndsAnEarlyWake() {
+        val e = engine(at(21))
+        e.wake(at(21))
+        e.setBedtime(true)
+        assertFalse(e.st.wokeEarly)
+        assertEquals(Mood.ASLEEP, e.mood(at(21)))
+    }
+
     @Test fun moveAlsoChecksOffStretchAndEyes() {
         val e = engine()
         e.advanceTo(at(10, 5))                    // everything due by now
