@@ -1,4 +1,4 @@
-# Builds the three firmwares, assembles the website around them and publishes it to GitHub Pages.
+# Builds the firmware (every companion in one), assembles the website around them and publishes it to GitHub Pages.
 # Pages has to be switched on once: Settings > Pages > Source: GitHub Actions.
 name: Website
 
@@ -44,9 +44,9 @@ jobs:
       - name: Install PlatformIO
         run: pip install platformio==6.1.19
 
-      - name: Build the firmware for each companion
+      - name: Build the firmware
         working-directory: firmware
-        run: pio run -e wisp -e crumb -e sprig
+        run: pio run
 
       - uses: actions/setup-java@v4
         if: env.HAS_APP_KEY == 'true'

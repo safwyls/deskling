@@ -18,34 +18,37 @@
 #include "crashlog.h"
 #include "emotes.h"
 #include "anims/anims.h"
+#include "companion.h"
 #include "clockface.h"
 #include <WiFi.h>
 
-static const uint32_t C_TEXT = TH_TEXT, C_ACCENT = TH_ACCENT, C_SUB = TH_SUB, C_DIM = TH_DIM,
-                      C_OK = 0x5cf08a, C_BAD = 0xff6b6b, C_PILL = TH_RAISED;
+#define C_TEXT TH_TEXT
+#define C_ACCENT TH_ACCENT
+#define C_SUB TH_SUB
+#define C_DIM TH_DIM
+#define C_PILL TH_RAISED
+static const uint32_t C_OK = 0x5cf08a, C_BAD = 0xff6b6b;
 static const int GROUND_Y = 272;        // where every loop's shadow sits
 static const uint32_t RING_IDLE_MS = 6000;
 
 // ============================================================ poses
 // To give a mood its own clip: generate the loop, add it to src/anims, and put it in the first column.
 enum PoseId { P_CONTENT, P_HAPPY, P_THIRSTY, P_TIRED, P_STRETCH, P_MOVE, P_SAD, P_MAD, P_ASLEEP, P_DASH, P_BOUNCE, P_COUNT };
-struct Pose { const char *name; const PetAnim *anim; const PetAnim *fallback; const lv_image_dsc_t *emote; const char *use; };
+// Each pose names a loop of the companion's (see companion.cpp) and the bubble it wears.
+typedef const PetAnim *const Companion::*Loop;
+struct Pose { const char *name; Loop loop; const lv_image_dsc_t *emote; const char *use; };
 static const Pose POSES[P_COUNT] = {
-  { "Content",  &pet_walk,     nullptr, &emote_content, "all needs met" },
-  { "Happy",    &pet_happy,    nullptr, &emote_happy,   "very happy (no bubble), and after a break or a pat (heart)" },
-#if defined(PET_SPRIG)
-  { "Thirsty",  &pet_thirsty,  nullptr, &emote_water,   "water is due" },          // Sprig's clip has no bubble of its own
-#else
-  { "Thirsty",  &pet_thirsty,  nullptr, nullptr,        "water is due (the bubble is part of the clip)" },
-#endif
-  { "Tired",    &pet_tired,    nullptr, &emote_eyes,    "an eye break is due" },
-  { "Stretch",  &pet_restless, nullptr, &emote_stretch, "a stretch is due" },
-  { "Move",     &pet_move,     nullptr, &emote_move,    "time to get up and move" },
-  { "Sad",      &pet_sad,      nullptr, &emote_sad,     "needs ignored for a while" },
-  { "Mad",      &pet_mad,      nullptr, &emote_mad,     "needs ignored a long time" },
-  { "Asleep",   &pet_sleep,    nullptr, &emote_asleep,  "night, bedtime, naps, eye breaks" },
-  { "Dashing",  &pet_run,      nullptr, nullptr,        "playing, out on a walk" },
-  { "Bouncing", &pet_jump,     nullptr, nullptr,        "celebrating, stretching" },
+  { "Content",  &Companion::walk,     &emote_content, "all needs met" },
+  { "Happy",    &Companion::happy,    &emote_happy,   "very happy (no bubble), and after a break or a pat (heart)" },
+  { "Thirsty",  &Companion::thirsty,  &emote_water,   "water is due" },   // no bubble when the clip draws its own
+  { "Tired",    &Companion::tired,    &emote_eyes,    "an eye break is due" },
+  { "Stretch",  &Companion::restless, &emote_stretch, "a stretch is due" },
+  { "Move",     &Companion::move,     &emote_move,    "time to get up and move" },
+  { "Sad",      &Companion::sad,      &emote_sad,     "needs ignored for a while" },
+  { "Mad",      &Companion::mad,      &emote_mad,     "needs ignored a long time" },
+  { "Asleep",   &Companion::sleep,    &emote_asleep,  "night, bedtime, naps, eye breaks" },
+  { "Dashing",  &Companion::run,      nullptr,        "playing, out on a walk" },
+  { "Bouncing", &Companion::jump,     nullptr,        "celebrating, stretching" },
 };
 // restless is Stretch or Move, by whichever is more urgent (see pet_tick)
 static const PoseId MOOD_POSE[MOOD_COUNT] = { P_CONTENT, P_HAPPY, P_THIRSTY, P_TIRED, P_STRETCH, P_SAD, P_MAD, P_ASLEEP };
@@ -53,9 +56,17 @@ static const PoseId MOOD_POSE[MOOD_COUNT] = { P_CONTENT, P_HAPPY, P_THIRSTY, P_T
 int pet_pose_count() { return P_COUNT; }
 const char *pet_pose_name(int i) { return POSES[i].name; }
 const char *pet_pose_use(int i) { return POSES[i].use; }
-bool pet_pose_has_clip(int i) { return POSES[i].anim != nullptr; }
-const PetAnim *pet_pose_anim(int i) { return POSES[i].anim ? POSES[i].anim : POSES[i].fallback; }
-const lv_image_dsc_t *pet_pose_emote(int i) { return POSES[i].emote; }
+// false: another loop stands in until the companion has its own (Crumb and Sprig's Stretch and Move)
+bool pet_pose_has_clip(int i) {
+  if (i == P_STRETCH) return PET->restless != PET->jump;
+  if (i == P_MOVE) return PET->move != PET->run;
+  return true;
+}
+const PetAnim *pet_pose_anim(int i) { return PET->*POSES[i].loop; }
+const lv_image_dsc_t *pet_pose_emote(int i) {
+  if (i == P_THIRSTY && PET->thirstyHasBubble) return nullptr;
+  return POSES[i].emote;
+}
 
 // Where the emote bubble goes for a frame: up and to the right of the face anchor, kept on the glass.
 // The bubble follows the face from frame to frame (hx/hy, measured from the clip by make_assets.py).
@@ -122,7 +133,7 @@ static void say(const char *txt, uint32_t ms = 2500) {
 }
 
 // ============================================================ animation
-static void show_frame() { lv_image_set_src(img, curAnim->frames[frame]); }
+static void show_frame() { lv_image_set_src(img, pet_anim_frame(curAnim, frame)); }
 
 static int frameDir = 1;
 static void place_emote() {
@@ -393,7 +404,7 @@ static void act_start(Act a) {
   switch (a) {
     case A_EYES:    lv_label_set_text(aTitle, "Eye break"); lv_label_set_text(aPrompt, "Look at something 20 feet away");
                     lv_obj_set_style_arc_color(aArc, lv_color_hex(care_need_color(NEED_EYES)), LV_PART_INDICATOR); break;
-    case A_STRETCH: lv_label_set_text(aTitle, "Stretch with " PET_NAME); lv_label_set_text(aPrompt, STRETCHES[0]);
+    case A_STRETCH: lv_label_set_text_fmt(aTitle, "Stretch with %s", PET_NAME); lv_label_set_text(aPrompt, STRETCHES[0]);
                     lv_obj_set_style_arc_color(aArc, lv_color_hex(care_need_color(NEED_STRETCH)), LV_PART_INDICATOR); break;
     case A_MOVE:    lv_label_set_text(aTitle, "Out for a walk"); lv_label_set_text(aPrompt, "Get up and move about"); break;
     case A_PLAY:    lv_label_set_text(aTitle, ""); gRound = 0; gHits = 0; gRoundStart = millis(); gPauseUntil = 0; break;
@@ -527,8 +538,46 @@ static void ring_do(int i) {
   }
 }
 
+// ============================================================ away: the companion is on a phone or another dial
+static lv_obj_t *awayLbl;
+static bool awayShown = false;
+
+static void say_away() {
+  char b[80];
+  snprintf(b, sizeof(b), "%s is with %s", PET_NAME, care_where());
+  say(b, 3000);
+}
+
+static void away_show(bool on) {
+  if (on == awayShown) return;
+  awayShown = on;
+  show(awayLbl, on);
+  show(img, !on);
+  if (on) {
+    if (act) act_end();
+    ring_show(false);
+    stats_show(false);
+    set_emote(nullptr);
+    lv_timer_pause(timer);
+  } else {
+    lv_timer_resume(timer);
+  }
+}
+
+void pet_companion_moved() {
+  char b[80];
+  if (care_here()) {
+    snprintf(b, sizeof(b), "%s is here", PET_NAME);
+    react(P_BOUNCE, 3);
+    leds_flash(TH_ACCENT);
+  } else snprintf(b, sizeof(b), "%s went with %s", PET_NAME, care_where());
+  lastInput = millis();
+  say(b, 4000);
+}
+
 void pet_open_ring() {
   lastInput = millis();
+  if (!care_here()) { say_away(); return; }
   if (!act) { stats_show(false); ring_show(true); }
 }
 
@@ -569,11 +618,12 @@ static void status_render() {
   } else st_set(stWifi, nullptr, 0);
   // the phone app holding its Bluetooth link: what you do here reaches it straight away
   st_set(stPhone, stCfg.show_status && !strcmp(ble_status(), "connected") ? LV_SYMBOL_BLUETOOTH : nullptr, C_ACCENT);
-  if (stCfg.show_status && care_paused()) st_set(stFlag, LV_SYMBOL_PAUSE, C_ACCENT);
+  if (!care_here()) st_set(stFlag, nullptr, 0);
+  else if (stCfg.show_status && care_paused()) st_set(stFlag, LV_SYMBOL_PAUSE, C_ACCENT);
   else if (stCfg.show_status && care_bedtime()) st_set(stFlag, LV_SYMBOL_EYE_CLOSE, C_ACCENT);
   else st_set(stFlag, nullptr, 0);
   // next break
-  if (!stCfg.show_next) { st_set(stNext, nullptr, 0); return; }
+  if (!stCfg.show_next || !care_here()) { st_set(stNext, nullptr, 0); return; }
   int u = care_most_urgent();
   if (care_mood() == MOOD_ASLEEP) {
     if (care_bedtime() || care_clock_valid()) { snprintf(buf, sizeof(buf), "Asleep until %d:00", stCfg.hour_start); st_set(stNext, buf, C_DIM); }
@@ -606,10 +656,11 @@ static void status_render() {
 
 // ============================================================ screen
 static void pat() {
-  if (care_mood() == MOOD_ASLEEP) { say("Shh, " PET_NAME " is asleep"); return; }
+  char b[48];
+  if (care_mood() == MOOD_ASLEEP) { snprintf(b, sizeof(b), "Shh, %s is asleep", PET_NAME); say(b); return; }
   bool counted = care_pet();
   react(P_HAPPY, 2);
-  if (counted) say(PET_NAME " likes that", 1500);
+  if (counted) { snprintf(b, sizeof(b), "%s likes that", PET_NAME); say(b, 1500); }
 }
 
 void pet_create() {
@@ -683,6 +734,10 @@ void pet_create() {
   lv_obj_align(cIcon, LV_ALIGN_CENTER, 0, -38);
   cName = mk_label(ringLayer, &lv_font_montserrat_28, 22, 200, C_TEXT);
   cDetail = mk_label(ringLayer, &lv_font_montserrat_14, 56, 200, C_SUB, true);
+
+  // away: where the companion went
+  awayLbl = mk_label(scr, &lv_font_montserrat_20, 34, 260, C_SUB, true);
+  lv_obj_add_flag(awayLbl, LV_OBJ_FLAG_HIDDEN);
 
   // activities
   actLayer = mk_layer();
@@ -766,7 +821,7 @@ lv_obj_t *pet_screen() { return scr; }
 
 void pet_enter() {
   ledMode = (RingMode)255;          // re-send the ring state
-  lv_timer_resume(timer);
+  if (care_here()) lv_timer_resume(timer);
 }
 
 bool pet_is_idle() { return !act && !statsOn && !ringOn; }   // the bare home screen
@@ -799,6 +854,11 @@ void pet_input(InputEvent e) {
   bool wasDim = dim_now() && act != A_MOVE;
   lastInput = now;
   if (wasDim) return;                              // the first input only wakes the screen
+  if (!care_here()) {                              // nothing to look after here: the menu still works
+    if (e == IN_PRESS) { lv_timer_pause(timer); app_show_hub(); }
+    else if (e != IN_HOLD) say_away();
+    return;
+  }
   bool bare = !act && !statsOn && !ringOn;
   if (e == IN_TAP) {
     if (bare) {                                    // only the knob opens the menu
@@ -878,6 +938,19 @@ void pet_tick() {
     if (now - lastSt > 1000 || !lastSt) { lastSt = now; status_render(); }
   }
 
+  away_show(!care_here());
+  if (awayShown) {
+    static char last[80];
+    char b[80];
+    snprintf(b, sizeof(b), "%s is with\n%s", PET_NAME, care_where());
+    if (strcmp(b, last)) { strlcpy(last, b, sizeof(last)); lv_label_set_text(awayLbl, b); }
+    int want = dim_now() ? BACKLIGHT_ASLEEP : settings_bright();
+    if (want != brightNow) { backlight(want); brightNow = want; }
+    led(RING_OFF, 0);
+    if (toastUntil && now > toastUntil) { toastUntil = 0; lv_obj_fade_out(toast, 400, 0); }
+    return;
+  }
+
   // what Wisp is doing
   Mood m = care_mood();
   bool dim = dim_now();
@@ -894,7 +967,7 @@ void pet_tick() {
   // emote bubble
   const lv_image_dsc_t *e = nullptr;
   if (!act && !statsOn && !ringOn) {
-    e = POSES[p].emote;
+    e = pet_pose_emote(p);
     if (p == P_HAPPY && now >= reactionUntil) e = nullptr;   // the heart means "you just did something"
     // nothing else wanted, but it's time to switch between sitting and standing
     if (now >= reactionUntil && m != MOOD_ASLEEP && care_most_urgent() < 0 && care_posture_due()) e = &emote_posture;

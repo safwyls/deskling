@@ -33,7 +33,15 @@
         android:usesCleartextTraffic="true">
         <!-- cleartext: the dial speaks plain HTTP on the local network -->
 
-        <activity android:name=".Home" android:exported="true" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".Home" android:exported="true" android:windowSoftInputMode="adjustResize" android:launchMode="singleTask">
+            <!-- a companion shared from another phone: the website's "Open in the app" hands it over as deskling://companion?r=... -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="deskling" android:host="companion" />
+            </intent-filter>
+        </activity>
 
         <!-- One launcher entry per companion, so the app icon can follow the pet (ui/LauncherIcon.kt switches them).
              Wisp's keeps the old ".MainActivity" name, so home-screen shortcuts from earlier versions still work. -->

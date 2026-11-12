@@ -91,3 +91,30 @@ uint32_t care_xp();
 void care_set_steps(int32_t day, uint32_t steps);
 uint32_t care_steps_today();            // 0 if none for today
 int32_t care_today_date();              // local yyyymmdd, 0 without a clock
+
+// ---------- travel ----------
+// The companion lives on one device at a time: this dial, a phone, another dial. Each has an id (made by
+// whichever device first had it) and an epoch that goes up by one at every move, so wherever two devices
+// disagree about where it is, the higher epoch is the newer news. While it's away the dial keeps the state
+// it left with, frozen, and shows where it went.
+struct CareSnapshot {
+  uint32_t elapsed[NEED_COUNT];
+  float happy;
+  uint32_t xp;
+  uint16_t today[NEED_COUNT];
+  int32_t day;
+  uint16_t streak;
+  bool bedtime;
+  bool standing;
+  uint32_t postSec;
+  uint16_t standsToday;
+  uint32_t pauseS;                      // pause left, seconds
+};
+const char *care_cid();
+uint32_t care_epoch();
+bool care_here();
+const char *care_where();               // when away: who has it ("Pixel 8", "Deskling-3456")
+void care_snapshot(CareSnapshot &out);
+uint32_t care_leave(const char *to);    // it goes with `to`: freezes here, returns the new epoch
+void care_arrive(const char *cid, uint32_t epoch, const CareSnapshot &in);   // it moves in, at that epoch
+void care_set_where(uint32_t epoch, const char *at);    // news of where it went since (if newer)

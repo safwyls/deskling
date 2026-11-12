@@ -1,6 +1,6 @@
 #include "clockface.h"
 #include "config.h"
-#include "theme.h"
+#include "companion.h"
 #include "clock_digits.h"
 #include "care.h"
 #include <math.h>
@@ -9,15 +9,25 @@
 
 static const char *const NAMES[CS_COUNT] = { "Classic", "Big", "Split", "Analog", "Rim", "Words" };
 static const char *const NOTES[CS_COUNT] = {
-  "small, at the top", "heavy digits, " PET_NAME " in front", "hours and minutes either side",
-  "faint hands behind " PET_NAME, "minutes around the edge", "quarter past nine",
+  "small, at the top", "heavy digits, %s in front", "hours and minutes either side",
+  "faint hands behind %s", "minutes around the edge", "quarter past nine",
 };
 const char *clockface_style_name(int s) { return NAMES[s % CS_COUNT]; }
 int clockface_style_count() { return CS_COUNT; }
-const char *clockface_style_note(int s) { return NOTES[s % CS_COUNT]; }
+const char *clockface_style_note(int s) {
+  static char buf[48];
+  snprintf(buf, sizeof(buf), NOTES[s % CS_COUNT], PET_NAME);
+  return buf;
+}
 
-static const uint32_t COL_BIG = TH_CLK_BIG, COL_SPLIT = TH_CLK_SPLIT, COL_HAND = TH_CLK_HAND, COL_TICK = TH_CLK_TICK,
-                      COL_RIM = TH_ACCENT, COL_WORD = TH_CLK_WORD, COL_WORD_HI = TH_CLK_WORDHI, COL_CLASSIC = TH_TEXT;
+#define COL_BIG TH_CLK_BIG
+#define COL_SPLIT TH_CLK_SPLIT
+#define COL_HAND TH_CLK_HAND
+#define COL_TICK TH_CLK_TICK
+#define COL_RIM TH_ACCENT
+#define COL_WORD TH_CLK_WORD
+#define COL_WORD_HI TH_CLK_WORDHI
+#define COL_CLASSIC TH_TEXT
 
 struct ClockFace {
   lv_obj_t *layer;

@@ -145,6 +145,7 @@ void setup() {
   Serial.begin(115200);
   crashlog_begin();
   settings_begin();
+  companion_begin();
   care_begin();
   BOOT_STEP("setup start");
   Serial.printf("  psram %u bytes, free heap %u, flash %u\n", ESP.getPsramSize(), ESP.getFreeHeap(), ESP.getFlashChipSize());

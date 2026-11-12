@@ -127,7 +127,7 @@ class AppState(val ctx: Context, val scope: CoroutineScope) {
                 if (e.mood(now) == app.deskling.care.Mood.ASLEEP) { say("Shh, ${store.pet.title} is asleep"); return }
                 if (e.postureDue() && !e.paused(now)) { switchPosture(); return }
                 if (e.pet(now)) {
-                    store.queue(JSONObject().put("op", "pet"))
+                    store.queueForDial(JSONObject().put("op", "pet"))
                     store.saveCare()
                     say("${store.pet.title} likes that", 1500)
                 }
@@ -138,7 +138,7 @@ class AppState(val ctx: Context, val scope: CoroutineScope) {
 
     fun played(hits: Int, rounds: Int) {
         store.engine.played(hits)
-        store.queue(JSONObject().put("op", "played").put("hits", hits).put("rounds", rounds))
+        store.queueForDial(JSONObject().put("op", "played").put("hits", hits).put("rounds", rounds))
         store.saveCare()
         activity = null
         say("$hits of $rounds caught")
@@ -151,7 +151,7 @@ class AppState(val ctx: Context, val scope: CoroutineScope) {
         val stand = !e.st.standing
         val wasDue = e.postureDue()
         e.setPosture(stand, now)
-        store.queue(JSONObject().put("op", "posture").put("standing", stand))
+        store.queueForDial(JSONObject().put("op", "posture").put("standing", stand))
         store.saveCare()
         if (wasDue) react(2)
         say(if (stand) "Standing: sit in ${e.config.standMin} min" else "Sitting: stand in ${e.config.sitMin} min")
@@ -160,7 +160,7 @@ class AppState(val ctx: Context, val scope: CoroutineScope) {
 
     fun pause(minutes: Int) {
         store.engine.pause(minutes, now)
-        store.queue(JSONObject().put("op", "pause").put("minutes", minutes))
+        store.queueForDial(JSONObject().put("op", "pause").put("minutes", minutes))
         store.saveCare()
         say(if (minutes > 0) "Paused for an hour" else "Reminders back on")
         syncSoon()
@@ -168,7 +168,7 @@ class AppState(val ctx: Context, val scope: CoroutineScope) {
 
     fun bedtime(on: Boolean) {
         store.engine.setBedtime(on)
-        store.queue(JSONObject().put("op", "bedtime").put("on", on))
+        store.queueForDial(JSONObject().put("op", "bedtime").put("on", on))
         store.saveCare()
         say(if (on) "Goodnight" else "Good morning")
         syncSoon()

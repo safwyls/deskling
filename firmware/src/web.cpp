@@ -6,7 +6,7 @@
 #include "net.h"
 #include "care.h"
 #include "api.h"
-#include "theme.h"
+#include "companion.h"
 #include <WiFi.h>
 #include <DNSServer.h>
 #include <esp_http_server.h>
@@ -150,7 +150,7 @@ static void url_decode(char *s) {
 }
 
 static const char HEAD[] = R"(<!doctype html><html><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1"><title>Deskling setup</title><style>)" ":root{--bg:" TH_BG_CSS ";--panel:" TH_PANEL_CSS ";--raised:" TH_RAISED_CSS ";--line:" TH_LINE_CSS ";--row:" TH_ROW_CSS ";--accent:" TH_ACCENT_CSS ";--text:" TH_TEXT_CSS ";--sub:" TH_SUB_CSS ";--ok:" TH_OK_CSS ";--bad:" TH_BAD_CSS "}" R"(
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Deskling setup</title><style>)" R"(
 body{font:16px system-ui,sans-serif;background:var(--bg);color:var(--text);margin:0;padding:24px;max-width:520px}
 h1{font-size:22px;margin:0 0 4px}h2{font-size:18px;margin:34px 0 0;padding-top:18px;border-top:1px solid var(--line)}
 p{color:var(--sub);margin:4px 0 18px}label{display:block;margin:16px 0 6px;color:var(--accent)}
@@ -168,7 +168,20 @@ small{color:var(--sub)}a{color:var(--accent)}
 .net{cursor:pointer}.net.on{background:var(--raised)}.net.on b{color:var(--accent)}
 .row{display:flex;gap:10px;align-items:center}.row>*{flex:1}.chk{display:flex;align-items:center;margin:12px 0;color:var(--text)}
 .msg{margin-top:10px;color:var(--sub);min-height:1.2em}.msg.ok{color:var(--ok)}.msg.bad{color:var(--bad)}
-#status{color:var(--sub);padding:10px}.empty{color:var(--sub);padding:10px}</style></head><body>)";
+#status{color:var(--sub);padding:10px}.empty{color:var(--sub);padding:10px})";
+
+// The page head: the styles above with the companion's colours.
+static String head() {
+  const Theme *t = TH;
+  char vars[260];
+  snprintf(vars, sizeof(vars), ":root{--bg:#%06lx;--panel:#%06lx;--raised:#%06lx;--line:#%06lx;--row:#%06lx;--accent:#%06lx;"
+           "--text:#%06lx;--sub:#%06lx;--ok:#%06lx;--bad:#%06lx}</style></head><body>",
+           (unsigned long)t->bg, (unsigned long)t->panel, (unsigned long)t->raised, (unsigned long)t->line, (unsigned long)t->row,
+           (unsigned long)t->accent, (unsigned long)t->text, (unsigned long)t->sub, (unsigned long)t->softOk, (unsigned long)t->softBad);
+  String h = HEAD;
+  h += vars;
+  return h;
+}
 
 
 // One request per connection. On the setup network every name resolves to the dial, so the phone's
@@ -185,9 +198,12 @@ static esp_err_t closed_page(httpd_req_t *req) {
   log_ev('>', httpd_req_to_sockfd(req), "403, setup closed");
   httpd_resp_set_status(req, "403 Forbidden");
   httpd_resp_set_type(req, "text/html; charset=utf-8");
-  return httpd_resp_sendstr(req, "<!doctype html><meta name=viewport content='width=device-width'>"
-                                 "<body style='font:16px system-ui;background:" TH_BG_CSS ";color:" TH_TEXT_CSS ";padding:24px'>"
-                                 "<h2>Deskling</h2><p>Open <b>Settings &gt; Set up from phone</b> on the dial first.</p>");
+  char page[300];
+  snprintf(page, sizeof(page), "<!doctype html><meta name=viewport content='width=device-width'>"
+           "<body style='font:16px system-ui;background:#%06lx;color:#%06lx;padding:24px'>"
+           "<h2>Deskling</h2><p>Open <b>Settings &gt; Set up from phone</b> on the dial first.</p>",
+           (unsigned long)TH_BG, (unsigned long)TH_TEXT);
+  return httpd_resp_sendstr(req, page);
 }
 #define SETUP_ONLY() do { if (!setupOn) return closed_page(req); } while (0)
 
@@ -313,7 +329,7 @@ static esp_err_t root_get(httpd_req_t *req) {
     }
   }
   settings_get(S);
-  String h = HEAD;
+  String h = head();
   h.reserve(16000);
   h += "<h1>Deskling</h1><p id=st>Asking the dial...</p>";
 
@@ -446,7 +462,7 @@ static esp_err_t save_post(httpd_req_t *req) {
   settings_put(S);
   saved = true;
 
-  String h = HEAD;
+  String h = head();
   h += "<h1>Saved</h1><p>The dial has the new settings. You can close this page.</p>"
        "<p><a href=/>Back</a></p></body></html>";
   return send_html(req, h);

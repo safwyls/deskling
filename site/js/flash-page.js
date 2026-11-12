@@ -9,10 +9,6 @@ const mb = (n) => `${(n / 1048576).toFixed(1)} MB`;
 export async function init(root, { cleanup }) {
   let pet = currentPet();
   const manifest = await (await fetch('fw/manifest.json')).json();
-  for (const p of Object.keys(PETS)) {
-    const el = $(root, `#size-${p}`);
-    if (el) el.textContent = `Firmware ${manifest.version}, ${mb(manifest.apps[p].size)}`;
-  }
 
   // ---------- form ----------
   const every = [0, 5, 10, 15, 20, 25, 30, 40, 45, 50, 60, 75, 90, 120];
@@ -82,18 +78,19 @@ export async function init(root, { cleanup }) {
   Promise.all(['500 14px Montserrat', '900 100px Inter', '100 100px Inter'].map((f) => document.fonts?.load(f))).finally(showPreview);
   const summary = () => {
     const m = mode(), s = settings(), P = PETS[pet];
-    const rows = [['Companion', P.name], ['Firmware', `${manifest.version}, ${mb(manifest.apps[pet].size)}`]];
+    const rows = [['Companion', m === 'install' ? P.name : 'kept as it is'], ['Firmware', `${manifest.version}, ${mb(manifest.app.size)}`]];
     if (m === 'install') {
       rows.push(['Wi-Fi', s.ssid || 'later, on the dial'], ['Awake', `${hour(s.hourStart)} to ${hour(s.hourEnd)}`],
         ['Sit/stand', s.postureOn ? `${s.sitMin} / ${s.standMin} min` : 'off']);
-      const total = manifest.apps[pet].size + 0x5000 + 64 * 1024;
+      const total = manifest.app.size + 0x5000 + 64 * 1024;
       rows.push(['To write', `about ${mb(total)}`]);
-    } else rows.push(['Settings', 'kept as they are'], ['To write', mb(manifest.apps[pet].size)]);
+    } else rows.push(['Settings', 'kept as they are'], ['To write', mb(manifest.app.size)]);
     $(root, '#summary').innerHTML = rows.map(([k, v]) => `<div><span>${k}</span><b>${escapeHtml(v)}</b></div>`).join('');
     showPreview();
     $(root, '#settings-fields').disabled = m !== 'install';
     $(root, '#settings-off').hidden = m === 'install';
     $(root, '#settings-block').classList.toggle('collapsed', m !== 'install');
+    $(root, '#pet-off').hidden = m === 'install';
   };
   summary();
   root.addEventListener('input', summary);
@@ -130,7 +127,9 @@ export async function init(root, { cleanup }) {
         onLog: (t) => { log.textContent += t.endsWith('\n') ? t : t + '\n'; log.scrollTop = log.scrollHeight; },
         onProgress: (f, label) => { bar.style.width = `${Math.round(f * 100)}%`; status.textContent = `${label}${f > 0 && f < 1 ? `, ${Math.round(f * 100)}%` : ''}`; },
       });
-      status.innerHTML = `<b style="color:var(--text)">Done.</b> ${PETS[pet].name} is starting up on your dial. ${mode() === 'install' ? 'Next: <a href="#wiki-setup">first run</a>.' : ''}`;
+      status.innerHTML = mode() === 'install'
+        ? `<b style="color:var(--text)">Done.</b> ${PETS[pet].name} is starting up on your dial. Next: <a href="#wiki-setup">first run</a>.`
+        : '<b style="color:var(--text)">Done.</b> Your dial is restarting with the new firmware.';
     } catch (e) {
       const m = String(e?.message || e);
       status.textContent = /No port selected|NotFoundError/i.test(m)

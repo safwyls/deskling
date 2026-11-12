@@ -36,7 +36,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import java.util.concurrent.TimeUnit
 
-/** Reminders on the phone: when a need falls due (and every 15 minutes while it stays due), if you're away from the dial. */
+/**
+ * Reminders on the phone: when a need falls due (and every 15 minutes while it stays due), while the companion
+ * is on the phone. With "Also while it's at a dial", from the phone's copy of the dial's state as well, once the
+ * phone has been out of the dial's reach for 10 minutes (near it, the dial reminds you itself).
+ */
 object Reminders {
     private const val CHANNEL = "reminders"
     private val PROMPT = mapOf(
@@ -49,7 +53,7 @@ object Reminders {
     fun channel(ctx: Context) {
         val nm = ctx.getSystemService(NotificationManager::class.java)
         nm.createNotificationChannel(NotificationChannel(CHANNEL, "Break reminders", NotificationManager.IMPORTANCE_DEFAULT).apply {
-            description = "Water, eye breaks, stretching and moving, when you're away from the dial"
+            description = "Water, eye breaks, stretching and moving, while your companion is with you"
         })
     }
 
@@ -63,8 +67,13 @@ object Reminders {
         s.engine.advanceTo(now)
         s.saveCare()
         val nm = NotificationManagerCompat.from(ctx)
-        val away = now - s.lastNearby > 10 * 60_000
-        val allowed = when (s.notifyMode) { NotifyMode.ALWAYS -> true; NotifyMode.AWAY -> away; NotifyMode.NEVER -> false }
+        val here = s.travel.here
+        val awayFromDial = now - s.lastNearby > 10 * 60_000
+        val allowed = when (s.notifyMode) {
+            NotifyMode.WITH_ME -> here
+            NotifyMode.ALWAYS -> here || awayFromDial
+            NotifyMode.NEVER -> false
+        }
         val last = s.lastNotified
         var anyDue = false
         for (n in Need.entries) {
@@ -146,7 +155,7 @@ class DoneReceiver : BroadcastReceiver() {
             val s = Store.get(ctx)
             val stand = !s.engine.st.standing
             s.engine.setPosture(stand)
-            s.queue(JSONObject().put("op", "posture").put("standing", stand))
+            s.queueForDial(JSONObject().put("op", "posture").put("standing", stand))
             s.saveCare()
             NotificationManagerCompat.from(ctx).cancel(110)
             SyncWorker.now(ctx)

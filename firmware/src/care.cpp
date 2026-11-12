@@ -51,6 +51,10 @@ static uint8_t sitMin = 45, standMin = 15;
 static uint32_t postSec = 0;               // active seconds in the current posture
 static uint16_t standsToday = 0;
 static bool ntpStarted = false, wasInHours = true;   // true: a reboot during the day keeps a bedtime you set
+// Where the companion is (see care.h, "travel")
+static char cid[17], where[33];
+static uint32_t epoch = 1;
+static bool here = true;
 
 static void save() {
   prefs.putBytes("state", &st, sizeof(st));
@@ -90,6 +94,16 @@ void care_begin() {
   standing = prefs.getBool("p_st", false);
   postSec = prefs.getUInt("p_sec", 0);
   standsToday = prefs.getUShort("p_cnt", 0);
+  if (prefs.getString("cid", cid, sizeof(cid)) != 16) {
+    // a new dial: its own companion, here
+    snprintf(cid, sizeof(cid), "%08lx%08lx", (unsigned long)esp_random(), (unsigned long)esp_random());
+    prefs.putString("cid", cid);
+    prefs.putUInt("epoch", epoch);
+    prefs.putBool("here", true);
+  }
+  epoch = prefs.getUInt("epoch", 1);
+  here = prefs.getBool("here", true);
+  if (prefs.getString("where", where, sizeof(where)) == 0) where[0] = 0;
   for (int i = 0; i < NEED_COUNT; i++) wasDue[i] = care_need_due((Need)i);
   lastSecond = millis();
 }
@@ -190,7 +204,7 @@ uint32_t care_need_color(Need n) { return NEED_COLOR[n]; }
 bool care_paused() { return pauseUntil && (int32_t)(pauseUntil - millis()) > 0; }
 uint32_t care_pause_left_s() { return care_paused() ? (pauseUntil - millis()) / 1000 : 0; }
 bool care_bedtime() { return st.bedtime; }
-bool care_active() { return !st.bedtime && !care_paused() && care_in_hours(); }
+bool care_active() { return here && !st.bedtime && !care_paused() && care_in_hours(); }
 
 Mood care_mood() {
   if (st.bedtime || !care_in_hours()) return MOOD_ASLEEP;
@@ -365,6 +379,7 @@ void care_tick() {
     configTzTime(TZS[tzIdx < TZ_COUNT ? tzIdx : 0].posix, "pool.ntp.org", "time.google.com", gw);
     ntpStarted = true;
   }
+  if (!here) { lastSecond = now; return; }        // away: everything waits until the companion is back
   if (now - lastSecond < 1000) return;
   uint32_t secs = (now - lastSecond) / 1000;
   lastSecond += secs * 1000;
@@ -439,4 +454,65 @@ void care_posture_set(bool stand) {
   if (stand && standsToday < 999) standsToday++;
   changed();
   save();
+}
+
+// ---------- travel ----------
+const char *care_cid() { return cid; }
+uint32_t care_epoch() { return epoch; }
+bool care_here() { return here; }
+const char *care_where() { return where; }
+
+void care_snapshot(CareSnapshot &o) {
+  memcpy(o.elapsed, st.elapsed, sizeof(o.elapsed));
+  o.happy = st.happy; o.xp = st.xp;
+  memcpy(o.today, st.today, sizeof(o.today));
+  o.day = st.day; o.streak = st.streak; o.bedtime = st.bedtime;
+  o.standing = standing; o.postSec = postSec; o.standsToday = standsToday;
+  o.pauseS = care_pause_left_s();
+}
+
+static void save_travel() {
+  prefs.putString("cid", cid);
+  prefs.putUInt("epoch", epoch);
+  prefs.putBool("here", here);
+  prefs.putString("where", where);
+}
+
+uint32_t care_leave(const char *to) {
+  if (!here) return epoch;
+  save();                                   // the state as it leaves, kept: a retried leave hands over the same
+  here = false;
+  epoch++;
+  strlcpy(where, to && *to ? to : "your phone", sizeof(where));
+  save_travel();
+  changed();
+  return epoch;
+}
+
+void care_arrive(const char *id, uint32_t e, const CareSnapshot &in) {
+  strlcpy(cid, id, sizeof(cid));
+  memcpy(st.elapsed, in.elapsed, sizeof(st.elapsed));
+  st.happy = constrain(in.happy, 0.0f, 100.0f); st.xp = in.xp;
+  memcpy(st.today, in.today, sizeof(st.today));
+  st.day = in.day; st.streak = in.streak; st.bedtime = in.bedtime;
+  standing = in.standing; postSec = in.postSec; standsToday = in.standsToday;
+  pauseUntil = in.pauseS ? millis() + in.pauseS * 1000UL : 0;
+  for (int i = 0; i < NEED_COUNT; i++) wasDue[i] = care_need_due((Need)i);
+  postWasDue = care_posture_due();
+  wasInHours = care_in_hours();           // arriving isn't the start of a new active day
+  here = true;
+  epoch = e;
+  where[0] = 0;
+  save();
+  save_travel();
+  lastSecond = millis();
+  changed();
+}
+
+void care_set_where(uint32_t e, const char *at) {
+  if (here || e <= epoch) return;
+  epoch = e;
+  strlcpy(where, at && *at ? at : "somewhere else", sizeof(where));
+  save_travel();
+  changed();
 }

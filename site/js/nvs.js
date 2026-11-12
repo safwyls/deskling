@@ -127,6 +127,7 @@ export function buildNvs(items, size = 0x5000) {
 export function dialSettingsNvs(s) {
   const u8 = (key, v) => ({ ns: 'deskling', key, type: 'u8', value: v });
   const items = [];
+  if (s.pet) items.push({ ns: 'deskling', key: 'pet', type: 'str', value: s.pet });     // src/companion.cpp
   if (s.ssid) {
     items.push({ ns: 'deskling', key: 'ssid', type: 'str', value: s.ssid });
     items.push({ ns: 'deskling', key: 'pass', type: 'str', value: s.pass || '' });

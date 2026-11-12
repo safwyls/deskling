@@ -17,22 +17,23 @@ async function bytes(url) {
 
 /**
  * opts: { pet, mode: 'install'|'update', settings, onLog(text), onProgress(fraction, label) }
- * install: bootloader, partition table, boot data, the app, and the settings (replaces everything on the dial)
- * update:  the app only (settings, pairing and the pet's progress are kept)
+ * install: bootloader, partition table, boot data, the app, and the settings with the chosen companion
+ *          (replaces everything on the dial)
+ * update:  the app only (settings, pairing, the companion and its progress are kept)
  */
 export async function flash({ pet, mode, settings, onLog, onProgress }) {
   const base = new URL('../fw/', import.meta.url);
   const manifest = await (await fetch(new URL('manifest.json', base))).json();
-  const app = manifest.apps[pet];
+  const app = manifest.app;
   onProgress(0, 'Loading the firmware');
   const files = [];
   if (mode === 'install') {
     files.push({ label: 'bootloader', address: manifest.parts.bootloader.address, data: await bytes(new URL(manifest.parts.bootloader.file, base)) });
     files.push({ label: 'partition table', address: manifest.parts.partitions.address, data: await bytes(new URL(manifest.parts.partitions.file, base)) });
-    files.push({ label: 'settings', address: manifest.parts.nvs.address, data: dialSettingsNvs(settings) });
+    files.push({ label: 'settings', address: manifest.parts.nvs.address, data: dialSettingsNvs({ ...settings, pet }) });
     files.push({ label: 'boot data', address: manifest.parts.otadata.address, data: await bytes(new URL(manifest.parts.otadata.file, base)) });
   }
-  files.push({ label: `${pet} firmware`, address: app.address, data: await bytes(new URL(app.file, base)) });
+  files.push({ label: 'firmware', address: app.address, data: await bytes(new URL(app.file, base)) });
 
   onProgress(0, 'Choose the dial in the browser’s list');
   const port = await navigator.serial.requestPort();

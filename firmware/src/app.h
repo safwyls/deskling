@@ -4,8 +4,7 @@
 #include "input.h"
 #include "anims/anims.h"
 
-#include "theme.h"
-#define PET_BG TH_BG       // the screen behind the pet (frames are transparent, so any colour works)
+#include "companion.h"
 
 void app_show_pet();
 void app_show_setup();

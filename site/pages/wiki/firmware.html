@@ -13,23 +13,21 @@
 </table>
 <p>Libraries are vendored in <code>firmware/lib/</code>, so a build downloads nothing from the library registry.</p>
 
-<h2>One firmware per companion</h2>
-<p>Each pet is a PlatformIO environment. They share every line of code; what differs is a few build flags and a folder of frames.</p>
-<pre><code>[env:crumb]
-build_flags = ${env.build_flags} -DPET_CRUMB -DPET_ID=\"crumb\" -DPET_NAME=\"Crumb\"
-build_src_filter = ${env.build_src_filter} +&lt;anims/crumb/&gt;</code></pre>
+<h2>Three companions in one firmware</h2>
+<p>Raw, the three companions&rsquo; frames come to 22&nbsp;MB, and the app partition is 14&nbsp;MB, so for a while each companion was its own firmware. Now every frame&rsquo;s pixels are stored deflated, the same compression as a zip file: 3.3&nbsp;MB for all three, and a 5.7&nbsp;MB firmware.</p>
 <ul>
-  <li><code>src/anims/&lt;pet&gt;/</code> holds that pet&rsquo;s loops as generated C files with the same names (<code>pet_walk</code>, <code>pet_happy</code>&hellip;), so the code never knows which pet it is. A pet without a clip for something gets a stand-in in <code>stand_ins.cpp</code> (Crumb&rsquo;s Stretch borrows his bounce until a proper clip exists).</li>
-  <li><code>include/theme.h</code> gives each pet its colours: screens, clock faces, the LED ring at rest, and the setup page (as CSS variables). The four need colours are shared, because they mean the same thing on every pet.</li>
-  <li><code>PET_NAME</code> goes into every sentence on screen (&ldquo;Sprig is asleep&rdquo;), and the dial tells the phone app which pet it is, so the app shows the same one.</li>
+  <li><code>src/anims/&lt;pet&gt;/</code> holds each companion&rsquo;s loops as generated C files (<code>wisp_walk</code>, <code>crumb_happy</code>&hellip;): a palette, then each frame&rsquo;s pixels compressed on their own.</li>
+  <li><code>src/anims/anims.c</code> unpacks a frame into PSRAM the first time it&rsquo;s shown, with the inflater built into the ESP32-S3&rsquo;s ROM. That takes a few milliseconds, well inside a frame at 24&nbsp;fps; after the first time round, the loop plays straight from PSRAM. Loops stay unpacked up to 3&nbsp;MB, and the one shown least recently goes first.</li>
+  <li><code>src/companion.cpp</code> lists the companions: name, colours (screens, clock faces, the LED ring at rest, the setup page), and which loop plays which pose. A companion without a clip for something borrows another (Crumb&rsquo;s Stretch is his bounce until a proper clip exists). The four need colours are shared, because they mean the same thing on every pet.</li>
+  <li>The dial shows the companion stored in its settings. Choosing another (on the dial, in the app, or on the firmware page) saves it and restarts, so every screen is built once for the companion it shows.</li>
 </ul>
-<p>Wisp&rsquo;s firmware is 11.9&nbsp;MB, Sprig&rsquo;s 9.6&nbsp;MB and Crumb&rsquo;s 8.0&nbsp;MB, almost all of it animation. The partition table gives the app 14&nbsp;MB of the 16&nbsp;MB flash, which is why each pet is its own firmware: two sets of frames don&rsquo;t fit.</p>
 
 <h2>A tour of the source</h2>
 <table>
   <tr><th>File</th><th>What it does</th></tr>
   <tr><td><code>main.cpp</code></td><td>Power-up order, the display and its DMA flush, LVGL, and the main loop.</td></tr>
-  <tr><td><code>care.cpp</code></td><td>The care game: four need timers counting active seconds, the optional sit/stand timer, happiness, experience, streaks, active hours, time zones and the clock. Saved to flash.</td></tr>
+  <tr><td><code>care.cpp</code></td><td>The care game: four need timers counting active seconds, the optional sit/stand timer, happiness, experience, streaks, active hours, time zones and the clock. Saved to flash. Also where the companion is, when it travels.</td></tr>
+  <tr><td><code>companion.cpp</code>, <code>anims/anims.c</code></td><td>The three companions, and unpacking their frames as they play.</td></tr>
   <tr><td><code>pet.cpp</code></td><td>The pet screen: picks a pose from the mood, plays its loop, floats the thought bubble with the face, the ring of activities, the activities themselves, the catch game, stats, cues and the LED ring.</td></tr>
   <tr><td><code>clockface.cpp</code></td><td>Six clock faces drawn behind the pet in quiet colours.</td></tr>
   <tr><td><code>setup_ui.cpp</code></td><td>Settings on the knob: every list, value picker and the text entry.</td></tr>
@@ -56,7 +54,9 @@ build_src_filter = ${env.build_src_filter} +&lt;anims/crumb/&gt;</code></pre>
 <p>Every loop is stored as 8-bit indexed images with a transparent palette: one 256-colour palette shared by all frames of a loop, so colours don&rsquo;t flicker from frame to frame. That&rsquo;s half the size of 16-bit colour, transparent (so the clock can sit behind the pet), and measured at about 40&nbsp;dB against the source. The ground shadow is baked in. The bubble&rsquo;s position is stored per frame so it floats with the pet&rsquo;s face. <a href="#wiki-animation">Clips to dial frames</a> covers how the frames are made.</p>
 
 <h2>Talking to the phone</h2>
-<p>The app and the dial speak one small JSON protocol, over HTTP on Wi-Fi (<code>POST /api</code>, the phone&rsquo;s key in a header) or over Bluetooth (one message per line on a custom service). Pairing trades the 6-digit code on the dial&rsquo;s screen for a random key. The dial is the source of truth: the phone sends what it logged, with the time it happened, and takes the dial&rsquo;s state back.</p>
+<p>The app and the dial speak one small JSON protocol, over HTTP on Wi-Fi (<code>POST /api</code>, the phone&rsquo;s key in a header) or over Bluetooth (one message per line on a custom service). Pairing trades the 6-digit code on the dial&rsquo;s screen for a random key. While the companion is at the dial, the dial is the source of truth: the phone sends what it logged, with the time it happened, and takes the dial&rsquo;s state back.</p>
+<h3>The companion travels</h3>
+<p>The companion lives on one device at a time. It has an id, made by whichever device had it first, and a count that goes up at every move. Moving is two operations: <code>leave</code> hands the phone a record of the companion (who it is, which kind, the count, its care state) and freezes the dial, which remembers who has it; <code>arrive</code> gives a dial that record and it carries on there. Asking to leave again returns the same record, so a reply lost on a flaky Bluetooth link loses nothing. Wherever two devices disagree about where the companion is, the higher count is the newer news, and a phone tells a dial that missed some moves where the companion went since. Between phones the record travels as a link; the part after the <code>#</code> carries it, and browsers never send that part to the website.</p>
 <p>For instant sync the phone keeps a Bluetooth connection open while nearby. The dial watches a counter that moves on every action and, when it changes, sends <code>{"event":"changed"}</code>; the phone syncs at once. Replies always carry <code>"ok"</code> and events never do, which is how the phone tells them apart.</p>
 
 <h2>Settings in flash</h2>

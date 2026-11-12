@@ -1,4 +1,4 @@
-#include "theme.h"
+#include "companion.h"
 #include "leds.h"
 #include "board.h"
 #include "settings.h"
@@ -6,7 +6,7 @@
 
 static Adafruit_NeoPixel ring(RING_COUNT, PIN_RING, NEO_GRB + NEO_KHZ800);
 static volatile RingMode mode = RING_OFF;
-static volatile uint32_t color = TH_LED_IDLE;
+static volatile uint32_t color = 0;
 static volatile uint16_t value = 0, period = 4000;
 static volatile uint32_t flashColor = 0, flashUntil = 0;
 
@@ -60,6 +60,7 @@ static void led_task(void *) {
 void leds_begin() {
   pinMode(PIN_RING_PWR, OUTPUT);
   digitalWrite(PIN_RING_PWR, HIGH);
+  color = TH_LED_IDLE;
   ring.begin();
   ring.setBrightness(settings_led_bright());
   ring.clear();

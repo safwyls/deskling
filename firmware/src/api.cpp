@@ -1,9 +1,11 @@
 #include "api.h"
 void pet_remote_done(int need);   // pet.cpp
+void pet_companion_moved();       // pet.cpp
 void backlight(int pct);         // main.cpp
 #include "config.h"
 #include "settings.h"
 #include "care.h"
+#include "companion.h"
 #include "net.h"
 #include "web.h"
 #include "ble.h"
@@ -144,9 +146,56 @@ static int need_of(JsonVariantConst v) {
   return -1;
 }
 
+// ---------- the companion, travelling ----------
+// The record a move carries: who it is, the move count, and its care state. The app reads and writes the
+// same shape (app: data/Companion.kt), and passes it on to other dials and phones unchanged.
+static void put_companion(JsonObject o) {
+  o["cid"] = care_cid();
+  o["pet"] = PET_ID;
+  o["epoch"] = care_epoch();
+  CareSnapshot c;
+  care_snapshot(c);
+  JsonObject k = o["care"].to<JsonObject>();
+  JsonArray el = k["elapsed"].to<JsonArray>(), td = k["today"].to<JsonArray>();
+  for (int i = 0; i < NEED_COUNT; i++) { el.add(c.elapsed[i]); td.add(c.today[i]); }
+  k["happy"] = c.happy; k["xp"] = c.xp; k["day"] = c.day; k["streak"] = c.streak; k["bedtime"] = c.bedtime;
+  k["standing"] = c.standing; k["postSec"] = c.postSec; k["stands"] = c.standsToday; k["pause"] = c.pauseS;
+}
+
+static bool is_cid(const char *s) {
+  if (!s || strlen(s) != 16) return false;
+  for (const char *p = s; *p; p++) if (!isxdigit((unsigned char)*p)) return false;
+  return true;
+}
+
+static bool read_companion(JsonObjectConst o, const char *&cid, int &pet, uint32_t &epoch, CareSnapshot &c) {
+  cid = o["cid"] | "";
+  pet = companion_find(o["pet"] | "");
+  epoch = o["epoch"] | 0u;
+  JsonObjectConst k = o["care"];
+  if (!is_cid(cid) || pet < 0 || !epoch || k.isNull()) return false;
+  JsonArrayConst el = k["elapsed"], td = k["today"];
+  if (el.size() != NEED_COUNT || td.size() != NEED_COUNT) return false;
+  for (int i = 0; i < NEED_COUNT; i++) { c.elapsed[i] = el[i] | 0u; c.today[i] = min(999u, td[i] | 0u); }
+  c.happy = k["happy"] | 70.0f; c.xp = k["xp"] | 0u; c.day = k["day"] | 0; c.streak = k["streak"] | 0;
+  c.bedtime = k["bedtime"] | false; c.standing = k["standing"] | false; c.postSec = k["postSec"] | 0u;
+  c.standsToday = k["stands"] | 0; c.pauseS = min(24u * 3600, k["pause"] | 0u);
+  return true;
+}
+
+static uint32_t restartAt = 0;     // a new companion moved in: restart once the reply is out, to show it
+
+static void put_travel(JsonObject o) {
+  o["pet"] = PET_ID;
+  o["cid"] = care_cid();
+  o["epoch"] = care_epoch();
+  o["here"] = care_here();
+  o["where"] = care_here() ? "" : care_where();
+}
+
 static void put_state(JsonObject o) {
   o["time"] = (uint32_t)(care_clock_valid() ? time(nullptr) : 0);
-  o["pet"] = PET_ID;
+  put_travel(o);
   o["mood"] = care_mood_name(care_mood());
   o["happy"] = care_happiness();
   o["xp"] = care_xp();
@@ -204,6 +253,9 @@ static void put_settings(JsonObject o) {
   for (int i = 0; i < care_tz_count(); i++) tz.add(care_tz_name(i));
   JsonArray cs = o["clockStyles"].to<JsonArray>();
   for (int i = 0; i < clockface_style_count(); i++) cs.add(clockface_style_name(i));
+  o["pet"] = PET_ID;
+  JsonArray pets = o["pets"].to<JsonArray>();
+  for (int i = 0; i < companion_count(); i++) pets.add(COMPANIONS[i]->id);
 }
 
 static void apply_set(JsonObjectConst in) {
@@ -231,6 +283,9 @@ static void apply_set(JsonObjectConst in) {
   if (in["standMin"].is<int>()) s.stand_min = constrain(in["standMin"].as<int>(), 5, 90);
   settings_put(s);
   backlight(s.bright);
+  // which companion: only where it is (elsewhere it's the phone's or another dial's to change)
+  int pet = companion_find(in["pet"] | "");
+  if (pet >= 0 && pet != companion_index() && care_here()) { companion_set(pet); restartAt = millis() + 1500; }
 }
 
 static void handle(Req *r) {
@@ -255,7 +310,7 @@ static void handle(Req *r) {
       char h[33]; hex(p.key, 16, h);
       out["key"] = h;
       out["name"] = dialName;
-      out["pet"] = PET_ID;
+      put_travel(out);
       strlcpy(lastPaired, p.name, sizeof(lastPaired));
       pairOpen = false;
       r->authed = true;
@@ -265,7 +320,7 @@ static void handle(Req *r) {
       r->authed = true;
       out["name"] = dialName;
       out["fw"] = FW_VERSION;
-      out["pet"] = PET_ID;
+      put_travel(out);
       if (WiFi.status() == WL_CONNECTED) out["ip"] = WiFi.localIP().toString();
     } else { out["ok"] = false; out["err"] = "unknown key: pair again"; }
   } else if (!r->authed) {
@@ -273,7 +328,11 @@ static void handle(Req *r) {
   } else {
     // the phone's clock is a good time source when the dial has none yet
     if (in["now"].is<uint32_t>() && in["now"].as<uint32_t>() > 1700000000u) care_clock_hint((time_t)in["now"].as<uint32_t>());
-    if (!strcmp(op, "state")) put_state(out);
+    static const char *const CARE_OPS[] = { "done", "pet", "played", "pause", "bedtime", "posture" };
+    bool careOp = false;
+    for (const char *c : CARE_OPS) careOp |= !strcmp(op, c);
+    if (careOp && !care_here()) { out["ok"] = false; out["err"] = "away"; put_state(out); }
+    else if (!strcmp(op, "state")) put_state(out);
     else if (!strcmp(op, "settings")) put_settings(out);
     else if (!strcmp(op, "set")) { apply_set(in.as<JsonObjectConst>()); put_settings(out); }
     else if (!strcmp(op, "done")) {
@@ -294,6 +353,42 @@ static void handle(Req *r) {
     else if (!strcmp(op, "bedtime")) { care_set_bedtime(in["on"] | false); put_state(out); }
     else if (!strcmp(op, "posture")) { care_posture_set(in["standing"] | false); put_state(out); }
     else if (!strcmp(op, "steps")) { care_set_steps(in["day"] | 0, in["count"] | 0u); out["steps"] = care_steps_today(); }
+    else if (!strcmp(op, "leave")) {
+      // {"op":"leave","to":"Pixel 8"}: the companion goes with the phone asking. Asking again (the reply got
+      // lost) hands over the same record; a different phone hears where it went.
+      char to[33];
+      strlcpy(to, in["to"] | "", sizeof(to));
+      if (!*to) strlcpy(to, "your phone", sizeof(to));
+      bool left = care_here();
+      if (left) care_leave(to);
+      if (strcmp(care_where(), to)) { out["ok"] = false; out["err"] = "away"; put_travel(out); }
+      else put_companion(out["companion"].to<JsonObject>());
+      if (left) pet_companion_moved();
+    }
+    else if (!strcmp(op, "arrive")) {
+      // {"op":"arrive","companion":{...},"replace":false}: it moves in here. The epoch it arrives with is the
+      // one it left with plus one.
+      const char *cid; int pet; uint32_t epoch; CareSnapshot c;
+      if (!read_companion(in["companion"], cid, pet, epoch, c)) { out["ok"] = false; out["err"] = "bad companion"; }
+      else if (!strcmp(cid, care_cid()) && care_epoch() > epoch) {
+        out["already"] = true;                     // it already moved in (a retry), or this copy is out of date
+      }
+      else if (care_here() && strcmp(cid, care_cid()) && !(in["replace"] | false)) {
+        out["ok"] = false; out["err"] = "occupied";
+        out["level"] = care_level();
+      }
+      else {
+        care_arrive(cid, epoch + 1, c);
+        if (pet != companion_index()) { companion_set(pet); restartAt = millis() + 1500; out["restart"] = true; }
+        pet_companion_moved();
+      }
+      put_travel(out);
+    }
+    else if (!strcmp(op, "where")) {
+      // {"op":"where","cid":"...","epoch":9,"at":"Deskling-77B2"}: news of where it is now, from a phone
+      if (!strcmp(in["cid"] | "", care_cid())) care_set_where(in["epoch"] | 0u, in["at"] | "");
+      put_travel(out);
+    }
     else if (!strcmp(op, "scan")) { net_scan(); }
     else if (!strcmp(op, "nets")) {
       ScanState st = net_scan_state();
@@ -344,6 +439,7 @@ void api_poll() {
     else { free((void *)r->in); vSemaphoreDelete(r->done); delete r; }   // the caller gave up meanwhile
   }
   try_tick();
+  if (restartAt && (int32_t)(millis() - restartAt) > 0) ESP.restart();
   if (pairOpen && millis() - pairAt > 3 * 60000UL) pairOpen = false;
   // Bluetooth back once the setup network is gone and its memory returned
   static uint32_t lastResume = 0;

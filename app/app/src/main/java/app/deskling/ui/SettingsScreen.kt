@@ -45,6 +45,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.deskling.data.CompanionRecord
 import app.deskling.data.Pet
 import app.deskling.data.NotifyMode
 import app.deskling.steps.Steps
@@ -69,28 +70,33 @@ fun SettingsScreen(app: AppState) {
     if (wifi) { DialWifiScreen(app) { wifi = false }; return }
     val scope = rememberCoroutineScope()
     val dial = app.store.dial
+    val dials = app.store.dials
     val msg by Sync.message.collectAsState()
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
-        Header("Dial")
+        CompanionSettings(app)
+        Header(if (dials.size > 1) "Dials" else "Dial")
         if (dial == null) {
-            Text("Pair the app with your Deskling to share one pet: breaks you log on either count on both.", color = Dim, fontSize = 14.sp)
+            Text("Pair the app with your Deskling: your companion can then live on the dial, and come along on the phone when you leave.", color = Dim, fontSize = 14.sp)
             Spacer(Modifier.height(8.dp))
             Button(onClick = { pairing = true }) { Text("Pair a dial") }
         } else {
+            for (d in dials.filter { it.name != dial.name }) Item(d.name, "paired", "Show") { Sync.use(app.ctx, d); scope.launch { Sync.sync(app.ctx) } }
             val st = app.store.dialState
             val w = st.optJSONObject("wifi")
-            Item(dial.name, if (app.store.lastSync == 0L) "not synced yet" else "synced over ${app.store.lastLink}" + (msg.takeIf { it.isNotBlank() }?.let { "  •  $it" } ?: ""))
+            Item(dial.name + if (dials.size > 1) "  (settings below)" else "",
+                if (app.store.lastSync == 0L) "not synced yet" else "synced over ${app.store.lastLink}" + (msg.takeIf { it.isNotBlank() }?.let { "  •  $it" } ?: ""))
             Item("Wi-Fi", if (w?.optBoolean("up") == true) "${w.optString("ssid")}  •  ${w.optString("ip")}" else "not connected", "Change") { wifi = true }
             Row {
                 OutlinedButton(onClick = { scope.launch { if (!Sync.sync(app.ctx)) app.say("Couldn't reach the dial") } }) { Text("Sync now") }
                 Spacer(Modifier.width(8.dp))
-                TextButton(onClick = { Sync.forget(app.ctx) }) { Text("Forget this dial") }
+                TextButton(onClick = { pairing = true }) { Text("Pair another") }
+                TextButton(onClick = { Sync.forget(app.ctx) }) { Text("Forget") }
             }
             DialSettings(app)
         }
         AppSettings(app)
         Header("About")
-        Text("Deskling 1.7  •  ${app.store.pet.title} and the care game, shared with your dial over Bluetooth or Wi-Fi.", color = Dim, fontSize = 13.sp)
+        Text("Deskling 1.9  •  ${app.store.pet.title} and the care game, travelling between your dials and this phone over Bluetooth or Wi-Fi.", color = Dim, fontSize = 13.sp)
         Spacer(Modifier.height(24.dp))
     }
 }
@@ -205,7 +211,6 @@ private fun AppSettings(app: AppState) {
     val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { s.changed() }
     Header("This phone")
     if (s.dial == null) {
-        Choice("Pet", Pet.entries.map { it.title }, s.pet.ordinal) { s.pet = Pet.entries[it] }
         // no dial to hold the setting: the app's own
         val cfg = s.engine.config
         fun put(c: app.deskling.care.CareConfig) { s.engine.config = c; s.saveCare(); s.changed() }
@@ -216,7 +221,6 @@ private fun AppSettings(app: AppState) {
             Choice("Stand for", stand.map { "$it min, then sit" }, stand.indexOf(cfg.standMin).coerceAtLeast(0)) { put(cfg.copy(standMin = stand[it])) }
         }
     }
-    else Item("Pet", "${s.pet.title}: the paired dial's firmware decides")
     if (s.dial != null) {
         Toggle("Stay connected to the dial", s.holdLink) { s.holdLink = it; LinkService.update(app.ctx) }
         Text(if (s.holdLink) "Breaks sync the moment you log them, here or on the dial, while you're nearby. Android shows a quiet notification while it's on."
@@ -231,6 +235,40 @@ private fun AppSettings(app: AppState) {
         if (!Steps.available(app.ctx)) add("(this phone has no step counter)")
     }
     Item("Permissions", if (missing.isEmpty()) "all set" else "missing: " + missing.joinToString(", "), if (missing.isEmpty()) null else "Allow") { ask.launch(perms) }
+}
+
+/** Which companion it is, and taking one in from a link. */
+@Composable
+private fun CompanionSettings(app: AppState) {
+    val s = app.store
+    val t = s.travel
+    val scope = rememberCoroutineScope()
+    var paste by remember { mutableStateOf("") }
+    Header("Companion")
+    val atCurrent = !t.here && s.dial?.name == t.where && s.dialSettings.has("pets")
+    when {
+        t.here -> Choice("Who", Pet.entries.map { it.title }, s.pet.ordinal) { s.pet = Pet.entries[it] }
+        atCurrent -> Choice("Who", Pet.entries.map { it.title }, s.pet.ordinal) { i ->
+            scope.launch {
+                val r = Sync.call(app.ctx, JSONObject().put("op", "set").put("pet", Pet.entries[i].id))
+                if (r?.optBoolean("ok") == true) { s.pet = Pet.entries[i]; app.say("${t.where} is restarting with ${Pet.entries[i].title}", 4000) }
+                else app.say("Couldn't reach the dial")
+            }
+        }
+        else -> Item("Who", "${s.pet.title}: change it where it is (with ${t.where})")
+    }
+    Text("Same level, streak and breaks whichever it is." + if (atCurrent) " The dial restarts to switch." else "", color = Dim, fontSize = 12.sp)
+    Item("Where", if (t.here) "on this phone" else if (t.where == Sync.SHARED) "left by a link" else "with ${t.where}")
+    Spacer(Modifier.height(6.dp))
+    Text("Given a companion's link? Paste it here (or just open it on this phone).", color = Dim, fontSize = 13.sp)
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        OutlinedTextField(paste, { paste = it }, label = { Text("Link") }, singleLine = true, modifier = Modifier.weight(1f))
+        Spacer(Modifier.width(8.dp))
+        TextButton(enabled = paste.isNotBlank(), onClick = {
+            val r = CompanionRecord.fromLink(paste)
+            if (r == null) app.say("That isn't a companion's link") else { Inbox.incoming.value = r; paste = "" }
+        }) { Text("Open") }
+    }
 }
 
 // ---------------------------------------------------------------- pairing

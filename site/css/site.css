@@ -368,3 +368,13 @@ article.doc figure.wiring svg { display: block; width: 100%; height: auto; backg
 .wiring .w-wire .w-dm { stroke: #f2f4f8; } .wiring .w-dot .w-dm { fill: #f2f4f8; }
 .wiring .w-wire .w-dp { stroke: #2fbf62; } .wiring .w-dot .w-dp { fill: #2fbf62; }
 @media (max-width: 560px) { article.doc figure.wiring { overflow-x: auto; } article.doc figure.wiring svg { min-width: 520px; } }
+
+/* #companion=...: a companion shared from another phone */
+.arrive { padding-block: clamp(36px, 7vw, 96px); }
+.arrive-card { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: clamp(20px, 5vw, 56px); align-items: center; }
+.arrive-card canvas { width: min(300px, 70vw); height: auto; aspect-ratio: 1; border-radius: 50%; }
+.arrive h1 { font-size: var(--t-3xl); }
+.arrive .intro { color: var(--sub); font-size: var(--t-l); line-height: 1.5; margin-top: 14px; max-width: 46ch; }
+.arrive-go { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 24px; }
+.arrive .note { max-width: 60ch; }
+@media (max-width: 720px) { .arrive-card { grid-template-columns: 1fr; justify-items: center; text-align: center; } .arrive-go { justify-content: center; } }

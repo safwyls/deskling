@@ -70,9 +70,9 @@ Everything is set on the device and kept in flash (NVS), so one build works for 
 - **When the partition table changes** (v5.7 grew the app partition from 10 to 14 MB): add `partitions.bin` at **0x8000** to the same flash as `firmware.bin` at 0x10000, without erasing. Settings are kept. An app bigger than the old partition doesn't boot until the new table is in.
 - **Crashes:** Settings > Last restart says why the dial last restarted. After a crash it shows a QR code with the crash report (reason, task, program counter, backtrace) saved in flash; decode the addresses with `xtensa-esp32s3-elf-addr2line -pfiaC -e firmware.elf ADDR...` using the `.elf` of the firmware that crashed (its first 8 hex digits are in the report as `dump=`).
 
-**Building:** one firmware per pet. Open the folder in VS Code with the PlatformIO extension, or use the CLI: `pio run -e wisp -t upload` (or `-e crumb`), then `pio device monitor`. The environment sets the pet's name (`PET_NAME`, `PET_ID`) and compiles only that pet's frames from `src/anims/<pet>/`; the dial reports `pet` in the phone API's `hello` and `state` so the app shows the same one.
+**Building:** one firmware with every companion in it. Open the folder in VS Code with the PlatformIO extension, or use the CLI: `pio run -t upload`, then `pio device monitor`. `src/companion.cpp` lists the companions: name, colours and which loop plays which pose. The dial shows the one stored in NVS (`pet` in namespace `deskling`, written by Settings > Companion, the app's `set` op, or the firmware page on a fresh install); switching saves it and restarts. The dial reports `pet` in the phone API's `hello` and `state`.
 
-**Themes:** each pet has its own colours, in `include/theme.h`: Wisp's night sky (navy, ice blue), Crumb's pond at dusk (moss, loam, shell amber, cream) and Sprig's blossom at dusk (plum, leaf green, cream, mauve). They cover the screens, clock faces, LED ring at rest and the setup page (as CSS variables). The four need colours are shared. The app's matching palettes are in `ui/AppState.kt`. App logs go to the UART0 header pins at 115200; boot messages and crash dumps also appear on the USB-C port.
+**Themes:** each pet has its own colours, in `src/companion.cpp`: Wisp's night sky (navy, ice blue), Crumb's pond at dusk (moss, loam, shell amber, cream) and Sprig's blossom at dusk (plum, leaf green, cream, mauve). They cover the screens, clock faces, LED ring at rest and the setup page (as CSS variables). The four need colours are shared. The app's matching palettes are in `ui/AppState.kt`. App logs go to the UART0 header pins at 115200; boot messages and crash dumps also appear on the USB-C port.
 
 ### Build notes
 
@@ -80,8 +80,29 @@ Everything is set on the device and kept in flash (NVS), so one build works for 
 - **Libraries:** vendored in `lib/`, so nothing is downloaded from the library registry.
   - LovyanGFX 1.2.7 is Elecrow's copy, which includes the board's ST77961 panel driver. Its unused CJK font data is stubbed out to keep the folder small.
   - LVGL 9.1.0, Adafruit NeoPixel and ArduinoJson 7.2.1 are also vendored.
-- **Partitions:** `partitions.csv` is Elecrow's layout with the app partition grown from 10 to 14 MB (the chip has 16 MB, and the rest was unused); a small SPIFFS area and the core dump partition follow it. The firmware is about 11.8 MB, mostly animation frames.
+- **Partitions:** `partitions.csv` is Elecrow's layout with the app partition grown from 10 to 14 MB (the chip has 16 MB, and the rest was unused); a small SPIFFS area and the core dump partition follow it. The firmware is about 5.7 MB: all three companions' frames, deflated (3.3 MB of the 22 MB they'd be raw).
 - **Hardware bring-up:** the power-rail order, LCD reset pulse and DMA flush follow Elecrow's example exactly.
+
+## Companions travel
+
+The companion lives on one device at a time: this dial, a phone, another dial, another phone. Each device shows it
+only while it's there; a dial without it shows the clock and "Wisp is with Pixel 8", and keeps its reminders and
+LEDs quiet. Nothing is sent to a server: phones carry it between dials, and a link carries it between phones.
+
+- **Identity.** A companion has an id (`cid`, 16 hex digits, made by whichever device had it first) and an `epoch`
+  that goes up at every move. Wherever two devices disagree about where it is, the higher epoch is the newer news.
+- **The record** that moves: `{"cid", "pet", "epoch", "care": {"elapsed": [4], "today": [4], "happy", "xp", "day",
+  "streak", "bedtime", "standing", "postSec", "stands", "pause"}}`. Phones and dials pass it on unchanged.
+- **Phone API ops** (after `hello`): `leave {"to": "Pixel 8"}` hands the record to the phone asking (epoch + 1; the
+  dial freezes and remembers who has it; asking again returns the same record, so a lost reply loses nothing);
+  `arrive {"companion": {...}, "replace": false}` moves it in (epoch + 1; refused with `occupied` if a different
+  companion lives here, unless `replace`; if its kind differs the dial switches and restarts); `where {"cid",
+  "epoch", "at"}` is news of where it went since. `hello`, `pair` and `state` report `cid`, `epoch`, `here` and
+  `where`; care ops answer `away` while it isn't here.
+- **The app** keeps the same three things (`data/Companion.kt`), can be paired with several dials, and merges each
+  dial's report with what it knows (`Travels.merge`, unit-tested). Between phones it makes a link,
+  `https://safwyls.github.io/deskling/#companion=<base64url record>`: the site shows who's coming and opens the
+  app (`deskling://companion?r=...`). The part after `#` never reaches the web server.
 
 ## Adding or replacing animations
 
@@ -96,18 +117,19 @@ ffmpeg -i clip.mp4 -vf scale=1024:-1 frames/f%04d.png
 #    --avoid a-b skips bad frames; --fps 12 or 24
 python3 tools/process_clip.py frames loop_walk.js LOOP 0.2 --min 16 --max 60 --fps 12
 
-# 3. loop files -> LVGL C sources (8-bit indexed with a transparent palette; --rgb565 for the old opaque format)
-python3 tools/make_assets.py src/anims/wisp pet_walk=loop_walk.js pet_run=loop_run.js ...   # then drop the pet_ prefix from the file names
+# 3. loop files -> LVGL C sources: 8-bit indexed with a transparent palette, each frame deflated
+#    (src/anims/<pet>/<loop>.c defines <pet>_<loop>; the firmware unpacks frames into PSRAM as it plays them)
+python3 tools/make_assets.py src/anims/wisp walk=loop_walk.js run=loop_run.js ...
 ```
 
 The processed loops are kept in `assets/loops/`. Regenerating everything from them (run in `firmware/`):
 
 ```
 L=assets/loops
-python3 tools/make_assets.py src/anims/wisp pet_walk=$L/wisp_loop.js pet_run=$L/wisp_run.js pet_jump=$L/wisp_jump.js \
-  pet_sleep=$L/wisp_sleep.js pet_happy=$L/happy.js pet_sad=$L/sad.js pet_mad=$L/mad.js pet_thirsty=$L/thirsty.js \
-  pet_tired=$L/tired.js pet_restless=$L/restless.js pet_move=$L/move.js
-(cd src/anims/wisp && for f in pet_*.c; do mv $f ${f#pet_}; done; rm -f *_preview.png)
+python3 tools/make_assets.py src/anims/wisp walk=$L/wisp_loop.js run=$L/wisp_run.js jump=$L/wisp_jump.js \
+  sleep=$L/wisp_sleep.js happy=$L/happy.js sad=$L/sad.js mad=$L/mad.js thirsty=$L/thirsty.js \
+  tired=$L/tired.js restless=$L/restless.js move=$L/move.js
+(cd src/anims/wisp && rm -f *_preview.png)
 python3 tools/export_app_assets.py ../app/app/src/main/assets/pets/wisp walk=$L/wisp_loop.js run=$L/wisp_run.js \
   jump=$L/wisp_jump.js sleep=$L/wisp_sleep.js happy=$L/happy.js sad=$L/sad.js mad=$L/mad.js thirsty=$L/thirsty.js \
   tired=$L/tired.js stretch=$L/restless.js move=$L/move.js
@@ -115,28 +137,28 @@ python3 tools/make_emotes.py src/emotes.c && python3 tools/make_emotes.py --app 
 ```
 
 Crumb stands on the ground, so his shadow has no hover gap (`--gap 0`) and is a dark patch of ground rather than Wisp's blue glow (`--shadow`). Its Stretch and Move clips aren't made yet:
-`src/anims/crumb/stand_ins.cpp` points them at the jump and walk loops until they are.
+its entry in `src/companion.cpp` points them at the jump and walk loops until they are.
 
 ```
 C=assets/loops/crumb
-python3 tools/make_assets.py --gap 0 --shadow 4,9,5,150 src/anims/crumb pet_walk=$C/idle.js pet_run=$C/walk.js pet_jump=$C/jump.js \
-  pet_sleep=$C/sleep.js pet_happy=$C/happy.js pet_sad=$C/sad.js pet_mad=$C/mad.js pet_thirsty=$C/thirsty.js pet_tired=$C/tired.js
-(cd src/anims/crumb && for f in pet_*.c; do mv $f ${f#pet_}; done; rm -f *_preview.png)
+python3 tools/make_assets.py --gap 0 --shadow 4,9,5,150 src/anims/crumb walk=$C/idle.js run=$C/walk.js jump=$C/jump.js \
+  sleep=$C/sleep.js happy=$C/happy.js sad=$C/sad.js mad=$C/mad.js thirsty=$C/thirsty.js tired=$C/tired.js
+(cd src/anims/crumb && rm -f *_preview.png)
 python3 tools/export_app_assets.py --gap 0 ../app/app/src/main/assets/pets/crumb walk=$C/idle.js run=$C/walk.js \
   jump=$C/jump.js sleep=$C/sleep.js happy=$C/happy.js sad=$C/sad.js mad=$C/mad.js thirsty=$C/thirsty.js \
   tired=$C/tired.js stretch=$C/jump.js move=$C/walk.js
 ```
 
 Sprig stands on the ground too. Its Stretch clip isn't made yet (the first one changed backdrop mid-clip): it stands
-in with the bounce, and Move uses the run (`src/anims/sprig/stand_ins.cpp`). Its thirsty clip has no bubble of its
-own, so it gets the water bubble like the other moods (`POSES` in `pet.cpp`, `Pet.thirstyClipHasBubble` in the app).
+in with the bounce, and Move uses the run (its entry in `src/companion.cpp`). Its thirsty clip has no bubble of its
+own, so it gets the water bubble like the other moods (`thirstyHasBubble` in `src/companion.cpp`, `Pet.thirstyClipHasBubble` in the app).
 
 ```
 S=assets/loops/sprig
-python3 tools/make_assets.py --gap 0 --shadow 10,4,14,150 src/anims/sprig pet_walk=$S/walk.js pet_run=$S/run.js \
-  pet_jump=$S/jump.js pet_sleep=$S/sleep.js pet_happy=$S/happy.js pet_sad=$S/sad.js pet_mad=$S/mad.js \
-  pet_thirsty=$S/thirsty.js pet_tired=$S/tired.js
-(cd src/anims/sprig && for f in pet_*.c; do mv $f ${f#pet_}; done; rm -f *_preview.png)
+python3 tools/make_assets.py --gap 0 --shadow 10,4,14,150 src/anims/sprig walk=$S/walk.js run=$S/run.js \
+  jump=$S/jump.js sleep=$S/sleep.js happy=$S/happy.js sad=$S/sad.js mad=$S/mad.js \
+  thirsty=$S/thirsty.js tired=$S/tired.js
+(cd src/anims/sprig && rm -f *_preview.png)
 python3 tools/export_app_assets.py --gap 0 ../app/app/src/main/assets/pets/sprig walk=$S/walk.js run=$S/run.js \
   jump=$S/jump.js sleep=$S/sleep.js happy=$S/happy.js sad=$S/sad.js mad=$S/mad.js thirsty=$S/thirsty.js \
   tired=$S/tired.js stretch=$S/jump.js move=$S/run.js
@@ -164,9 +186,8 @@ Clips work best:
 
 On the device, every loop is stored as 8-bit indexed images with a transparent palette: one shared palette per loop, so colours don't flicker between frames. Measured on the walk loop: 39.8 dB PSNR against the original.
 - **Transparency** lets the clock sit behind Wisp.
-- **Size:** about half of RGB565. Wisp's firmware with all eleven loops is 11.9 MB of the 14 MB app space (81%); Crumb's is 8.0 MB and Sprig's 9.6 MB.
-- **Decoding:** LVGL decodes each frame once into a 2 MB PSRAM cache (`LV_CACHE_DEF_SIZE`).
-- **Old format:** `make_assets.py --rgb565` still writes the old opaque frames.
+- **Size:** half of RGB565 raw, and each frame's indices are deflated on top: all three companions' 29 loops are 22 MB raw and 3.3 MB stored, so the whole firmware is 5.7 MB of the 14 MB app space.
+- **Unpacking:** `src/anims/anims.c` inflates a frame into PSRAM (with the inflater in the ESP32-S3's ROM) the first time it's shown, a few milliseconds per frame, and keeps loops unpacked up to 3 MB, dropping the least recently shown first. LVGL then converts each frame once into its 2 MB PSRAM cache (`LV_CACHE_DEF_SIZE`).
 
 ## Layout
 

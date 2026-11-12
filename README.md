@@ -25,13 +25,16 @@ By hand, in Chrome or Edge, https://espressif.github.io/esptool-js/:
 - **Updates:** `firmware.bin` at 0x10000, without erasing (keeps settings). When the partition table changes, add
   `partitions.bin` at 0x8000 to the same flash.
 
-Each pet is its own firmware: build with PlatformIO in `firmware/`, `pio run -e wisp`, `pio run -e crumb` or `pio run -e sprig`; see [`firmware/README.md`](firmware/README.md).
+One firmware carries all three companions (their frames compressed, unpacked as they play); choose on the dial in Settings > Companion, in the app, or on the firmware page. Build with PlatformIO in `firmware/`: `pio run`; see [`firmware/README.md`](firmware/README.md).
 
 ## The app
 
 Build in Android Studio or with `./gradlew :app:assembleDebug` in `app/`; see [`app/README.md`](app/README.md).
-The app carries all three pets and shows whichever the paired dial runs (without a dial, pick one in Settings), each in its own colours.
-Pair it from the dial: Settings > Phone app > Pair a phone shows a 6-digit code.
+The app carries all three pets, each in its own colours. Pair it from the dial: Settings > Phone app > Pair a phone shows a 6-digit code.
+
+The companion lives on one device at a time and travels: leave it at a dial, bring it along on the phone when you go,
+leave it at another dial, or give it to another phone by link. Each device shows it only while it's there.
+See *Companions travel* in [`firmware/README.md`](firmware/README.md) for the protocol.
 
 ## Regenerating Wisp
 
@@ -48,7 +51,7 @@ The full commands, with every loop, are in `firmware/README.md`.
 ## The website
 
 Plain static files in `site/`, no framework. GitHub Actions (`.github/workflows/pages.yml`) builds the three
-firmwares and the Android app, packs the pet loops from the app's assets and publishes `site/` to GitHub Pages on
+firmware and the Android app, packs the pet loops from the app's assets and publishes `site/` to GitHub Pages on
 every push that touches the site, the firmware or the app.
 
 The app is only built when its signing key is in the repository's Actions secrets: `DESKLING_KEYSTORE_B64` (the

@@ -18,7 +18,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import android.content.Intent
+import app.deskling.data.CompanionRecord
 import app.deskling.data.Store
+import app.deskling.ui.Inbox
 import app.deskling.notify.Reminders
 import app.deskling.notify.SyncWorker
 import app.deskling.steps.Steps
@@ -57,6 +60,7 @@ class Home : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        receive(intent)
         val prefs = getSharedPreferences("deskling", MODE_PRIVATE)
         if (!prefs.getBoolean("askedPermissions", false)) {
             prefs.edit().putBoolean("askedPermissions", true).apply()
@@ -99,6 +103,17 @@ class Home : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        receive(intent)
+    }
+
+    /** Opened from a shared companion's link (deskling://companion?r=..., from the website). */
+    private fun receive(i: Intent?) {
+        val data = i?.data ?: return
+        CompanionRecord.fromLink(data.toString())?.let { Inbox.incoming.value = it }
     }
 
     override fun onStop() {

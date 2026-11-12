@@ -5,7 +5,7 @@
 <h2>From the browser</h2>
 <ol>
   <li>Open the <a href="#flash">firmware page</a> in Chrome or Edge on a computer. (Web Serial, which lets a page talk to a USB device, isn&rsquo;t in Firefox, Safari or phone browsers.)</li>
-  <li>Choose Wisp, Crumb or Sprig. Each is its own firmware with its own animations and colours.</li>
+  <li>Choose Wisp, Crumb or Sprig. All three are in the one firmware; a fresh install starts the dial with the one you pick, and you can switch later on the dial (Settings &gt; Companion) or in the app.</li>
   <li>Choose <b>Fresh install</b> for a new display, or <b>Update</b> to keep everything already on it.</li>
   <li>For a fresh install, fill in your settings. Wi-Fi is optional.</li>
   <li>Plug the display in with a USB-C data cable, press <b>Write to the display</b> and pick it from the list your browser shows.</li>
@@ -39,8 +39,8 @@
 esptool.py --chip esp32s3 write_flash 0x10000 firmware.bin       # update: keeps them</code></pre>
 
 <h2>From source</h2>
-<p>The firmware is a PlatformIO project in <code>firmware/</code>, with one build per companion:</p>
+<p>The firmware is a PlatformIO project in <code>firmware/</code>, one build with every companion in it:</p>
 <pre><code>cd firmware
-pio run -e crumb -t upload     # or -e wisp, -e sprig
+pio run -t upload
 pio device monitor</code></pre>
-<p>See <a href="#wiki-firmware">Inside the firmware</a> for how the builds differ.</p>
+<p>See <a href="#wiki-firmware">Inside the firmware</a> for how three companions fit.</p>

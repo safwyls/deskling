@@ -43,9 +43,11 @@ object Held {
     private var link: BleLink? = null
     private var address = ""
 
-    /** The link when it can take requests right now, else null. */
-    fun current(): BleLink? = link?.takeIf { it.connected && it.authed }
+    /** The link to the dial at [bleAddress] when it can take requests right now, else null. */
+    fun current(bleAddress: String): BleLink? = link?.takeIf { it.connected && it.authed && address == bleAddress && bleAddress.isNotBlank() }
     val active get() = link != null
+    /** Holding (or waiting for) a link to that dial. */
+    fun holding(bleAddress: String) = link != null && address == bleAddress
 
     @Synchronized fun start(ctx: Context) {
         val app = ctx.applicationContext

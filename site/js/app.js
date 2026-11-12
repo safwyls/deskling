@@ -57,6 +57,7 @@ function route() {
   if (h === 'home' || h === '') return { view: 'home', file: 'pages/home.html' };
   if (h === 'flash') return { view: 'flash', file: 'pages/flash.html' };
   if (h === 'app') return { view: 'app', file: 'pages/app.html' };
+  if (h.startsWith('companion=')) return { view: 'companion', file: 'pages/companion.html', code: h.slice(10) };
   if (h === 'wiki') return { view: 'wiki', file: 'pages/wiki/index.html', page: 'index' };
   if (h.startsWith('wiki-')) {
     const page = h.slice(5);
@@ -81,6 +82,7 @@ async function render() {
   if (r.view === 'home') (await import('./home.js')).init(main, { cleanup });
   if (r.view === 'flash') (await import('./flash-page.js')).init(main, { cleanup });
   if (r.view === 'app') (await import('./app-page.js')).init(main, { cleanup });
+  if (r.view === 'companion') (await import('./companion-page.js')).init(main, { cleanup, code: r.code });
   if (r.view === 'wiki' && r.page === 'models') (await import('./models-page.js')).init(main, { cleanup });
   wirePetButtons(main);
   wireScreens(main);

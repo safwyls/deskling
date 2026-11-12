@@ -17,8 +17,12 @@
 #include "ble.h"
 #include <WiFi.h>
 
-static const uint32_t C_TEXT = TH_TEXT, C_ACCENT = TH_ACCENT, C_SUB = TH_SUB, C_DIM = TH_DIM,
-                      C_OK = 0x5cf08a, C_BAD = 0xff6b6b, C_PILL = TH_RAISED;
+#define C_TEXT TH_TEXT
+#define C_ACCENT TH_ACCENT
+#define C_SUB TH_SUB
+#define C_DIM TH_DIM
+#define C_PILL TH_RAISED
+static const uint32_t C_OK = 0x5cf08a, C_BAD = 0xff6b6b;
 static const uint32_t IDLE_BACK_MS = 180000;
 #define SEP "  " LV_SYMBOL_BULLET "  "
 
@@ -37,6 +41,7 @@ static void wifi_open();
 static void wifi_list_open();
 static void phone_open(Fn back);
 static void restart_open();
+static void pet_choose_open();
 static void app_open();
 static void about_open();
 static void remind_open();
@@ -399,7 +404,7 @@ static void choice_open(const char *title, const char *detail, const char *l1, F
 static bool wifi_up() { return WiFi.status() == WL_CONNECTED; }
 
 // ============================================================ main
-enum { M_PHONE, M_APP, M_WIFI, M_REMIND, M_POSES, M_HOME, M_LED, M_KNOB, M_BRIGHT, M_LEDBR, M_NAP, M_ABOUT, M_RESTART, M_RESET, M_BACK, M_COUNT };
+enum { M_PHONE, M_APP, M_PET, M_WIFI, M_REMIND, M_POSES, M_HOME, M_LED, M_KNOB, M_BRIGHT, M_LEDBR, M_NAP, M_ABOUT, M_RESTART, M_RESET, M_BACK, M_COUNT };
 static int mainSel = 0;
 static bool resetArmed = false;
 
@@ -416,6 +421,11 @@ static void main_row(int i, Row &r) {
       snprintf(r.text, sizeof(r.text), LV_SYMBOL_CALL "  Phone app");
       if (api_paired_count()) snprintf(r.detail, sizeof(r.detail), "%d paired" SEP "%s", api_paired_count(), ble_status());
       else snprintf(r.detail, sizeof(r.detail), "pair the Deskling app");
+      break;
+    case M_PET:
+      snprintf(r.text, sizeof(r.text), LV_SYMBOL_HOME "  Companion");
+      if (care_here()) snprintf(r.detail, sizeof(r.detail), "%s" SEP "%d to choose from", PET_NAME, companion_count());
+      else snprintf(r.detail, sizeof(r.detail), "%s is with %s", PET_NAME, care_where());
       break;
     case M_WIFI:
       snprintf(r.text, sizeof(r.text), LV_SYMBOL_WIFI "  Wi-Fi");
@@ -496,7 +506,7 @@ static void save_ledbr(int v) { S.led_bright = v; save(); main_open(); }
 
 static void fmt_nap(int v, char *m, size_t mn, char *s, size_t sn) {
   if (v) snprintf(m, mn, "%d min", v); else snprintf(m, mn, "Never");
-  snprintf(s, sn, PET_NAME " naps and the screen dims after this long without input");
+  snprintf(s, sn, "%s naps and the screen dims after this long without input", PET_NAME);
 }
 static void save_nap(int v) { S.nap_min = v; save(); main_open(); }
 
@@ -506,6 +516,7 @@ static void main_tap(int i) {
   switch (i) {
     case M_PHONE: phone_open(main_open); break;
     case M_APP: app_open(); break;
+    case M_PET: pet_choose_open(); break;
     case M_WIFI: wifi_open(); break;
     case M_REMIND: remind_open(); break;
     case M_POSES: poses_open(); break;
@@ -529,6 +540,40 @@ static void main_tap(int i) {
       break;
     case M_BACK: hub_open(); break;
   }
+}
+
+// ------------------------------------------------------------ companion: which one lives on this dial
+// Its progress (level, streak, today's breaks) stays the same whichever it is. Switching restarts the dial.
+static int petPick = 0;
+static int pet_count() { return companion_count() + 1; }
+static void pet_row(int i, Row &r) {
+  r.color = C_TEXT; r.detail[0] = 0;
+  if (i == companion_count()) { snprintf(r.text, sizeof(r.text), LV_SYMBOL_LEFT "  Back"); return; }
+  snprintf(r.text, sizeof(r.text), "%s%s", COMPANIONS[i]->name, i == companion_index() ? "  " LV_SYMBOL_OK : "");
+  snprintf(r.detail, sizeof(r.detail), "%s", i == companion_index() ? "on this dial" : "press to switch");
+}
+static void pet_switch() {
+  companion_set(petPick);
+  info_open("Companion", LV_SYMBOL_REFRESH, C_ACCENT, COMPANIONS[petPick]->name, "Restarting...", "", true, nullptr, nullptr);
+  lv_refr_now(nullptr);
+  delay(400);
+  ESP.restart();
+}
+static void pet_tap(int i) {
+  if (i == companion_count() || i == companion_index()) { main_open(); return; }
+  petPick = i;
+  static char q[48];
+  snprintf(q, sizeof(q), "Switch to %s?", COMPANIONS[i]->name);
+  choice_open(q, "same progress" SEP "the dial restarts", LV_SYMBOL_OK "  Switch", pet_switch, LV_SYMBOL_LEFT "  Back", main_open);
+}
+static void pet_choose_open() {
+  if (!care_here()) {
+    static char m[64];
+    snprintf(m, sizeof(m), "%s is with %s", PET_NAME, care_where());
+    info_open("Companion", LV_SYMBOL_UPLOAD, C_SUB, PET_NAME, m, "send it back from the app to change it", false, main_open, main_open);
+    return;
+  }
+  list_open("Companion", pet_count, pet_row, pet_tap, main_open, companion_index());
 }
 
 static void main_tick() {
@@ -962,7 +1007,7 @@ static void remind_row(int i, Row &r) {
                    snprintf(r.detail, sizeof(r.detail), "%d min, then sit", S.stand_min);
                    if (!S.posture_on) r.color = C_SUB; break;
     case RM_START: snprintf(r.text, sizeof(r.text), LV_SYMBOL_BELL "  Active from");
-                   snprintf(r.detail, sizeof(r.detail), "%d:00" SEP PET_NAME " wakes up", S.hour_start); break;
+                   snprintf(r.detail, sizeof(r.detail), "%d:00" SEP "%s wakes up", S.hour_start, PET_NAME); break;
     case RM_END:   snprintf(r.text, sizeof(r.text), LV_SYMBOL_BELL "  Active until");
                    snprintf(r.detail, sizeof(r.detail), "%d:00" SEP "then sleeps, no reminders", S.hour_end); break;
     case RM_TZ:    snprintf(r.text, sizeof(r.text), LV_SYMBOL_GPS "  Time zone");
@@ -977,7 +1022,8 @@ static void remind_row(int i, Row &r) {
 static void fmt_every(int v, char *m, size_t mn, char *s, size_t sn) {
   if (v) snprintf(m, mn, "%d min", v); else snprintf(m, mn, "Off");
   static const char *const WHY[4] = { "a glass of water", "20 seconds looking far away", "a one-minute stretch", "a short walk" };
-  snprintf(s, sn, v ? PET_NAME " asks for %s this often" : "no reminder for %s", WHY[remIdx]);
+  if (v) snprintf(s, sn, "%s asks for %s this often", PET_NAME, WHY[remIdx]);
+  else snprintf(s, sn, "no reminder for %s", WHY[remIdx]);
 }
 static void save_every(int v) { S.remind_min[remIdx] = v; save(); remind_open(); }
 
@@ -1084,7 +1130,7 @@ static void clock_frame_cb(lv_timer_t *) {
   const PetAnim *a = pet_pose_anim(0);
   static int dir = 1;
   cFrame = pet_anim_next(a, cFrame, &dir);
-  lv_image_set_src(cImg, a->frames[cFrame]);
+  lv_image_set_src(cImg, pet_anim_frame(a, cFrame));
 }
 
 static void clockpick_render() {
@@ -1124,7 +1170,7 @@ static void pose_frame_cb(lv_timer_t *) {
   static int dir = 1;
   if (pFrame == 0) dir = 1;
   pFrame = pet_anim_next(pAnim, pFrame, &dir);
-  lv_image_set_src(pImg, pAnim->frames[pFrame]);
+  lv_image_set_src(pImg, pet_anim_frame(pAnim, pFrame));
   if (!lv_obj_has_flag(pEmote, LV_OBJ_FLAG_HIDDEN)) {       // the bubble follows the face
     int x, y; pet_emote_pos(pAnim, pFrame, x, y);
     lv_obj_set_pos(pEmote, x, y);
@@ -1134,7 +1180,7 @@ static void pose_frame_cb(lv_timer_t *) {
 static void pose_render() {
   pAnim = pet_pose_anim(poseSel);
   pFrame = 0;
-  lv_image_set_src(pImg, pAnim->frames[0]);
+  lv_image_set_src(pImg, pet_anim_frame(pAnim, 0));
   lv_obj_set_pos(pImg, (360 - pAnim->w) / 2, 272 - pAnim->h);
   lv_timer_set_period(pTimer, 1000 / pAnim->fps);
   const lv_image_dsc_t *e = pet_pose_emote(poseSel);
@@ -1179,8 +1225,9 @@ static void hub_row(int i, Row &r) {
   switch (i) {
     case HB_ACT: {
       snprintf(r.text, sizeof(r.text), LV_SYMBOL_PLAY "  Activities");
-      int u = care_most_urgent();
-      if (u >= 0) { snprintf(r.detail, sizeof(r.detail), "%s is due", care_need_name((Need)u)); r.color = care_need_color((Need)u); }
+      int u = care_here() ? care_most_urgent() : -1;
+      if (!care_here()) snprintf(r.detail, sizeof(r.detail), "%s is with %s", PET_NAME, care_where());
+      else if (u >= 0) { snprintf(r.detail, sizeof(r.detail), "%s is due", care_need_name((Need)u)); r.color = care_need_color((Need)u); }
       else snprintf(r.detail, sizeof(r.detail), "water, breaks, play, stats");
       break;
     }
@@ -1190,7 +1237,7 @@ static void hub_row(int i, Row &r) {
       break;
     case HB_BACK:
       snprintf(r.text, sizeof(r.text), LV_SYMBOL_LEFT "  Back");
-      snprintf(r.detail, sizeof(r.detail), "to " PET_NAME);
+      snprintf(r.detail, sizeof(r.detail), "to %s", PET_NAME);
       break;
   }
 }

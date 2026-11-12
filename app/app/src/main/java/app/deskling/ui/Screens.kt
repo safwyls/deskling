@@ -103,6 +103,7 @@ fun MainUi(app: AppState) {
     ) { pad ->
         Box(Modifier.padding(pad).fillMaxSize().background(Bg)) {
             val a = app.activity
+            IncomingDialog(app)
             if (a != null) ActivityScreen(app, a)
             else when (tab) {
                 Tab.WISP -> WispScreen(app)
@@ -122,6 +123,7 @@ fun WispScreen(app: AppState) {
     val now = app.now
     val e = app.store.engine
     v.hashCode()
+    if (!app.store.travel.here) { AwayScreen(app); return }
     val mood = e.mood(now)
     val urgent = if (e.paused(now)) null else e.mostUrgent()
     val postureDue = e.postureDue() && !e.paused(now)
@@ -163,6 +165,7 @@ fun WispScreen(app: AppState) {
             IconPill(if (e.st.bedtime) "Wake" else "Bedtime", Icons.Filled.Bedtime, Modifier.weight(1f)) { app.bedtime(!e.st.bedtime) }
             IconPill(if (e.paused(now)) "Resume" else "Pause 1h", Icons.Filled.Pause, Modifier.weight(1f)) { app.pause(if (e.paused(now)) 0 else 60) }
         }
+        TravelSection(app)
     }
 }
 

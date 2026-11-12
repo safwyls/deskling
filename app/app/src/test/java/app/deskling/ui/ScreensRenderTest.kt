@@ -16,6 +16,7 @@ import app.deskling.care.Need
 import app.deskling.data.DialInfo
 import app.deskling.data.Pet
 import app.deskling.data.Store
+import app.deskling.data.Travel
 import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Rule
@@ -78,6 +79,7 @@ class ScreensRenderTest {
             h.put(s.engine.dateOf(now).toString(), 5234)
         }
         s.dial = DialInfo("Deskling-3456", "0123456789abcdef0123456789abcdef", "192.168.1.42")
+        s.travel = Travel("0011223344556677", 2, true)          // brought home from the dial
         s.dialState = JSONObject().put("wifi", JSONObject().put("up", true).put("ssid", "Home Wi-Fi").put("ip", "192.168.1.42"))
         s.dialSettings = JSONObject().put("remind", JSONArray(listOf(45, 20, 50, 60))).put("hourStart", 8).put("hourEnd", 20).put("tz", 0)
             .put("tzNames", JSONArray(listOf("US Pacific", "US Mountain"))).put("clockMode", 1).put("clockStyle", 3)
@@ -95,7 +97,7 @@ class ScreensRenderTest {
         shot("1_wisp")
         tap("Stats"); shot("2_stats")
         tap("Settings"); shot("3_settings")
-        tap("Wisp"); shot("3b_back")
+        tap("Stats"); tap("Wisp"); shot("3b_back")
         tap("Eyes", scroll = true); shot("5_eye_break")
         tap("Stop")
         // a phone with one day of steps, as on a fresh install
@@ -103,7 +105,7 @@ class ScreensRenderTest {
         s.engine.st.today.fill(0); s.engine.st.today[Need.WATER.ordinal] = 1; s.engine.st.streak = 0; s.saveCare()
         tap("Stats"); shot("6_stats_fresh")
         tap("Settings")
-        tap("Forget this dial", scroll = true)
+        tap("Forget", scroll = true)
         tap("Pair a dial", scroll = true); shot("4_pair")
         tap("Cancel", scroll = true)
         // no dial: the app's own pet choice applies
@@ -117,5 +119,12 @@ class ScreensRenderTest {
         s.pet = Pet.SPRIG
         tap("Stats"); tap("Sprig"); shot("11_sprig_thirsty")
         tap("Stats"); shot("12_sprig_stats")
+        // left at a dial: the pet tab says where, and offers to bring it home
+        s.pet = Pet.WISP
+        s.dial = DialInfo("Deskling-3456", "0123456789abcdef0123456789abcdef", "192.168.1.42")
+        s.dialState = JSONObject().put("mood", "Content").put("level", 3).put("happy", 74)
+        s.travel = Travel("0011223344556677", 3, false, "Deskling-3456")
+        tap("Stats"); tap("Wisp"); shot("13_at_dial")
+        tap("Settings"); shot("14_settings_at_dial")
     }
 }

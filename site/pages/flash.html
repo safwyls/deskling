@@ -1,18 +1,19 @@
 <div class="wrap flash">
   <div>
     <h1>Put Deskling on your display.</h1>
-    <p class="intro">Pick a companion, set it up the way you like, and write it to the CrowPanel straight from this page over USB. You&rsquo;ll need Chrome or Edge on a computer and a USB cable that carries data.</p>
+    <p class="intro">Pick a companion, set it up the way you like, and write Deskling to the CrowPanel straight from this page over USB. You&rsquo;ll need Chrome or Edge on a computer and a USB cable that carries data.</p>
     <div id="support" class="warn" hidden></div>
 
     <div class="stepper">
       <section class="stepblock">
-        <header><span>1</span><h3>Choose your companion</h3><p>Each is its own firmware</p></header>
+        <header><span>1</span><h3>Choose your companion</h3><p>All three are in the firmware: you can switch later on the dial or in the app</p></header>
         <div class="body">
           <div class="choose">
-            <button data-pet-choice="wisp"><canvas data-screen="content" data-fixed-pet="wisp" data-size="240"></canvas><b>Wisp</b><span id="size-wisp"></span></button>
-            <button data-pet-choice="crumb"><canvas data-screen="content" data-fixed-pet="crumb" data-size="240"></canvas><b>Crumb</b><span id="size-crumb"></span></button>
-            <button data-pet-choice="sprig"><canvas data-screen="content" data-fixed-pet="sprig" data-size="240"></canvas><b>Sprig</b><span id="size-sprig"></span></button>
+            <button data-pet-choice="wisp"><canvas data-screen="content" data-fixed-pet="wisp" data-size="240"></canvas><b>Wisp</b></button>
+            <button data-pet-choice="crumb"><canvas data-screen="content" data-fixed-pet="crumb" data-size="240"></canvas><b>Crumb</b></button>
+            <button data-pet-choice="sprig"><canvas data-screen="content" data-fixed-pet="sprig" data-size="240"></canvas><b>Sprig</b></button>
           </div>
+          <p class="note" id="pet-off" hidden>An update keeps the companion on your dial. To switch, use <b>Settings &gt; Companion</b> on the dial, or the app.</p>
         </div>
       </section>
 
@@ -20,7 +21,7 @@
         <header><span>2</span><h3>Fresh install or update?</h3></header>
         <div class="body mode">
           <label><input type="radio" name="mode" value="install" checked><div><b>Fresh install</b><span>For a new display, or to start over. Writes everything, including the settings below. Replaces any pairing and your pet&rsquo;s progress.</span></div></label>
-          <label><input type="radio" name="mode" value="update"><div><b>Update or switch companion</b><span>Writes only the firmware. Your Wi-Fi, settings, paired phones and your pet&rsquo;s level all stay.</span></div></label>
+          <label><input type="radio" name="mode" value="update"><div><b>Update</b><span>Writes only the firmware. Your Wi-Fi, settings, paired phones, your companion and its level all stay.</span></div></label>
         </div>
       </section>
 
