@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -114,63 +115,10 @@ fun MainUi(app: AppState) {
     }
 }
 
-private fun mmss(s: Long) = if (s >= 3600) "%dh %02dm".format(s / 3600, s / 60 % 60) else "%d min".format((s + 59) / 60)
+internal fun mmss(s: Long) = if (s >= 3600) "%dh %02dm".format(s / 3600, s / 60 % 60) else "%d min".format((s + 59) / 60)
 
 @Composable
-fun WispScreen(app: AppState) {
-    val v by app.store.version.collectAsState()
-    val link by Sync.link.collectAsState()
-    val now = app.now
-    val e = app.store.engine
-    v.hashCode()
-    if (!app.store.travel.here) { AwayScreen(app); return }
-    val mood = e.mood(now)
-    val urgent = if (e.paused(now)) null else e.mostUrgent()
-    val postureDue = e.postureDue() && !e.paused(now)
-    val pose = poseFor(mood, urgent, now < app.reactUntil, postureDue, app.store.pet)
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text(mood.title, color = TextC, fontSize = 22.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-            LinkChip(app, link)
-        }
-        Box(contentAlignment = Alignment.BottomCenter) {
-            WispView(pose, Modifier.padding(top = 4.dp)) { app.tapWisp() }
-            app.toast?.let { Text(it, color = Accent, fontSize = 16.sp, textAlign = TextAlign.Center, modifier = Modifier.padding(bottom = 2.dp)) }
-        }
-        val hint = when {
-            mood == Mood.ASLEEP -> if (e.st.bedtime) "Asleep: bedtime" else "Asleep until ${e.config.hourStart}:00"
-            e.paused(now) -> "Paused, ${mmss((e.st.pauseUntil - now) / 1000)} left"
-            urgent != null -> "${urgent.title} is due: tap ${app.store.pet.title}"
-            postureDue -> "Time to ${if (e.st.standing) "sit down" else "stand up"}: tap ${app.store.pet.title}"
-            else -> "Tap ${app.store.pet.title} for a pat"
-        }
-        Text(hint, color = Dim, fontSize = 14.sp)
-        Spacer(Modifier.height(12.dp))
-        for (n in Need.entries) NeedRow(app, n)
-        if (e.config.postureOn) PostureRow(app)
-        Spacer(Modifier.height(12.dp))
-        StepsRow(app)
-        Spacer(Modifier.height(16.dp))
-        Text("Activities", color = Dim, fontSize = 13.sp, modifier = Modifier.fillMaxWidth())
-        Spacer(Modifier.height(6.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            Pill("Water", Need.WATER.color, Modifier.weight(1f)) { app.water() }
-            Pill("Eyes", Need.EYES.color, Modifier.weight(1f)) { app.start(Activity.EYES) }
-            Pill("Stretch", Need.STRETCH.color, Modifier.weight(1f)) { app.start(Activity.STRETCH) }
-            Pill("Move", Need.MOVE.color, Modifier.weight(1f)) { app.start(Activity.MOVE) }
-        }
-        Spacer(Modifier.height(8.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            IconPill("Play", Icons.Filled.PlayArrow, Modifier.weight(1f)) { app.start(Activity.PLAY) }
-            IconPill(if (e.st.bedtime) "Wake" else "Bedtime", Icons.Filled.Bedtime, Modifier.weight(1f)) { app.bedtime(!e.st.bedtime) }
-            IconPill(if (e.paused(now)) "Resume" else "Pause 1h", Icons.Filled.Pause, Modifier.weight(1f)) { app.pause(if (e.paused(now)) 0 else 60) }
-        }
-        TravelSection(app)
-    }
-}
-
-@Composable
-private fun LinkChip(app: AppState, link: Sync.Link) {
+internal fun LinkChip(app: AppState, link: Sync.Link) {
     val dial = app.store.dial
     val held by Held.state.collectAsState()
     val pending = app.store.pending().isNotEmpty()
@@ -187,70 +135,6 @@ private fun LinkChip(app: AppState, link: Sync.Link) {
         Icon(icon, null, tint = if (on) Accent else Dim, modifier = Modifier.size(16.dp))
         Spacer(Modifier.width(6.dp))
         Text(text, color = if (on) TextC else Dim, fontSize = 13.sp)
-    }
-}
-
-@Composable
-private fun NeedRow(app: AppState, n: Need) {
-    val e = app.store.engine
-    val col = Color(n.color)
-    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(n.title, color = TextC, fontSize = 15.sp, modifier = Modifier.width(84.dp))
-        LinearProgressIndicator(progress = { if (e.enabled(n)) e.level(n) / 100f else 0f }, color = if (e.due(n)) Bad else col,
-            trackColor = Line, strokeCap = StrokeCap.Round, modifier = Modifier.weight(1f).height(8.dp))
-        val t = when { !e.enabled(n) -> "off"; e.due(n) -> "due"; else -> "in " + mmss(e.left(n)) }
-        Text(t, color = if (e.due(n)) Bad else Dim, fontSize = 13.sp, textAlign = TextAlign.End, modifier = Modifier.width(78.dp))
-        Text("${e.st.today[n.ordinal]}", color = col, fontSize = 15.sp, textAlign = TextAlign.End, modifier = Modifier.width(28.dp))
-    }
-}
-
-/** Sit/stand: where you are, how long, when to switch, and the switch itself. */
-@Composable
-private fun PostureRow(app: AppState) {
-    val e = app.store.engine
-    val col = Color(CareEngine.POSTURE_COLOR)
-    val due = e.postureDue()
-    val mins = e.st.postureElapsed / 60
-    Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(if (e.st.standing) "Standing" else "Sitting", color = TextC, fontSize = 15.sp, modifier = Modifier.width(84.dp))
-        Text(if (due) "$mins min: time to ${if (e.st.standing) "sit" else "stand"}"
-             else "$mins min, ${if (e.st.standing) "sit" else "stand"} in ${mmss(e.postureLeft())}",
-            color = if (due) col else Dim, fontSize = 13.sp, modifier = Modifier.weight(1f))
-        OutlinedButton(onClick = { app.switchPosture() }, shape = RoundedCornerShape(10.dp),
-            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-            colors = ButtonDefaults.outlinedButtonColors(contentColor = col)) {
-            Text(if (e.st.standing) "Sit down" else "Stand up", fontSize = 13.sp)
-        }
-    }
-}
-
-@Composable
-private fun StepsRow(app: AppState) {
-    val (_, steps) = Steps.today(app.ctx)
-    val goal = app.store.stepGoal
-    Column(Modifier.fillMaxWidth().background(Panel, RoundedCornerShape(10.dp)).padding(12.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Steps today", color = Dim, fontSize = 13.sp, modifier = Modifier.weight(1f))
-            Text("%,d".format(steps) + " / " + "%,d".format(goal), color = TextC, fontSize = 15.sp)
-        }
-        Spacer(Modifier.height(6.dp))
-        LinearProgressIndicator(progress = { min(1f, steps.toFloat() / goal) }, color = Need.MOVE.color.let { Color(it) },
-            trackColor = Line, strokeCap = StrokeCap.Round, modifier = Modifier.fillMaxWidth().height(6.dp))
-        if (!Steps.permitted(app.ctx)) Text("Allow physical activity in Settings to count steps", color = Dim, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp))
-    }
-}
-
-@Composable
-private fun Pill(text: String, color: Long, modifier: Modifier, onClick: () -> Unit) {
-    OutlinedButton(onClick = onClick, modifier = modifier, shape = RoundedCornerShape(10.dp),
-        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
-        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(color))) { Text(text, fontSize = 14.sp, maxLines = 1) }
-}
-
-@Composable
-private fun IconPill(text: String, icon: ImageVector, modifier: Modifier, onClick: () -> Unit) {
-    OutlinedButton(onClick = onClick, modifier = modifier, shape = RoundedCornerShape(10.dp), contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)) {
-        Icon(icon, null, modifier = Modifier.size(16.dp)); Spacer(Modifier.width(4.dp)); Text(text, fontSize = 13.sp, maxLines = 1)
     }
 }
 
@@ -355,16 +239,20 @@ private fun CatchGame(app: AppState) {
 fun StatsScreen(app: AppState) {
     val v by app.store.version.collectAsState()
     v.hashCode()
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 18.dp)) {
+    // one screen: level and mood, today's breaks, then the week's steps taking whatever height is left
+    Column(Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 14.dp)) {
         GrowthBlock(app)
-        Spacer(Modifier.height(32.dp))
+        Spacer(Modifier.height(20.dp))
         TodayBlock(app)
-        Spacer(Modifier.height(32.dp))
-        StepsWeek(app)
-        Spacer(Modifier.height(28.dp))
+        Spacer(Modifier.height(20.dp))
+        StepsWeek(app, Modifier.weight(1f))
+        val t = app.store.travel
         val last = app.store.lastSync
-        Text(if (last == 0L) "Not synced with a dial yet" else "Synced with the dial ${mmss((System.currentTimeMillis() - last) / 1000)} ago over ${app.store.lastLink}",
-            color = Dim, fontSize = 12.sp)
+        Text(when {
+            t.here -> "${app.store.pet.title} is on this phone"
+            last == 0L -> "Not synced with a dial yet"
+            else -> "At ${t.where}: synced ${mmss((System.currentTimeMillis() - last) / 1000)} ago over ${app.store.lastLink}"
+        }, color = Dim, fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
     }
 }
 
@@ -375,12 +263,12 @@ private fun GrowthBlock(app: AppState) {
     val lvl = e.level()
     val (into, need) = e.levelXp()
     Row(verticalAlignment = Alignment.Bottom) {
-        Text("Level $lvl", color = TextC, fontSize = 30.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+        Text("Level $lvl", color = TextC, fontSize = 26.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
         Text("${need - into} xp to level ${lvl + 1}", color = Dim, fontSize = 13.sp, modifier = Modifier.padding(bottom = 5.dp))
     }
     Spacer(Modifier.height(8.dp))
     Meter(into.toFloat() / need, Accent)
-    Spacer(Modifier.height(18.dp))
+    Spacer(Modifier.height(12.dp))
     Row(verticalAlignment = Alignment.Bottom) {
         Text("${app.store.pet.title} is ${e.mood(app.now).title.lowercase()}", color = TextC, fontSize = 16.sp, modifier = Modifier.weight(1f))
         Text("${e.happiness()}% happy", color = Dim, fontSize = 13.sp)
@@ -405,10 +293,10 @@ private fun TodayBlock(app: AppState) {
         Text("Breaks today", color = TextC, fontSize = 18.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
         Text(when (e.st.streak) { 0 -> "No streak yet"; 1 -> "1-day streak"; else -> "${e.st.streak}-day streak" }, color = Dim, fontSize = 13.sp)
     }
-    Spacer(Modifier.height(10.dp))
+    Spacer(Modifier.height(4.dp))
     for (n in Need.entries) {
         val c = e.st.today[n.ordinal]
-        Row(Modifier.fillMaxWidth().padding(vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(n.title, color = TextC, fontSize = 15.sp, modifier = Modifier.width(88.dp))
             Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (c == 0) Box(Modifier.size(10.dp).border(1.5.dp, Line, CircleShape))
@@ -421,7 +309,7 @@ private fun TodayBlock(app: AppState) {
     if (e.config.postureOn) {
         val c = e.st.standsToday
         val col = Color(CareEngine.POSTURE_COLOR)
-        Row(Modifier.fillMaxWidth().padding(vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             Text("Stood up", color = TextC, fontSize = 15.sp, modifier = Modifier.width(88.dp))
             Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (c == 0) Box(Modifier.size(10.dp).border(1.5.dp, Line, CircleShape))
@@ -431,7 +319,7 @@ private fun TodayBlock(app: AppState) {
             Text("$c", color = if (c > 0) TextC else Dim, fontSize = 15.sp, textAlign = TextAlign.End, modifier = Modifier.width(32.dp))
         }
     }
-    Spacer(Modifier.height(6.dp))
+    Spacer(Modifier.height(2.dp))
     val left = 4 - total
     Text(when {
         left <= 0 -> "Today counts toward the streak"
@@ -442,7 +330,7 @@ private fun TodayBlock(app: AppState) {
 
 /** The last seven days, always seven slots ending today, with the goal drawn as a line. Tap a bar to read that day. */
 @Composable
-private fun StepsWeek(app: AppState) {
+private fun StepsWeek(app: AppState, modifier: Modifier = Modifier) = Column(modifier) {
     val goal = app.store.stepGoal.toLong()
     val today = LocalDate.now()
     val days = (6 downTo 0).map { today.minusDays(it.toLong()) }
@@ -454,23 +342,24 @@ private fun StepsWeek(app: AppState) {
     val s = steps[sel]
     val dayName = days[sel].dayOfWeek.getDisplayName(TextStyle.FULL, Locale.getDefault())
 
-    Text("Steps", color = TextC, fontSize = 18.sp, fontWeight = FontWeight.Medium)
-    Spacer(Modifier.height(8.dp))
     Row(verticalAlignment = Alignment.Bottom) {
-        Text("%,d".format(s), color = TextC, fontSize = 30.sp, fontWeight = FontWeight.SemiBold)
-        Text(when (sel) { 6 -> " today"; 5 -> " yesterday"; else -> " on $dayName" }, color = Dim, fontSize = 15.sp, modifier = Modifier.padding(bottom = 5.dp))
+        Text("Steps", color = TextC, fontSize = 18.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
+        Text("%,d".format(s), color = TextC, fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
+        Text(when (sel) { 6 -> " today"; 5 -> " yesterday"; else -> " on $dayName" }, color = Dim, fontSize = 14.sp, modifier = Modifier.padding(bottom = 3.dp))
     }
     Text(when {
         s >= goal -> "Reached the %,d goal".format(goal)
         sel == 6 -> "%,d to go for the %,d goal".format(goal - s, goal)
         else -> "%,d short of the %,d goal".format(goal - s, goal)
-    }, color = if (s >= goal) Ok else Dim, fontSize = 13.sp)
-    Spacer(Modifier.height(16.dp))
+    }, color = if (s >= goal) Ok else Dim, fontSize = 13.sp, textAlign = TextAlign.End, modifier = Modifier.fillMaxWidth())
+    Spacer(Modifier.height(8.dp))
 
     val top = maxOf(goal * 6 / 5, (steps.maxOrNull() ?: 0L) * 21 / 20).toFloat()
     val label = if (goal % 1000 == 0L) "${goal / 1000}k goal" else "%.1fk goal".format(goal / 1000f)
     val summary = days.indices.joinToString { i -> "${days[i].dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault())} ${steps[i]}" }
-    Row(Modifier.fillMaxWidth().height(150.dp)) {
+    androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxWidth().weight(1f).heightIn(min = 60.dp)) {
+    val chartH = maxHeight.value
+    Row(Modifier.fillMaxWidth().fillMaxHeight()) {
         Canvas(Modifier.weight(1f).fillMaxHeight().semantics { contentDescription = "Steps for the last 7 days, goal $goal: $summary" }
             .pointerInput(Unit) { detectTapGestures { o -> sel = (o.x / (size.width / 7f)).toInt().coerceIn(0, 6) } }) {
             val slot = size.width / 7f
@@ -492,8 +381,9 @@ private fun StepsWeek(app: AppState) {
         }
         Box(Modifier.width(44.dp).fillMaxHeight()) {
             Text(label, color = Dim, fontSize = 11.sp, maxLines = 1,
-                modifier = Modifier.padding(start = 6.dp, top = ((150f * (1f - goal / top)).dp - 8.dp).coerceAtLeast(0.dp)))
+                modifier = Modifier.padding(start = 6.dp, top = ((chartH * (1f - goal / top)).dp - 8.dp).coerceAtLeast(0.dp)))
         }
+    }
     }
     Row(Modifier.fillMaxWidth().padding(top = 6.dp)) {
         for (i in 0 until 7) Text(if (i == 6) "Today" else days[i].dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault()),
@@ -501,7 +391,7 @@ private fun StepsWeek(app: AppState) {
             textAlign = TextAlign.Center, maxLines = 1, modifier = Modifier.weight(1f).clickable { sel = i })
         Spacer(Modifier.width(44.dp))
     }
-    Spacer(Modifier.height(16.dp))
+    Spacer(Modifier.height(10.dp))
     val counted = steps.filter { it > 0 }
     Row(Modifier.fillMaxWidth()) {
         Fact("%,d".format(steps.sum()), "this week", Modifier.weight(1f))
@@ -524,4 +414,4 @@ private fun Fact(value: String, what: String, modifier: Modifier) {
 }
 
 @Composable
-private fun Note(t: String) = Text(t, color = Dim, fontSize = 13.sp, modifier = Modifier.padding(top = 12.dp))
+private fun Note(t: String) = Text(t, color = Dim, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp))

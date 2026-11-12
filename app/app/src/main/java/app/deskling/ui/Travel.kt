@@ -14,7 +14,17 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -96,12 +106,13 @@ fun AwayScreen(app: AppState) {
     }
 }
 
-/** On the pet tab while the companion is here: take it to a dial, or to another phone. */
+/** The bottom of the pet tab while the companion is here: leave it at a dial, or give it to another phone. */
 @Composable
-fun TravelSection(app: AppState) {
+fun TravelBar(app: AppState) {
     val name = app.store.pet.title
     val dials = app.store.dials
     var share by remember { mutableStateOf(false) }
+    var pick by remember { mutableStateOf(false) }
     var occupied by remember { mutableStateOf<Pair<DialInfo, Sync.Move.Occupied>?>(null) }
     var busy by remember { mutableStateOf<String?>(null) }
     fun send(d: DialInfo, replace: Boolean = false) {
@@ -115,20 +126,23 @@ fun TravelSection(app: AppState) {
             busy = null
         }
     }
-    Spacer(Modifier.height(20.dp))
-    Text("Take $name along", color = Dim, fontSize = 13.sp, modifier = Modifier.fillMaxWidth())
-    Spacer(Modifier.height(6.dp))
-    Column(Modifier.fillMaxWidth().background(Panel, RoundedCornerShape(10.dp)).padding(12.dp)) {
-        Text("$name lives on one device at a time. Leave it at a dial and it carries on there; bring it back to the phone when you go.",
-            color = Dim, fontSize = 13.sp)
-        for (d in dials) {
-            Spacer(Modifier.height(8.dp))
-            OutlinedButton(enabled = busy == null, onClick = { send(d) }, modifier = Modifier.fillMaxWidth()) {
-                Text(if (busy == d.name) "Moving in..." else "Leave $name at ${d.name}")
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+        if (dials.isNotEmpty()) Box(Modifier.weight(1f)) {
+            Button(enabled = busy == null, contentPadding = PaddingValues(horizontal = 10.dp, vertical = 10.dp), modifier = Modifier.fillMaxWidth(),
+                onClick = { if (dials.size == 1) send(dials[0]) else pick = true }) {
+                Icon(Icons.Filled.Home, null, modifier = Modifier.size(18.dp)); Spacer(Modifier.width(6.dp))
+                Text(when { busy != null -> "Moving in..."; dials.size == 1 -> "Leave at ${dials[0].name}"; else -> "Leave at a dial" },
+                    maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 14.sp)
+            }
+            DropdownMenu(pick, { pick = false }) {
+                for (d in dials) DropdownMenuItem(text = { Text(d.name) }, onClick = { pick = false; send(d) })
             }
         }
-        Spacer(Modifier.height(8.dp))
-        OutlinedButton(enabled = busy == null, onClick = { share = true }, modifier = Modifier.fillMaxWidth()) { Text("Give $name to another phone") }
+        OutlinedButton(enabled = busy == null, onClick = { share = true }, contentPadding = PaddingValues(horizontal = 10.dp, vertical = 10.dp),
+            modifier = if (dials.isNotEmpty()) Modifier.weight(1f) else Modifier.fillMaxWidth()) {
+            Icon(Icons.Filled.Share, null, modifier = Modifier.size(18.dp)); Spacer(Modifier.width(6.dp))
+            Text("Give to a phone", maxLines = 1, fontSize = 14.sp)
+        }
     }
     if (share) AlertDialog(
         onDismissRequest = { share = false },

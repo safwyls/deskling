@@ -114,26 +114,16 @@ class AppState(val ctx: Context, val scope: CoroutineScope) {
         done(Need.WATER, "Glass ${store.engine.st.today[Need.WATER.ordinal] + 1} today")
     }
 
-    /** A tap on Wisp: answers what Wisp is asking for, or a pat when nothing is due (as on the dial). */
-    fun tapWisp() {
+    /** A pat (the middle of the activity wheel). */
+    fun pat() {
         val e = store.engine
-        val u = if (e.paused(now) || e.mood(now) == app.deskling.care.Mood.ASLEEP) null else e.mostUrgent()
-        when (u) {
-            Need.WATER -> water()
-            Need.EYES -> start(Activity.EYES)
-            Need.STRETCH -> start(Activity.STRETCH)
-            Need.MOVE -> start(Activity.MOVE)
-            null -> {
-                if (e.mood(now) == app.deskling.care.Mood.ASLEEP) { say("Shh, ${store.pet.title} is asleep"); return }
-                if (e.postureDue() && !e.paused(now)) { switchPosture(); return }
-                if (e.pet(now)) {
-                    store.queueForDial(JSONObject().put("op", "pet"))
-                    store.saveCare()
-                    say("${store.pet.title} likes that", 1500)
-                }
-                react(2)
-            }
+        if (e.mood(now) == app.deskling.care.Mood.ASLEEP) { say("Shh, ${store.pet.title} is asleep"); return }
+        if (e.pet(now)) {
+            store.queueForDial(JSONObject().put("op", "pet"))
+            store.saveCare()
+            say("${store.pet.title} likes that", 1500)
         }
+        react(2)
     }
 
     fun played(hits: Int, rounds: Int) {

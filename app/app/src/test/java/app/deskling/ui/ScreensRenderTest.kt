@@ -8,6 +8,7 @@ import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -56,6 +57,8 @@ class ScreensRenderTest {
         compose.waitForIdle()
     }
 
+    private var appRef: AppState? = null
+
     @Test fun screens() {
         val ctx = ApplicationProvider.getApplicationContext<Context>()
         val s = Store.get(ctx)
@@ -90,21 +93,27 @@ class ScreensRenderTest {
         compose.setContent {
             DesklingTheme {
                 val scope = rememberCoroutineScope()
-                val app = remember { AppState(ctx, scope).also { it.tick() } }
+                val app = remember { AppState(ctx, scope).also { it.tick(); appRef = it } }
                 MainUi(app)
             }
         }
         shot("1_wisp")
         tap("Stats"); shot("2_stats")
         tap("Settings"); shot("3_settings")
+        tap("Reminders"); shot("3c_settings_reminders")
+        tap("Dial"); shot("3d_settings_dial")
+        tap("Phone"); shot("3e_settings_phone")
         tap("Stats"); tap("Wisp"); shot("3b_back")
-        tap("Eyes", scroll = true); shot("5_eye_break")
+        compose.onNodeWithContentDescription("companion").performClick(); compose.mainClock.advanceTimeBy(600); compose.waitForIdle()
+        shot("1b_wheel")
+        tap("Eyes"); shot("5_eye_break")
         tap("Stop")
+        appRef?.toast = null
         // a phone with one day of steps, as on a fresh install
         s.stepsHistory = JSONObject().put(s.engine.dateOf(now).toString(), 995); s.stepsToday = 995
         s.engine.st.today.fill(0); s.engine.st.today[Need.WATER.ordinal] = 1; s.engine.st.streak = 0; s.saveCare()
         tap("Stats"); shot("6_stats_fresh")
-        tap("Settings")
+        tap("Settings"); tap("Dial")
         tap("Forget", scroll = true)
         tap("Pair a dial", scroll = true); shot("4_pair")
         tap("Cancel", scroll = true)

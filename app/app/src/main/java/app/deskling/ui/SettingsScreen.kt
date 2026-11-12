@@ -28,6 +28,8 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -39,6 +41,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
@@ -60,44 +63,33 @@ import kotlinx.coroutines.withTimeoutOrNull
 import org.json.JSONArray
 import org.json.JSONObject
 
+private enum class SettingsTab(val title: String) { COMPANION("Companion"), REMINDERS("Reminders"), DIAL("Dial"), PHONE("Phone") }
+
+/** Settings in four tabs: the companion, reminders, the dials, and this phone. */
 @Composable
 fun SettingsScreen(app: AppState) {
     val v by app.store.version.collectAsState()
     v.hashCode()
     var pairing by remember { mutableStateOf(false) }
     var wifi by remember { mutableStateOf(false) }
+    var tab by rememberSaveable { mutableStateOf(SettingsTab.COMPANION) }
     if (pairing) { PairScreen(app) { pairing = false }; return }
     if (wifi) { DialWifiScreen(app) { wifi = false }; return }
-    val scope = rememberCoroutineScope()
-    val dial = app.store.dial
-    val dials = app.store.dials
-    val msg by Sync.message.collectAsState()
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
-        CompanionSettings(app)
-        Header(if (dials.size > 1) "Dials" else "Dial")
-        if (dial == null) {
-            Text("Pair the app with your Deskling: your companion can then live on the dial, and come along on the phone when you leave.", color = Dim, fontSize = 14.sp)
-            Spacer(Modifier.height(8.dp))
-            Button(onClick = { pairing = true }) { Text("Pair a dial") }
-        } else {
-            for (d in dials.filter { it.name != dial.name }) Item(d.name, "paired", "Show") { Sync.use(app.ctx, d); scope.launch { Sync.sync(app.ctx) } }
-            val st = app.store.dialState
-            val w = st.optJSONObject("wifi")
-            Item(dial.name + if (dials.size > 1) "  (settings below)" else "",
-                if (app.store.lastSync == 0L) "not synced yet" else "synced over ${app.store.lastLink}" + (msg.takeIf { it.isNotBlank() }?.let { "  •  $it" } ?: ""))
-            Item("Wi-Fi", if (w?.optBoolean("up") == true) "${w.optString("ssid")}  •  ${w.optString("ip")}" else "not connected", "Change") { wifi = true }
-            Row {
-                OutlinedButton(onClick = { scope.launch { if (!Sync.sync(app.ctx)) app.say("Couldn't reach the dial") } }) { Text("Sync now") }
-                Spacer(Modifier.width(8.dp))
-                TextButton(onClick = { pairing = true }) { Text("Pair another") }
-                TextButton(onClick = { Sync.forget(app.ctx) }) { Text("Forget") }
+    Column(Modifier.fillMaxSize()) {
+        TabRow(selectedTabIndex = tab.ordinal, containerColor = Bg, contentColor = Accent) {
+            // the content form of Tab: the text form pads each side by 16 dp, which cuts "Companion" short on a phone
+            for (t in SettingsTab.entries) Tab(selected = tab == t, onClick = { tab = t }, selectedContentColor = Accent, unselectedContentColor = Dim) {
+                Text(t.title, fontSize = 13.sp, maxLines = 1, softWrap = false, modifier = Modifier.padding(vertical = 13.dp))
             }
-            DialSettings(app)
         }
-        AppSettings(app)
-        Header("About")
-        Text("Deskling 1.9  •  ${app.store.pet.title} and the care game, travelling between your dials and this phone over Bluetooth or Wi-Fi.", color = Dim, fontSize = 13.sp)
-        Spacer(Modifier.height(24.dp))
+        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(bottom = 24.dp)) {
+            when (tab) {
+                SettingsTab.COMPANION -> CompanionSettings(app)
+                SettingsTab.REMINDERS -> ReminderSettings(app)
+                SettingsTab.DIAL -> DialTab(app, pair = { pairing = true }, wifi = { wifi = true })
+                SettingsTab.PHONE -> PhoneSettings(app)
+            }
+        }
     }
 }
 
@@ -148,49 +140,108 @@ private fun SliderRow(title: String, value: Int, range: IntRange, label: (Int) -
     }
 }
 
-/** The dial's own settings, read from it and written straight back. */
+/** Writes one of the current dial's settings, then catches up with it. */
 @Composable
-private fun DialSettings(app: AppState) {
-    val s = app.store.dialSettings
+private fun rememberDialSetter(app: AppState): (String, Any) -> Unit {
     val scope = rememberCoroutineScope()
-    fun set(k: String, v: Any) {
+    return { k, v ->
         scope.launch {
             val r = Sync.call(app.ctx, JSONObject().put("op", "set").put(k, v))
             if (r?.optBoolean("ok") == true) { app.store.dialSettings = r; Sync.sync(app.ctx) } else app.say("Couldn't reach the dial")
         }
     }
-    if (!s.has("remind")) { Text("Sync once to see the dial's settings.", color = Dim, fontSize = 14.sp); return }
-    Header("Reminders")
-    val rem = s.optJSONArray("remind") ?: JSONArray()
-    val every = listOf(0) + (5..120 step 5).toList()
-    val names = listOf("Water", "Eye break", "Stretch", "Move")
-    for (i in 0 until 4) {
-        val cur = rem.optInt(i)
-        Choice(names[i], every.map { if (it == 0) "off" else "every $it min" }, every.indexOf(cur).coerceAtLeast(0)) { pick ->
-            val a = JSONArray(); for (j in 0 until 4) a.put(if (j == i) every[pick] else rem.optInt(j)); set("remind", a)
+}
+
+/** How often each break comes up and when, from the dial's settings (or the phone's own without a dial). */
+@Composable
+private fun ReminderSettings(app: AppState) {
+    val store = app.store
+    val s = store.dialSettings
+    val set = rememberDialSetter(app)
+    if (store.dial != null && !s.has("remind")) {
+        Header("Breaks"); Text("Sync with ${store.dial?.name} once to see its reminders.", color = Dim, fontSize = 14.sp)
+    } else if (store.dial != null) {
+        Header("Breaks")
+        Text("Set on ${store.dial?.name}, and used wherever your companion is.", color = Dim, fontSize = 12.sp)
+        val rem = s.optJSONArray("remind") ?: JSONArray()
+        val every = listOf(0) + (5..120 step 5).toList()
+        val names = listOf("Water", "Eye break", "Stretch", "Move")
+        for (i in 0 until 4) {
+            val cur = rem.optInt(i)
+            Choice(names[i], every.map { if (it == 0) "off" else "every $it min" }, every.indexOf(cur).coerceAtLeast(0)) { pick ->
+                val a = JSONArray(); for (j in 0 until 4) a.put(if (j == i) every[pick] else rem.optInt(j)); set("remind", a)
+            }
+        }
+        Header("Sit and stand")
+        Toggle("Sit/stand reminders", s.optBoolean("postureOn")) { set("postureOn", it) }
+        if (s.optBoolean("postureOn")) {
+            val sit = (15..120 step 5).toList(); val stand = (5..90 step 5).toList()
+            Choice("Sit for", sit.map { "$it min, then stand" }, sit.indexOf(s.optInt("sitMin", 45)).coerceAtLeast(0)) { set("sitMin", sit[it]) }
+            Choice("Stand for", stand.map { "$it min, then sit" }, stand.indexOf(s.optInt("standMin", 15)).coerceAtLeast(0)) { set("standMin", stand[it]) }
+        }
+        Header("Hours")
+        val hours = (0..24).map { if (it == 24) "midnight" else "%02d:00".format(it) }
+        Choice("Active from", hours.take(24), s.optInt("hourStart")) { set("hourStart", it) }
+        Choice("Active until", hours.drop(1), s.optInt("hourEnd") - 1) { set("hourEnd", it + 1) }
+        val tz = s.optJSONArray("tzNames")?.let { a -> List(a.length()) { a.getString(it) } } ?: emptyList()
+        Choice("Time zone", tz, s.optInt("tz")) { set("tz", it) }
+    } else {
+        // no dial to hold the settings: the app's own
+        Header("Sit and stand")
+        val cfg = store.engine.config
+        fun put(c: app.deskling.care.CareConfig) { store.engine.config = c; store.saveCare(); store.changed() }
+        Toggle("Sit/stand reminders", cfg.postureOn) { put(cfg.copy(postureOn = it)) }
+        if (cfg.postureOn) {
+            val sit = (15..120 step 5).toList(); val stand = (5..90 step 5).toList()
+            Choice("Sit for", sit.map { "$it min, then stand" }, sit.indexOf(cfg.sitMin).coerceAtLeast(0)) { put(cfg.copy(sitMin = sit[it])) }
+            Choice("Stand for", stand.map { "$it min, then sit" }, stand.indexOf(cfg.standMin).coerceAtLeast(0)) { put(cfg.copy(standMin = stand[it])) }
         }
     }
-    Toggle("Sit/stand reminders", s.optBoolean("postureOn")) { set("postureOn", it) }
-    if (s.optBoolean("postureOn")) {
-        val sit = (15..120 step 5).toList(); val stand = (5..90 step 5).toList()
-        Choice("Sit for", sit.map { "$it min, then stand" }, sit.indexOf(s.optInt("sitMin", 45)).coerceAtLeast(0)) { set("sitMin", sit[it]) }
-        Choice("Stand for", stand.map { "$it min, then sit" }, stand.indexOf(s.optInt("standMin", 15)).coerceAtLeast(0)) { set("standMin", stand[it]) }
-    }
-    val hours = (0..24).map { if (it == 24) "midnight" else "%02d:00".format(it) }
-    Choice("Active from", hours.take(24), s.optInt("hourStart")) { set("hourStart", it) }
-    Choice("Active until", hours.drop(1), s.optInt("hourEnd") - 1) { set("hourEnd", it + 1) }
-    val tz = s.optJSONArray("tzNames")?.let { a -> List(a.length()) { a.getString(it) } } ?: emptyList()
-    Choice("Time zone", tz, s.optInt("tz")) { set("tz", it) }
+    Header("On the phone")
+    Choice("Reminder notifications", NotifyMode.entries.map { it.title }, store.notifyMode.ordinal) { store.notifyMode = NotifyMode.entries[it] }
+}
 
-    Header("Dial home screen")
+/** The paired dials: the current one's link, Wi-Fi, screen and lights. */
+@Composable
+private fun DialTab(app: AppState, pair: () -> Unit, wifi: () -> Unit) {
+    val store = app.store
+    val scope = rememberCoroutineScope()
+    val dial = store.dial
+    val dials = store.dials
+    val msg by Sync.message.collectAsState()
+    Header(if (dials.size > 1) "Dials" else "Dial")
+    if (dial == null) {
+        Text("Pair the app with your Deskling: your companion can then live on the dial, and come along on the phone when you leave.", color = Dim, fontSize = 14.sp)
+        Spacer(Modifier.height(8.dp))
+        Button(onClick = pair) { Text("Pair a dial") }
+        return
+    }
+    Item(dial.name + if (dials.size > 1) "  (settings below)" else "",
+        if (store.lastSync == 0L) "not synced yet" else "synced over ${store.lastLink}" + (msg.takeIf { it.isNotBlank() }?.let { "  •  $it" } ?: ""))
+    for (d in dials.filter { it.name != dial.name }) Item(d.name, "paired", "Show") { Sync.use(app.ctx, d); scope.launch { Sync.sync(app.ctx) } }
+    Row {
+        OutlinedButton(onClick = { scope.launch { if (!Sync.sync(app.ctx)) app.say("Couldn't reach the dial") } }) { Text("Sync now") }
+        Spacer(Modifier.width(8.dp))
+        TextButton(onClick = pair) { Text("Pair another") }
+        TextButton(onClick = { Sync.forget(app.ctx) }) { Text("Forget") }
+    }
+    Toggle("Stay connected", store.holdLink) { store.holdLink = it; LinkService.update(app.ctx) }
+    Text(if (store.holdLink) "Syncs the moment anything happens, here or on the dial, while you're nearby. Android shows a quiet notification while it's on."
+         else "Syncs every few minutes instead, and when you open the app.", color = Dim, fontSize = 12.sp, modifier = Modifier.padding(bottom = 6.dp))
+    val w = store.dialState.optJSONObject("wifi")
+    Item("Wi-Fi", if (w?.optBoolean("up") == true) "${w.optString("ssid")}  •  ${w.optString("ip")}" else "not connected", "Change", wifi)
+
+    val s = store.dialSettings
+    if (!s.has("remind")) { Text("Sync once to see the dial's settings.", color = Dim, fontSize = 14.sp); return }
+    val set = rememberDialSetter(app)
+    Header("Home screen")
     Choice("Clock", listOf("Off", "12-hour", "24-hour"), s.optInt("clockMode")) { set("clockMode", it) }
     val styles = s.optJSONArray("clockStyles")?.let { a -> List(a.length()) { a.getString(it) } } ?: emptyList()
     Choice("Clock style", styles, s.optInt("clockStyle")) { set("clockStyle", it) }
     Toggle("Show the date", s.optBoolean("showDate")) { set("showDate", it) }
     Toggle("Wi-Fi icon", s.optBoolean("showStatus")) { set("showStatus", it) }
     Toggle("Next reminder", s.optBoolean("showNext")) { set("showNext", it) }
-
-    Header("Dial")
+    Header("Screen, lights and knob")
     SliderRow("Screen brightness", s.optInt("bright", 70), 10..100, { "$it%" }) { set("bright", it) }
     SliderRow("LED brightness", s.optInt("ledBright", 60), 5..255, { "${it * 100 / 255}%" }) { set("ledBright", it) }
     SliderRow("Nap after", s.optInt("napMin", 10), 0..60, { if (it == 0) "never" else "$it min" }) { set("napMin", it) }
@@ -198,8 +249,9 @@ private fun DialSettings(app: AppState) {
     Toggle("Reverse the knob", s.optBoolean("encInvert")) { set("encInvert", it) }
 }
 
+/** Steps, permissions and the app itself. */
 @Composable
-private fun AppSettings(app: AppState) {
+private fun PhoneSettings(app: AppState) {
     val s = app.store
     val perms = remember {
         buildList {
@@ -209,32 +261,19 @@ private fun AppSettings(app: AppState) {
         }.toTypedArray()
     }
     val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { s.changed() }
-    Header("This phone")
-    if (s.dial == null) {
-        // no dial to hold the setting: the app's own
-        val cfg = s.engine.config
-        fun put(c: app.deskling.care.CareConfig) { s.engine.config = c; s.saveCare(); s.changed() }
-        Toggle("Sit/stand reminders", cfg.postureOn) { put(cfg.copy(postureOn = it)) }
-        if (cfg.postureOn) {
-            val sit = (15..120 step 5).toList(); val stand = (5..90 step 5).toList()
-            Choice("Sit for", sit.map { "$it min, then stand" }, sit.indexOf(cfg.sitMin).coerceAtLeast(0)) { put(cfg.copy(sitMin = sit[it])) }
-            Choice("Stand for", stand.map { "$it min, then sit" }, stand.indexOf(cfg.standMin).coerceAtLeast(0)) { put(cfg.copy(standMin = stand[it])) }
-        }
-    }
-    if (s.dial != null) {
-        Toggle("Stay connected to the dial", s.holdLink) { s.holdLink = it; LinkService.update(app.ctx) }
-        Text(if (s.holdLink) "Breaks sync the moment you log them, here or on the dial, while you're nearby. Android shows a quiet notification while it's on."
-             else "Syncs every few minutes instead, and when you open the app.", color = Dim, fontSize = 12.sp, modifier = Modifier.padding(bottom = 6.dp))
-    }
-    Choice("Reminders on the phone", NotifyMode.entries.map { it.title }, s.notifyMode.ordinal) { s.notifyMode = NotifyMode.entries[it] }
+    Header("Steps")
     SliderRow("A walk is", s.walkSteps, 100..1000, { "$it steps in 10 min" }) { s.walkSteps = (it / 50) * 50 }
     SliderRow("Daily step goal", s.stepGoal, 2000..20000, { "%,d".format(it) }) { s.stepGoal = (it / 500) * 500 }
+    Header("Permissions")
     val missing = buildList {
         if (!Sync.hasBlePermission(app.ctx)) add("Bluetooth")
         if (!Steps.permitted(app.ctx)) add("physical activity (steps)")
         if (!Steps.available(app.ctx)) add("(this phone has no step counter)")
     }
-    Item("Permissions", if (missing.isEmpty()) "all set" else "missing: " + missing.joinToString(", "), if (missing.isEmpty()) null else "Allow") { ask.launch(perms) }
+    Item(if (missing.isEmpty()) "All set" else "Missing", if (missing.isEmpty()) "Bluetooth, steps and notifications" else missing.joinToString(", "),
+        if (missing.isEmpty()) null else "Allow") { ask.launch(perms) }
+    Header("About")
+    Text("Deskling 1.10  •  ${s.pet.title} and the care game, travelling between your dials and this phone over Bluetooth or Wi-Fi.", color = Dim, fontSize = 13.sp)
 }
 
 /** Which companion it is, and taking one in from a link. */
@@ -244,7 +283,7 @@ private fun CompanionSettings(app: AppState) {
     val t = s.travel
     val scope = rememberCoroutineScope()
     var paste by remember { mutableStateOf("") }
-    Header("Companion")
+    Header("Your companion")
     val atCurrent = !t.here && s.dial?.name == t.where && s.dialSettings.has("pets")
     when {
         t.here -> Choice("Who", Pet.entries.map { it.title }, s.pet.ordinal) { s.pet = Pet.entries[it] }
