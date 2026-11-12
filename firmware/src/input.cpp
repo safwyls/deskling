@@ -8,6 +8,15 @@ static volatile uint32_t btnActivity = 0;
 bool input_button_down() { return btnDown; }
 uint32_t input_button_last_activity() { return btnActivity; }
 
+static volatile uint32_t downCount = 0, downAt = 0;
+void input_mark_down(uint32_t at) {
+  if (downAt && at - downAt < 250) return;
+  downAt = at ? at : 1;
+  downCount = downCount + 1;
+}
+uint32_t input_down_count() { return downCount; }
+uint32_t input_down_at() { return downAt; }
+
 static void send(InputEvent e) { xQueueSend(q, &e, 0); }
 void input_inject(InputEvent e) { send(e); }
 
@@ -40,7 +49,7 @@ static void input_task(void *) {
     if (r != rawDown) { rawDown = r; rawSince = now; }
     if (rawDown != down && now - rawSince >= DEBOUNCE) {
       down = rawDown;
-      if (down) { pressAt = now; holdSent = false; }
+      if (down) { pressAt = now; holdSent = false; input_mark_down(rawSince); }   // when it first closed, not after debouncing
       else if (!holdSent) send(IN_PRESS);
     }
     if (down && !holdSent && now - pressAt >= HOLD_MS) { send(IN_HOLD); holdSent = true; }

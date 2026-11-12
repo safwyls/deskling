@@ -212,15 +212,17 @@ private fun CatchGame(app: AppState) {
         app.played(hits, rounds)
     }
     Text("Round ${min(round + 1, rounds)} of $rounds  •  $hits caught", color = Dim, fontSize = 16.sp, modifier = Modifier.padding(top = 6.dp))
-    Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(vertical = 16.dp).size(320.dp).clickable {
-        if (pauseUntil != 0L || round >= rounds) return@clickable
+    // judged the moment the finger lands: a click only fires on release, by when the dot has moved on
+    Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(vertical = 16.dp).size(320.dp).pointerInput(Unit) { detectTapGestures(onPress = {
+        if (pauseUntil != 0L || round >= rounds) return@detectTapGestures
+        angle = (180f + 360f * (System.currentTimeMillis() - start) / period()) % 360f
         val d = min(angle, 360 - angle)
         val hit = d <= 24
         if (hit) hits++
         flash = if (hit) Ok else Bad
         round++
         pauseUntil = System.currentTimeMillis() + 600
-    }) {
+    }) }) {
         Canvas(Modifier.fillMaxSize()) {
             val r = size.minDimension / 2 - 16.dp.toPx()
             val c = center

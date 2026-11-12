@@ -73,6 +73,7 @@ static void touch_poll() {
     upReads = 0;
     if (!down) {
       down = true; downAt = now; holdSent = false; tapPending = false;
+      input_mark_down(now);
       knobSeen = input_button_down() || (act && now - act < 100);
     } else if (!holdSent && !knobSeen && now - downAt >= 600) { input_inject(IN_HOLD); holdSent = true; }
   } else if (down && ++upReads >= 2) {

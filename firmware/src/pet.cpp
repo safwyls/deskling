@@ -363,6 +363,33 @@ static uint32_t gRoundStart = 0, gPauseUntil = 0;
 static float gAngle = 180;
 
 static uint32_t game_period() { uint32_t p = 1900; for (int i = 0; i < gRound; i++) p = p * 82 / 100; return p; }
+static uint32_t gDowns = 0;          // input_down_count() already judged
+
+// where the dot is at a moment of the current round
+static float game_angle(uint32_t at) {
+  uint32_t t = (int32_t)(at - gRoundStart) > 0 ? at - gRoundStart : 0;
+  return fmodf(180.0f + 360.0f * t / game_period(), 360.0f);   // starts at the bottom, runs clockwise
+}
+static void game_place_dot() {
+  float r = (gAngle - 90) * 3.14159265f / 180;
+  lv_obj_align(gDot, LV_ALIGN_CENTER, (int)(158 * cosf(r)), (int)(158 * sinf(r)));
+}
+static void game_end();
+// A catch attempt, judged at the moment the finger or knob went down: taps and presses only arrive on release,
+// a quarter of a second later, by which time the dot has moved on 40 degrees or more.
+static void game_catch(uint32_t at) {
+  gAngle = game_angle(at);
+  game_place_dot();                                      // freeze it where you caught it
+  float d = fminf(gAngle, 360 - gAngle);
+  bool hit = d <= 24;
+  if (hit) gHits++;
+  leds_flash(hit ? C_OK : C_BAD);
+  led(RING_POSITION, hit ? C_OK : C_BAD, (uint16_t)(gAngle / 360.0f * 1000));
+  gRound++;
+  if (gRound >= GAME_ROUNDS) game_end();
+  else gPauseUntil = millis() + 600;
+}
+
 
 static void act_end() {
   act = A_NONE;
@@ -406,7 +433,8 @@ static void act_start(Act a) {
     case A_STRETCH: lv_label_set_text_fmt(aTitle, "Stretch with %s", PET_NAME); lv_label_set_text(aPrompt, STRETCHES[0]);
                     lv_obj_set_style_arc_color(aArc, lv_color_hex(care_need_color(NEED_STRETCH)), LV_PART_INDICATOR); break;
     case A_MOVE:    lv_label_set_text(aTitle, "Out for a walk"); lv_label_set_text(aPrompt, "Get up and move about"); break;
-    case A_PLAY:    lv_label_set_text(aTitle, ""); gRound = 0; gHits = 0; gRoundStart = millis(); gPauseUntil = 0; break;
+    case A_PLAY:    lv_label_set_text(aTitle, ""); gRound = 0; gHits = 0; gRoundStart = millis(); gPauseUntil = 0;
+                    gDowns = input_down_count(); break;     // the press that started it isn't a catch
     default: break;
   }
 }
@@ -440,6 +468,10 @@ static void act_tick() {
       break;
     }
     case A_PLAY: {
+      if (input_down_count() != gDowns) {
+        gDowns = input_down_count();
+        if (!gPauseUntil) { game_catch(input_down_at()); if (act != A_PLAY) return; break; }
+      }
       if (gPauseUntil && now < gPauseUntil) break;           // frozen to show the result of a press
       if (gPauseUntil) { gPauseUntil = 0; gRoundStart = now; }
       uint32_t per = game_period();
@@ -451,11 +483,8 @@ static void act_tick() {
         gRoundStart = now;
         t = 0;
       }
-      gAngle = fmodf(180.0f + 360.0f * t / per, 360.0f);    // starts at the bottom, runs clockwise
-      {
-        float r = (gAngle - 90) * 3.14159265f / 180;
-        lv_obj_align(gDot, LV_ALIGN_CENTER, (int)(158 * cosf(r)), (int)(158 * sinf(r)));
-      }
+      gAngle = game_angle(now);
+      game_place_dot();
       snprintf(buf, sizeof(buf), "Round %d of %d  " LV_SYMBOL_BULLET "  %d caught", gRound + 1, GAME_ROUNDS, gHits);
       lv_label_set_text(aPrompt, buf);
       lv_label_set_text(aTime, "");
@@ -481,17 +510,7 @@ static void act_press() {
       if (el >= MOVE_MIN_MS) act_finish(NEED_MOVE, "Welcome back: stretch and eyes too");
       else { act_end(); say("Back already? Not counted"); }
       break;
-    case A_PLAY: {
-      if (gPauseUntil) break;
-      float d = fminf(gAngle, 360 - gAngle);
-      bool hit = d <= 24;
-      if (hit) gHits++;
-      leds_flash(hit ? C_OK : C_BAD);
-      gRound++;
-      if (gRound >= GAME_ROUNDS) game_end();
-      else gPauseUntil = millis() + 600;
-      break;
-    }
+    case A_PLAY: break;           // judged when the finger or knob went down (act_tick), not on release
     default: break;
   }
 }

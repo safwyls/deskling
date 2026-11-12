@@ -25,3 +25,9 @@ void input_inject(InputEvent ev);  // from the touch detector
 // The touch detector uses these to drop touches that were really a knob press.
 bool input_button_down();                // raw, right now
 uint32_t input_button_last_activity();   // millis() of the last time the button went down or came up
+// The moment a finger or the knob went down, for things that need timing (the catch game). Presses and taps
+// are only sent on release (to tell them from a hold, and a touch from a knob push), a few hundred ms later.
+// One knob push also touches the screen: downs within 250 ms of each other count once.
+void input_mark_down(uint32_t atMs);
+uint32_t input_down_count();             // goes up by one per down
+uint32_t input_down_at();                // millis() of the latest
