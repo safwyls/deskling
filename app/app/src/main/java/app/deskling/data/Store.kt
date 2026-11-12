@@ -2,6 +2,7 @@ package app.deskling.data
 
 import android.content.Context
 import android.content.SharedPreferences
+import app.deskling.ui.Widget
 import app.deskling.care.CareConfig
 import app.deskling.care.CareEngine
 import app.deskling.care.CareState
@@ -19,6 +20,9 @@ data class DialInfo(val name: String, val key: String, val ip: String = "", val 
     }
 }
 
+/** What's behind the home screen widget. */
+enum class WidgetBg(val title: String) { SOLID("Companion's colours"), GLASS("Glass"), NONE("None: just the companion") }
+
 /** When the phone posts break reminders. (WITH_ME took the place of "when I'm away from the dial".) */
 enum class NotifyMode(val title: String) {
     WITH_ME("When my companion is with me"), ALWAYS("Also while it's at a dial and I'm away"), NEVER("Never")
@@ -30,6 +34,7 @@ enum class NotifyMode(val title: String) {
  * settings, breaks waiting to be sent to the dial, and steps. One instance for the whole process.
  */
 class Store private constructor(ctx: Context) {
+    private val appCtx: Context = ctx.applicationContext
     private val p: SharedPreferences = ctx.getSharedPreferences("deskling", Context.MODE_PRIVATE)
 
     val engine = CareEngine(CareConfig.fromJson(json("config")), CareState.fromJson(json("care")))
@@ -37,7 +42,11 @@ class Store private constructor(ctx: Context) {
     /** Bumps whenever anything the screens show changes. */
     private val _version = MutableStateFlow(0L)
     val version: StateFlow<Long> = _version
-    fun changed() { _version.value = _version.value + 1 }
+    fun changed() { _version.value = _version.value + 1; Widget.request(appCtx) }
+
+    var widgetBg: WidgetBg
+        get() = WidgetBg.entries.getOrElse(p.getInt("widgetBg", 0)) { WidgetBg.SOLID }
+        set(v) { p.edit().putInt("widgetBg", v.ordinal).apply(); Widget.update(appCtx, force = true) }
 
     @Synchronized fun saveCare() {
         p.edit().putString("care", engine.st.toJson().toString()).putString("config", engine.config.toJson().toString()).apply()

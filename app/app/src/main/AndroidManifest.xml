@@ -33,6 +33,19 @@
         android:usesCleartextTraffic="true">
         <!-- cleartext: the dial speaks plain HTTP on the local network -->
 
+        <!-- the home screen widget (ui/Widget.kt), and what goes behind it -->
+        <receiver android:name=".ui.CompanionWidget" android:exported="true" android:label="Deskling">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_companion" />
+        </receiver>
+        <activity android:name=".ui.WidgetSetup" android:exported="true" android:label="Deskling widget"
+            android:theme="@style/Theme.Deskling">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
         <activity android:name=".Home" android:exported="true" android:windowSoftInputMode="adjustResize" android:launchMode="singleTask">
             <!-- a companion shared from another phone: the website's "Open in the app" hands it over as deskling://companion?r=... -->
             <intent-filter>

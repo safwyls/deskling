@@ -143,6 +143,7 @@ class AlarmReceiver : BroadcastReceiver() {
             try {
                 withTimeoutOrNull(20_000) { Sync.sync(ctx) }
                 Reminders.check(ctx)
+                app.deskling.ui.Widget.update(ctx)
             } finally { r.finish() }
         }
     }
@@ -184,6 +185,7 @@ class SyncWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, 
         Steps.read(ctx)?.let { Steps.record(ctx, it) }
         withTimeoutOrNull(30_000) { Sync.sync(ctx) }
         Reminders.check(ctx)
+        app.deskling.ui.Widget.update(ctx)          // steps and timers move on even when nothing else changed
         return Result.success()
     }
 

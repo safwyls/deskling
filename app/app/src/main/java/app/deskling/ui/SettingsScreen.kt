@@ -50,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.deskling.data.CompanionRecord
 import app.deskling.data.Pet
+import app.deskling.data.WidgetBg
 import app.deskling.data.NotifyMode
 import app.deskling.steps.Steps
 import app.deskling.sync.FoundDial
@@ -264,6 +265,9 @@ private fun PhoneSettings(app: AppState) {
     Header("Steps")
     SliderRow("A walk is", s.walkSteps, 100..1000, { "$it steps in 10 min" }) { s.walkSteps = (it / 50) * 50 }
     SliderRow("Daily step goal", s.stepGoal, 2000..20000, { "%,d".format(it) }) { s.stepGoal = (it / 500) * 500 }
+    Header("Home screen widget")
+    Choice("Background", WidgetBg.entries.map { it.title }, s.widgetBg.ordinal) { s.widgetBg = WidgetBg.entries[it] }
+    Text("Add it from your home screen's widget list: Deskling. It shows ${s.pet.title}, how it's doing and today's steps.", color = Dim, fontSize = 12.sp)
     Header("Permissions")
     val missing = buildList {
         if (!Sync.hasBlePermission(app.ctx)) add("Bluetooth")
@@ -273,7 +277,7 @@ private fun PhoneSettings(app: AppState) {
     Item(if (missing.isEmpty()) "All set" else "Missing", if (missing.isEmpty()) "Bluetooth, steps and notifications" else missing.joinToString(", "),
         if (missing.isEmpty()) null else "Allow") { ask.launch(perms) }
     Header("About")
-    Text("Deskling 1.10  •  ${s.pet.title} and the care game, travelling between your dials and this phone over Bluetooth or Wi-Fi. Open source under the MIT licence: github.com/safwyls/deskling", color = Dim, fontSize = 13.sp)
+    Text("Deskling 1.11  •  ${s.pet.title} and the care game, travelling between your dials and this phone over Bluetooth or Wi-Fi. Open source under the MIT licence: github.com/safwyls/deskling", color = Dim, fontSize = 13.sp)
 }
 
 /** Which companion it is, and taking one in from a link. */
