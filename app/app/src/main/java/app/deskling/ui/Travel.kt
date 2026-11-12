@@ -89,7 +89,7 @@ fun AwayScreen(app: AppState) {
                 }) { Text(if (busy) "Asking ${atDial.name}..." else "Bring $name with me") }
             }
             shared -> {
-                Text("It moves in on the phone that opens the link. Until then you can send the link again, or take $name back.",
+                Text("It moves in on the phone or computer that opens the link. Until then you can send the link again, or take $name back.",
                     color = Dim, fontSize = 14.sp, textAlign = TextAlign.Center)
                 Spacer(Modifier.height(16.dp))
                 val link = app.store.lastShare
@@ -106,7 +106,7 @@ fun AwayScreen(app: AppState) {
     }
 }
 
-/** The bottom of the pet tab while the companion is here: leave it at a dial, or give it to another phone. */
+/** The bottom of the pet tab while the companion is here: leave it at a dial, or give it to another phone or computer. */
 @Composable
 fun TravelBar(app: AppState) {
     val name = app.store.pet.title
@@ -141,13 +141,13 @@ fun TravelBar(app: AppState) {
         OutlinedButton(enabled = busy == null, onClick = { share = true }, contentPadding = PaddingValues(horizontal = 10.dp, vertical = 10.dp),
             modifier = if (dials.isNotEmpty()) Modifier.weight(1f) else Modifier.fillMaxWidth()) {
             Icon(Icons.Filled.Share, null, modifier = Modifier.size(18.dp)); Spacer(Modifier.width(6.dp))
-            Text("Give to a phone", maxLines = 1, fontSize = 14.sp)
+            Text("Give to a device", maxLines = 1, fontSize = 14.sp)
         }
     }
     if (share) AlertDialog(
         onDismissRequest = { share = false },
-        title = { Text("Give $name to another phone?") },
-        text = { Text("$name leaves this phone now, as a link. Send it to the other phone: $name moves in on the phone that opens it, " +
+        title = { Text("Give $name to another device?") },
+        text = { Text("$name leaves this phone now, as a link. Send it to the other phone or computer: $name moves in on the one that opens it, " +
             "with its level, streak and today's breaks. Until then you can take it back from the pet tab.") },
         confirmButton = { TextButton(onClick = {
             share = false
@@ -197,6 +197,6 @@ fun IncomingDialog(app: AppState) {
 fun shareText(app: AppState, name: String, link: String) {
     val i = Intent(Intent.ACTION_SEND).setType("text/plain")
         .putExtra(Intent.EXTRA_SUBJECT, "$name is coming to you")
-        .putExtra(Intent.EXTRA_TEXT, "$name is coming to you. Open this on your phone, with the Deskling app installed:\n$link")
+        .putExtra(Intent.EXTRA_TEXT, "$name is coming to you. Open this on your phone or computer, with Deskling installed:\n$link")
     app.ctx.startActivity(Intent.createChooser(i, "Send $name").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
 }

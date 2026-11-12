@@ -1,4 +1,4 @@
-// #companion=<code>: a companion shared from one phone to another. The code is the record the app made
+// #companion=<code>: a companion shared from one phone or computer to another. The code is the record the app made
 // (app: data/Companion.kt): who it is and its care state, base64url JSON. This page only shows who's coming and
 // hands the code to the app (deskling://companion?r=<code>); nothing is stored or sent anywhere.
 import { Screen, PETS } from './screen.js';
@@ -29,7 +29,7 @@ export function init(root, { cleanup, code }) {
   setPet(r.pet);
   const lv = level(Number(r.care.xp) || 0), streak = Number(r.care.streak) || 0;
   $(root, '#arrive-title').textContent = `${P.name} is coming to you.`;
-  $(root, '#arrive-what').textContent = `Level ${lv}${streak ? `, on a ${streak}-day streak` : ''}. Open this on your Android phone and ${P.name} moves into the Deskling app, ready to go onto any dial you’ve paired.`;
+  $(root, '#arrive-what').textContent = `Level ${lv}${streak ? `, on a ${streak}-day streak` : ''}. Open this on your Android phone and ${P.name} moves into the Deskling app, ready to go onto any dial you’ve paired; or open it on a computer with the desktop app.`;
   const s = new Screen($(root, '#arrive-pet'), { pet: r.pet, pose: 'happy', size: 300 });
   cleanup.push(() => s.stop());
   // Chrome on Android opens intent: links in the app; without the app it goes to the fallback, the app's page

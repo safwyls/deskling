@@ -1,0 +1,20 @@
+{
+  "name": "deskling-desktop",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Your Deskling companion on the desktop",
+  "homepage": "https://safwyls.github.io/deskling/",
+  "license": "MIT",
+  "author": "safwyls",
+  "type": "module",
+  "scripts": {
+    "assets": "node tools/assets.mjs",
+    "icons": "tauri icon build/icon.png",
+    "dev": "npm run assets && tauri dev",
+    "build": "npm run assets && tauri build",
+    "test": "node --test test/*.test.js"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2"
+  }
+}

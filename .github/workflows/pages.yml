@@ -1,4 +1,5 @@
-# Builds the firmware (every companion in one), assembles the website around them and publishes it to GitHub Pages.
+# Builds the firmware (every companion in one), the Android app and the desktop app (on Windows, macOS and Linux),
+# assembles the website around them and publishes it to GitHub Pages.
 # Pages has to be switched on once: Settings > Pages > Source: GitHub Actions.
 name: Website
 
@@ -9,6 +10,7 @@ on:
       - 'site/**'
       - 'firmware/**'
       - 'app/**'
+      - 'desktop/**'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 
@@ -23,7 +25,64 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # The desktop app, built natively on each system. A failure here doesn't hold the site back: the page then
+  # offers whatever installers did build.
+  desktop:
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04          # the oldest supported Ubuntu, so the AppImage runs on as many systems as possible
+            args: --bundles deb,appimage
+          - os: windows-latest
+            args: --bundles nsis
+          - os: macos-latest          # one download for Apple silicon and Intel Macs
+            args: --target universal-apple-darwin --bundles dmg
+            targets: aarch64-apple-darwin,x86_64-apple-darwin
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Linux build libraries
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libxdo-dev patchelf
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.targets }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: desktop/src-tauri
+
+      - run: npm ci
+      - run: npm test
+      - run: npm run build -- ${{ matrix.args }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ runner.os }}
+          if-no-files-found: error
+          path: |
+            desktop/src-tauri/target/**/bundle/**/*.exe
+            desktop/src-tauri/target/**/bundle/**/*.dmg
+            desktop/src-tauri/target/**/bundle/**/*.AppImage
+            desktop/src-tauri/target/**/bundle/**/*.deb
+
   build:
+    needs: desktop
     runs-on: ubuntu-latest
     env:
       # the app is only published when its signing key is set up (Settings > Secrets and variables > Actions)
@@ -69,8 +128,17 @@ jobs:
           cd .. && python3 site/tools/app_to_site.py app/app/build/outputs/apk/release site/app
           rm "$DESKLING_KEYSTORE"
 
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          pattern: desktop-*
+          path: desktop-dist
+          merge-multiple: true
+
       - name: Assemble the site
         run: |
+          mkdir -p desktop-dist
+          python3 site/tools/desktop_to_site.py desktop-dist site/desktop desktop/src-tauri/tauri.conf.json
           python3 site/tools/firmware_to_site.py firmware site/fw
           python3 site/tools/pack_pets.py app/app/src/main/assets/pets site/pets
           rm -rf site/js/src site/tools site/package.json

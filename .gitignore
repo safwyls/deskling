@@ -19,3 +19,10 @@ site/fw/*.bin
 site/pets/
 site/tools/nvs_check/*.bin
 site/app/
+site/desktop/
+# desktop (web/pets/ and web/emotes/ are gathered from the app's assets by `npm run assets`)
+desktop/node_modules/
+desktop/web/pets/
+desktop/web/emotes/
+desktop/src-tauri/target/
+desktop/src-tauri/gen/

@@ -3,12 +3,13 @@
 A desk pet that looks after you. Wisp (or Crumb the turtle, or Sprig the sprout) lives on an Elecrow CrowPanel 1.46" rotary display (ESP32-S3) and gets
 thirsty, tired or restless when it's time for water, an eye break, a stretch or a walk. Do the thing, log it on
 the dial (or the phone), and Wisp perks up. An Android app shares the same Wisp, counts your steps, and reminds
-you when you're away from the desk.
+you when you're away from the desk. A desktop app for Windows, macOS and Linux puts it on your screen instead.
 
 | Folder | What's in it |
 | --- | --- |
 | [`firmware/`](firmware/) | The dial: PlatformIO project (Arduino-ESP32 3.3, LVGL 9, LovyanGFX), the care game, settings on the knob, phone setup, Bluetooth and Wi-Fi sync. |
 | [`app/`](app/) | Deskling for Android: Kotlin and Jetpack Compose. |
+| [`desktop/`](desktop/) | Deskling for Windows, macOS and Linux: Tauri 2, the companion drawn in a small see-through window. |
 | [`firmware/assets/loops/`](firmware/assets/loops/) | The pets' processed animation loops (Wisp's at the top, Crumb's in `crumb/`, Sprig's in `sprig/`), the source both the dial's frames and the app's assets are generated from. |
 | [`firmware/tools/`](firmware/tools/) | Clip processing, asset generation for the dial and the app, thought bubbles, clock digits. |
 | [`site/`](site/) | The website: what Deskling is, a firmware page that writes to the dial over USB from the browser, and the build guide. |
@@ -33,8 +34,15 @@ Build in Android Studio or with `./gradlew :app:assembleDebug` in `app/`; see [`
 The app carries all three pets, each in its own colours. Pair it from the dial: Settings > Phone app > Pair a phone shows a 6-digit code.
 
 The companion lives on one device at a time and travels: leave it at a dial, bring it along on the phone when you go,
-leave it at another dial, or give it to another phone by link. Each device shows it only while it's there.
+leave it at another dial, or give it to another phone or a computer by link. Each device shows it only while it's there.
 See *Companions travel* in [`firmware/README.md`](firmware/README.md) for the protocol.
+
+## The desktop app
+
+The companion sits on your desktop, above other windows if you like, at the size you pick. Click it for the ring
+of activities, right-click for a shortcut you choose (a pat to start with), drag it anywhere. It has a tray icon
+for its settings and no taskbar or Dock entry, and can start when you log in. Build with `npm ci && npm run build`
+in `desktop/`; see [`desktop/README.md`](desktop/README.md).
 
 ## Regenerating Wisp
 
@@ -50,9 +58,9 @@ The full commands, with every loop, are in `firmware/README.md`.
 
 ## The website
 
-Plain static files in `site/`, no framework. GitHub Actions (`.github/workflows/pages.yml`) builds the three
-firmware and the Android app, packs the pet loops from the app's assets and publishes `site/` to GitHub Pages on
-every push that touches the site, the firmware or the app.
+Plain static files in `site/`, no framework. GitHub Actions (`.github/workflows/pages.yml`) builds the firmware,
+the Android app and the desktop app (on Windows, macOS and Linux runners), packs the pet loops from the app's
+assets and publishes `site/` to GitHub Pages, installers included, on every push that touches any of them.
 
 The app is only built when its signing key is in the repository's Actions secrets: `DESKLING_KEYSTORE_B64` (the
 keystore, base64), `DESKLING_KEYSTORE_PASSWORD`, `DESKLING_KEY_ALIAS` and `DESKLING_KEY_PASSWORD`. Every release

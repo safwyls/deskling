@@ -1,0 +1,69 @@
+<div class="wrap apppage" data-title="The desktop app">
+  <div class="app-hero">
+    <div>
+      <h1>Your pet, on your screen.</h1>
+      <p class="intro">Deskling for Windows, macOS and Linux puts your companion in a corner of your desktop, above your other windows if you like. Click it for the ring of activities, right-click for the one you use most, and let it remind you about water, your eyes, stretching and moving while you work.</p>
+      <div class="download" id="desk-download">
+        <a class="btn primary" id="desk-main" href="https://github.com/safwyls/deskling/tree/main/desktop">Get the source</a>
+        <p id="desk-meta">Windows 10 or newer, macOS 10.15 or newer, or Linux</p>
+      </div>
+      <p class="desk-others" id="desk-others" hidden></p>
+      <p class="honest">It isn&rsquo;t in any app store and the installers aren&rsquo;t signed, so Windows and macOS ask before running it the first time. The steps for each are below, and the <a href="https://github.com/safwyls/deskling/tree/main/desktop">source is in the repository</a> if you&rsquo;d rather build it yourself.</p>
+    </div>
+    <figure class="desk-shot">
+      <img id="desk-shot" src="img/desktop-wisp.webp" alt="Your companion on a desktop with its ring of activities open around it: water, eyes, stretch, move, play, bed and pause" width="640" height="480">
+    </figure>
+  </div>
+
+  <section class="app-steps">
+    <h2>Install it</h2>
+    <div class="desk-os">
+      <div>
+        <h3>Windows</h3>
+        <ol class="numbered">
+          <li><b>Run <code>Deskling-setup.exe</code>.</b> If SmartScreen says it protected your PC, choose <em>More info</em>, then <em>Run anyway</em>.</li>
+          <li><b>Let it finish.</b> It installs for you alone, with no administrator prompt, and starts.</li>
+        </ol>
+      </div>
+      <div>
+        <h3>macOS</h3>
+        <ol class="numbered">
+          <li><b>Open <code>Deskling.dmg</code></b> and drag Deskling into Applications.</li>
+          <li><b>Open it once from Applications.</b> macOS says it can&rsquo;t check it for malicious software. Close that, open <em>System Settings &gt; Privacy &amp; Security</em>, scroll down and choose <em>Open Anyway</em>.</li>
+        </ol>
+      </div>
+      <div>
+        <h3>Linux</h3>
+        <ol class="numbered">
+          <li><b>On Debian or Ubuntu, install <code>deskling.deb</code></b> with <code>sudo apt install ./deskling.deb</code>.</li>
+          <li><b>Anywhere else, use <code>Deskling.AppImage</code>:</b> make it executable (<code>chmod +x Deskling.AppImage</code>) and run it.</li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <section class="app-notes">
+    <div>
+      <h3>Living with it</h3>
+      <ul>
+        <li><b>Click</b> your companion for the ring: log water or a walk, start an eye break or a stretch, play, put it to bed, pause the reminders. Click it again to pat it.</li>
+        <li><b>Right-click</b> runs a shortcut: a pat to start with, or any of the activities.</li>
+        <li><b>Drag</b> it anywhere. It stays where you leave it.</li>
+        <li><b>The tray icon</b> (the menu bar on a Mac) holds the rest: its size, whether it stays above other windows, which companion, the reminders, and starting when you log in. It doesn&rsquo;t show in the taskbar or the Dock.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Moving between devices</h3>
+      <p>A companion lives in one place at a time. To bring yours over from the phone app, choose <em>Give to a device</em> there (from a dial, bring it to the phone first). You get a link: open it on the computer and choose <em>Open in the Deskling app</em>, or copy it and choose <em>Take in a companion from a copied link</em> from the tray menu.</p>
+      <p>To send it on, choose <em>Give Wisp to another device</em> (with your companion<p>To send it on, choose <em>Give it to another device</em> from the tray menursquo;s name) from the tray menu and open the copied link on the phone or computer it should go to. Until then you can take it back.</p>
+      <p>Your care stays on your computer. Nothing goes to a server.</p>
+    </div>
+    <div>
+      <h3>Checking the files</h3>
+      <p>If you want to be sure a download wasn&rsquo;t changed on the way, compare its SHA-256 with the one here:</p>
+      <dl class="hashes" id="desk-sha"><dt>Not published yet</dt></dl>
+      <h3>Linux and Wayland</h3>
+      <p>The tray icon needs a desktop with a system tray: GNOME needs the AppIndicator extension. On Wayland it runs through XWayland so it can keep its place and stay above other windows.</p>
+    </div>
+  </section>
+</div>

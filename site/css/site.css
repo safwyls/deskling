@@ -76,6 +76,7 @@ p { margin: 0; text-wrap: pretty; }
   .top nav a .long { display: none; }
   .top nav a .short { display: inline; }
 }
+@media (max-width: 440px) { .top .wrap { gap: 10px; } .top nav { gap: 10px; } .mark { font-size: 1.15rem; } }
 
 /* ---------- buttons ---------- */
 .btn {
@@ -351,6 +352,20 @@ ol.numbered li em, .app-notes em { color: var(--text); font-style: normal; font-
 .app-notes code { font: 0.9em var(--mono); background: var(--panel); padding: 2px 6px; border-radius: 6px; }
 .app-notes .hash { display: block; word-break: break-all; padding: 10px 12px; color: var(--text); }
 @media (max-width: 900px) { .app-notes { grid-template-columns: 1fr; } }
+/* the desktop page */
+.desk-others { margin-top: 12px; color: var(--sub); font-size: var(--t-s); }
+.desk-others a { color: var(--text); }
+.desk-shot { margin: 0; }
+.desk-shot img { display: block; width: 100%; height: auto; border-radius: 18px; border: 1px solid var(--line); box-shadow: 0 30px 60px -30px #000; }
+.app-steps:has(.desk-os) { max-width: none; }
+.desk-os { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(24px, 4vw, 48px); margin-top: 8px; }
+.desk-os h3 { font-size: var(--t-l); margin-top: 20px; }
+.desk-os ol.numbered { margin-top: 16px; }
+.desk-os code, .app-steps code { font: 0.9em var(--mono); background: var(--panel); padding: 2px 6px; border-radius: 6px; }
+.hashes { margin: 10px 0 0; display: grid; gap: 4px; }
+.hashes dt { color: var(--text); font-size: var(--t-s); margin-top: 8px; }
+.hashes dd { margin: 0; font: 0.8em var(--mono); color: var(--sub); word-break: break-all; }
+@media (max-width: 900px) { .desk-os { grid-template-columns: 1fr; } }
 @media (max-width: 760px) { .app-hero { grid-template-columns: 1fr; } .app-hero .phones { margin-top: 12px; } }
 
 /* wiring diagram on the print page: boards wear the page palette, wires the cable's own colours */
