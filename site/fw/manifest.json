@@ -1,5 +1,5 @@
 {
- "version": "6.4",
+ "version": "6.5",
  "built": "2026-11-11",
  "chip": "ESP32-S3",
  "flash": "16MB",
@@ -24,8 +24,8 @@
  "app": {
   "file": "deskling.bin",
   "address": 65536,
-  "size": 5689664,
-  "md5": "5bfffdcb6dbcf5bbd8559605f7a0cbd8"
+  "size": 5689680,
+  "md5": "a12b0a789525e23f5f4e33e3a6a23052"
  },
  "pets": [
   "wisp",

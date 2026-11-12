@@ -96,7 +96,9 @@ void care_begin() {
   standing = prefs.getBool("p_st", false);
   postSec = prefs.getUInt("p_sec", 0);
   standsToday = prefs.getUShort("p_cnt", 0);
-  if (prefs.getString("cid", cid, sizeof(cid)) != 16) {
+  // (getString counts the terminating zero: a 16-digit id reads back as 17. Comparing that with 16 made
+  // every restart look like a new dial, which forgot a companion that was away.)
+  if (prefs.getString("cid", cid, sizeof(cid)) == 0 || strlen(cid) != 16) {
     // a new dial: its own companion, here
     snprintf(cid, sizeof(cid), "%08lx%08lx", (unsigned long)esp_random(), (unsigned long)esp_random());
     prefs.putString("cid", cid);
