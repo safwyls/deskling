@@ -551,14 +551,19 @@ static void away_show(bool on) {
   if (on == awayShown) return;
   awayShown = on;
   show(awayLbl, on);
-  show(img, !on);
   if (on) {
+    // close whatever was open first: closing stats shows the pet again
     if (act) act_end();
     ring_show(false);
     stats_show(false);
     set_emote(nullptr);
     lv_timer_pause(timer);
+    // and clear the pet itself, so no frozen frame is left under the text
+    lv_image_set_src(img, nullptr);
+    show(img, false);
   } else {
+    show(img, true);
+    if (curAnim) show_frame();
     lv_timer_resume(timer);
   }
 }
