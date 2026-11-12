@@ -186,7 +186,6 @@ static uint32_t reactionUntil = 0;
 static int reactionPose = P_BOUNCE;
 static uint32_t lastEvent = 0;
 static int brightNow = -1;
-bool pet_dimmed() { return brightNow >= 0 && brightNow <= BACKLIGHT_ASLEEP; }
 static RingMode ledMode = RING_OFF; static uint32_t ledColor = 1; static uint16_t ledPeriod = 0, ledValue = 0;
 
 static void led(RingMode m, uint32_t c, uint16_t v = 0, uint16_t p = 4000) {
