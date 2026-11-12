@@ -51,6 +51,8 @@ import androidx.compose.ui.unit.sp
 import app.deskling.data.CompanionRecord
 import app.deskling.data.Pet
 import app.deskling.data.WidgetBg
+import app.deskling.care.Need
+import app.deskling.notify.EdgeFlash
 import app.deskling.data.NotifyMode
 import app.deskling.steps.Steps
 import app.deskling.sync.FoundDial
@@ -200,6 +202,14 @@ private fun ReminderSettings(app: AppState) {
     }
     Header("On the phone")
     Choice("Reminder notifications", NotifyMode.entries.map { it.title }, store.notifyMode.ordinal) { store.notifyMode = NotifyMode.entries[it] }
+    Toggle("Flash the screen edge", store.edgeFlash) { store.edgeFlash = it }
+    Text("With each reminder while ${store.pet.title} is on the phone, a glow around the screen in the need's colour.", color = Dim, fontSize = 12.sp)
+    if (store.edgeFlash) {
+        if (!EdgeFlash.permitted(app.ctx)) Item("Allow it to draw over other apps", "Android asks for this before anything can light up the screen's edge", "Allow") {
+            app.ctx.startActivity(EdgeFlash.permissionIntent(app.ctx))
+        }
+        else TextButton(onClick = { EdgeFlash.show(app.ctx, Need.entries.map { it.color.toInt() }) }) { Text("Show me") }
+    }
 }
 
 /** The paired dials: the current one's link, Wi-Fi, screen and lights. */
@@ -277,7 +287,7 @@ private fun PhoneSettings(app: AppState) {
     Item(if (missing.isEmpty()) "All set" else "Missing", if (missing.isEmpty()) "Bluetooth, steps and notifications" else missing.joinToString(", "),
         if (missing.isEmpty()) null else "Allow") { ask.launch(perms) }
     Header("About")
-    Text("Deskling 1.11  •  ${s.pet.title} and the care game, travelling between your dials and this phone over Bluetooth or Wi-Fi. Open source under the MIT licence: github.com/safwyls/deskling", color = Dim, fontSize = 13.sp)
+    Text("Deskling 1.12  •  ${s.pet.title} and the care game, travelling between your dials and this phone over Bluetooth or Wi-Fi. Open source under the MIT licence: github.com/safwyls/deskling", color = Dim, fontSize = 13.sp)
 }
 
 /** Which companion it is, and taking one in from a link. */

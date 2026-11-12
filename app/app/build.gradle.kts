@@ -12,8 +12,8 @@ android {
         applicationId = "app.deskling"
         minSdk = 26
         targetSdk = 35
-        versionCode = 12
-        versionName = "1.11"
+        versionCode = 13
+        versionName = "1.12"
     }
 
     // Release signing comes from the environment (the website workflow fills these from repository secrets).

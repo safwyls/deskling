@@ -16,6 +16,8 @@
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
     <!-- reminders -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- the glow around the screen's edge with a reminder (notify/EdgeFlash.kt) -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <!-- the Bluetooth link held open to the dial for instant sync -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />

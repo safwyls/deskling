@@ -44,6 +44,11 @@ class Store private constructor(ctx: Context) {
     val version: StateFlow<Long> = _version
     fun changed() { _version.value = _version.value + 1; Widget.request(appCtx) }
 
+    /** Flash the edge of the screen in the need's colour with each reminder (needs "Display over other apps"). */
+    var edgeFlash: Boolean
+        get() = p.getBoolean("edgeFlash", true)
+        set(v) { p.edit().putBoolean("edgeFlash", v).apply(); changed() }
+
     var widgetBg: WidgetBg
         get() = WidgetBg.entries.getOrElse(p.getInt("widgetBg", 0)) { WidgetBg.SOLID }
         set(v) { p.edit().putInt("widgetBg", v.ordinal).apply(); Widget.update(appCtx, force = true) }

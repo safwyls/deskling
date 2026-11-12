@@ -76,6 +76,7 @@ object Reminders {
         }
         val last = s.lastNotified
         var anyDue = false
+        val flash = mutableListOf<Int>()      // colours of the reminders posted now, for the edge of the screen
         for (n in Need.entries) {
             val id = 100 + n.ordinal
             if (!s.engine.due(n) || !s.engine.active(now)) { nm.cancel(id); last.remove(n.key); continue }
@@ -94,7 +95,7 @@ object Reminders {
                 .setContentIntent(open)
                 .setAutoCancel(true)
                 .addAction(0, "Done", done)
-            try { nm.notify(id, b.build()) } catch (e: SecurityException) { }
+            try { nm.notify(id, b.build()); flash += n.color.toInt() } catch (e: SecurityException) { }
         }
         // sit/stand
         run {
@@ -115,9 +116,10 @@ object Reminders {
                 .setContentIntent(open)
                 .setAutoCancel(true)
                 .addAction(0, if (e.st.standing) "Sitting now" else "Standing now", done)
-            try { nm.notify(id, b.build()) } catch (ex: SecurityException) { }
+            try { nm.notify(id, b.build()); flash += CareEngine.POSTURE_COLOR.toInt() } catch (ex: SecurityException) { }
         }
         s.lastNotified = last
+        if (here && s.edgeFlash) EdgeFlash.show(ctx, flash)     // only with the companion on the phone
         schedule(ctx, if (anyDue) now + 15 * 60_000 else null)
     }
 
