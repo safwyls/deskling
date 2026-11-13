@@ -11,6 +11,9 @@ import androidx.test.core.app.ApplicationProvider
 import app.deskling.data.Pet
 import app.deskling.data.Store
 import app.deskling.data.WidgetBg
+import android.widget.ViewFlipper
+import app.deskling.R
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -49,5 +52,30 @@ class WidgetRenderTest {
             File("build/shots/widget_${bg.name.lowercase()}.png").outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
         }
         assertTrue(true)
+    }
+
+    /** The loop goes to the home screen whole: every frame (or every other one, for long loops) in a flipper. */
+    @Test fun animates() {
+        val ctx = ApplicationProvider.getApplicationContext<android.app.Application>()
+        val s = Store.get(ctx)
+        for ((animate, want) in listOf(true to 54, false to 1)) {   // Wisp's thirsty loop: 28 frames, there and back
+            s.widgetAnimate = animate
+            val content = Widget.Content(Pet.WISP, true, Loop.THIRSTY, "Wisp", "Thirsty", "Water is due", 0, 8000, true)
+            val v = Widget.render(ctx, content).apply(ctx, FrameLayout(ctx))
+            val flipper = v.findViewById<ViewFlipper>(R.id.w_pet)
+            assertEquals(want, flipper.childCount)
+        }
+        s.widgetAnimate = true
+        // a long loop (Wisp's walk to move: 60 frames) is halved, at the same speed
+        val f = Widget.frames(ctx, Pet.WISP, Loop.MOVE, true)!!
+        assertEquals(30, f.order.size)
+        assertTrue(f.order.sumOf { it.byteCount } <= 4 * 1024 * 1024)
+        // the parts that change often go without the frames
+        val words = Widget.render(ctx, Widget.Content(Pet.WISP, true, Loop.MOVE, "Wisp", "Restless", "Move is due", 0, 8000, true), pet = false)
+        val base = Widget.render(ctx, Widget.Content(Pet.WISP, true, Loop.MOVE, "Wisp", "Restless", "Move is due", 0, 8000, true))
+        val parent = FrameLayout(ctx)
+        val view = base.apply(ctx, parent)
+        words.reapply(ctx, view)
+        assertEquals(30, view.findViewById<ViewFlipper>(R.id.w_pet).childCount)
     }
 }

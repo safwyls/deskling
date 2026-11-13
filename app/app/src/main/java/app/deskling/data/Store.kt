@@ -49,6 +49,10 @@ class Store private constructor(ctx: Context) {
         get() = p.getBoolean("edgeFlash", true)
         set(v) { p.edit().putBoolean("edgeFlash", v).apply(); changed() }
 
+    var widgetAnimate: Boolean
+        get() = p.getBoolean("widgetAnimate", true)
+        set(v) { p.edit().putBoolean("widgetAnimate", v).apply(); Widget.update(appCtx, force = true); changed() }
+
     var widgetBg: WidgetBg
         get() = WidgetBg.entries.getOrElse(p.getInt("widgetBg", 0)) { WidgetBg.SOLID }
         set(v) { p.edit().putInt("widgetBg", v.ordinal).apply(); Widget.update(appCtx, force = true) }

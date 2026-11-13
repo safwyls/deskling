@@ -277,6 +277,7 @@ private fun PhoneSettings(app: AppState) {
     SliderRow("Daily step goal", s.stepGoal, 2000..20000, { "%,d".format(it) }) { s.stepGoal = (it / 500) * 500 }
     Header("Home screen widget")
     Choice("Background", WidgetBg.entries.map { it.title }, s.widgetBg.ordinal) { s.widgetBg = WidgetBg.entries[it] }
+    Toggle("Animate ${s.pet.title}", s.widgetAnimate) { s.widgetAnimate = it }
     Text("Add it from your home screen's widget list: Deskling. It shows ${s.pet.title}, how it's doing and today's steps.", color = Dim, fontSize = 12.sp)
     Header("Permissions")
     val missing = buildList {
@@ -287,7 +288,7 @@ private fun PhoneSettings(app: AppState) {
     Item(if (missing.isEmpty()) "All set" else "Missing", if (missing.isEmpty()) "Bluetooth, steps and notifications" else missing.joinToString(", "),
         if (missing.isEmpty()) null else "Allow") { ask.launch(perms) }
     Header("About")
-    Text("Deskling 1.13  •  ${s.pet.title} and the care game, travelling between your dials and this phone over Bluetooth or Wi-Fi, and to computers by link. Open source under the MIT licence: github.com/safwyls/deskling", color = Dim, fontSize = 13.sp)
+    Text("Deskling 1.14  •  ${s.pet.title} and the care game, travelling between your dials and this phone over Bluetooth or Wi-Fi, and to computers by link. Open source under the MIT licence: github.com/safwyls/deskling", color = Dim, fontSize = 13.sp)
 }
 
 /** Which companion it is, and taking one in from a link. */
