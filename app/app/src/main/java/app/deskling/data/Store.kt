@@ -12,11 +12,17 @@ import kotlinx.coroutines.flow.StateFlow
 import org.json.JSONArray
 import org.json.JSONObject
 
-/** A dial this phone is paired with. */
-data class DialInfo(val name: String, val key: String, val ip: String = "", val bleAddress: String = "") {
-    fun toJson() = JSONObject().put("name", name).put("key", key).put("ip", ip).put("ble", bleAddress)
+/**
+ * A dial this phone is paired with. [id] ("Deskling-3456", from its chip) never changes and is how the app knows
+ * it; [name] is what it's called, which its owner can change (and which is its id until they do).
+ */
+data class DialInfo(val name: String, val key: String, val ip: String = "", val bleAddress: String = "", val id: String = name) {
+    fun toJson() = JSONObject().put("name", name).put("key", key).put("ip", ip).put("ble", bleAddress).put("id", id)
     companion object {
-        fun fromJson(o: JSONObject?) = o?.let { DialInfo(it.optString("name"), it.optString("key"), it.optString("ip"), it.optString("ble")) }
+        /** Dials paired before they could be renamed were known by their name, which was their id. */
+        fun fromJson(o: JSONObject?) = o?.let {
+            DialInfo(it.optString("name"), it.optString("key"), it.optString("ip"), it.optString("ble"), it.optString("id").ifBlank { it.optString("name") })
+        }
     }
 }
 
@@ -77,32 +83,45 @@ class Store private constructor(ctx: Context) {
         changed()
     }
 
-    /** The current dial. Setting one adds it (or updates it, by name) and makes it current; null forgets the current one. */
+    /** The current dial. Setting one adds it (or updates it, by id) and makes it current; null forgets the current one. */
     var dial: DialInfo?
-        @Synchronized get() { val l = dials; val c = p.getString("currentDial", null); return l.firstOrNull { it.name == c } ?: l.firstOrNull() }
+        @Synchronized get() { val l = dials; val c = p.getString("currentDial", null); return l.firstOrNull { it.id == c } ?: l.firstOrNull() }
         @Synchronized set(v) {
             val l = dials.toMutableList()
-            if (v == null) { dial?.let { d -> l.removeAll { it.name == d.name } }; putDials(l, l.firstOrNull()?.name); return }
-            val i = l.indexOfFirst { it.name == v.name }
+            if (v == null) { dial?.let { d -> l.removeAll { it.id == d.id } }; putDials(l, l.firstOrNull()?.id); return }
+            val i = l.indexOfFirst { it.id == v.id }
             if (i >= 0) l[i] = v else l.add(v)
-            putDials(l, v.name)
+            putDials(l, v.id)
         }
 
     /** Update a paired dial's details (its address, say) without making it current. */
     @Synchronized fun updateDial(v: DialInfo) {
         val l = dials.toMutableList()
-        val i = l.indexOfFirst { it.name == v.name }
+        val i = l.indexOfFirst { it.id == v.id }
         if (i < 0) return
         l[i] = v
-        putDials(l, dial?.name)
+        putDials(l, dial?.id)
     }
 
-    @Synchronized fun forgetDial(name: String) {
-        val cur = dial?.name
-        val l = dials.filter { it.name != name }
-        putDials(l, if (cur == name) l.firstOrNull()?.name else cur)
+    /**
+     * A paired dial is called something else now (renamed here, or from another phone): wherever the companion
+     * is said to be with it by its old name, it's with it by the new one.
+     */
+    @Synchronized fun renameDial(id: String, name: String) {
+        val d = dials.firstOrNull { it.id == id } ?: return
+        if (name.isBlank() || d.name == name) return
+        updateDial(d.copy(name = name))
+        val t = travel
+        if (!t.here && t.where == d.name) travel = t.copy(where = name)
     }
 
+    @Synchronized fun forgetDial(id: String) {
+        val cur = dial?.id
+        val l = dials.filter { it.id != id }
+        putDials(l, if (cur == id) l.firstOrNull()?.id else cur)
+    }
+
+    /** The paired dial called [name] (where the companion is, say). */
     fun dialNamed(name: String) = dials.firstOrNull { it.name == name }
 
     // ---------- the companion ----------

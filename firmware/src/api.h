@@ -23,4 +23,6 @@ const char *api_pair_code();
 const char *api_last_paired();        // name of the phone that paired while the page was open, or ""
 int api_paired_count();
 void api_forget_all();
-const char *api_dial_name();          // "Deskling-3456": Bluetooth name and mDNS host
+#define DIAL_NAME_MAX 24              // fits a Bluetooth scan response with room to spare
+const char *api_dial_name();          // what it's called: the owner's name for it, or its id ("Deskling-3456")
+const char *api_dial_id();            // "Deskling-3456" (from the chip): mDNS host and setup network, never changes

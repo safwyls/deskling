@@ -20,6 +20,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -212,6 +213,46 @@ private fun ReminderSettings(app: AppState) {
     }
 }
 
+/**
+ * Call the current dial something else: the name it goes by in the app, over Bluetooth and on your network, and
+ * where the companion is said to be ("Wisp is with Kitchen") on every device.
+ */
+@Composable
+private fun RenameDialog(app: AppState, dial: app.deskling.data.DialInfo, close: () -> Unit) {
+    var name by remember { mutableStateOf(dial.name) }
+    var busy by remember { mutableStateOf(false) }
+    var err by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+    val go = { want: String ->
+        busy = true; err = null
+        scope.launch {
+            err = Sync.rename(app.ctx, want)
+            busy = false
+            if (err == null) { app.say("It's ${app.store.dial?.name} now"); close() }
+        }
+        Unit
+    }
+    AlertDialog(
+        onDismissRequest = { if (!busy) close() },
+        title = { Text("Rename ${dial.name}") },
+        text = {
+            Column {
+                Text("What it's called in the app, over Bluetooth and on your network, and where your companion is said to be when it's there.",
+                    color = Dim, fontSize = 14.sp)
+                Spacer(Modifier.height(12.dp))
+                OutlinedTextField(name, { v -> name = v.filter { it in ' '..'~' }.take(Sync.DIAL_NAME_MAX); err = null },
+                    singleLine = true, label = { Text("Name") }, modifier = Modifier.fillMaxWidth(),
+                    supportingText = { Text("${name.length} of ${Sync.DIAL_NAME_MAX}. Letters, numbers and punctuation: no emoji or accents, which the dial can't show.") })
+                if (dial.name != dial.id) TextButton(enabled = !busy, onClick = { go("") },
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)) { Text("Go back to ${dial.id}") }
+                err?.let { Text(it, color = Bad, fontSize = 13.sp) }
+            }
+        },
+        confirmButton = { TextButton(enabled = !busy && name.isNotBlank() && name.trim() != dial.name, onClick = { go(name.trim()) }) { Text(if (busy) "Renaming..." else "Rename") } },
+        dismissButton = { TextButton(enabled = !busy, onClick = close) { Text("Cancel") } },
+    )
+}
+
 /** The paired dials: the current one's link, Wi-Fi, screen and lights. */
 @Composable
 private fun DialTab(app: AppState, pair: () -> Unit, wifi: () -> Unit) {
@@ -227,9 +268,12 @@ private fun DialTab(app: AppState, pair: () -> Unit, wifi: () -> Unit) {
         Button(onClick = pair) { Text("Pair a dial") }
         return
     }
+    var renaming by remember { mutableStateOf(false) }
     Item(dial.name + if (dials.size > 1) "  (settings below)" else "",
-        if (store.lastSync == 0L) "not synced yet" else "synced over ${store.lastLink}" + (msg.takeIf { it.isNotBlank() }?.let { "  •  $it" } ?: ""))
-    for (d in dials.filter { it.name != dial.name }) Item(d.name, "paired", "Show") { Sync.use(app.ctx, d); scope.launch { Sync.sync(app.ctx) } }
+        if (store.lastSync == 0L) "not synced yet" else "synced over ${store.lastLink}" + (msg.takeIf { it.isNotBlank() }?.let { "  •  $it" } ?: ""),
+        "Rename") { renaming = true }
+    if (renaming) RenameDialog(app, dial) { renaming = false }
+    for (d in dials.filter { it.id != dial.id }) Item(d.name, "paired", "Show") { Sync.use(app.ctx, d); scope.launch { Sync.sync(app.ctx) } }
     Row {
         OutlinedButton(onClick = { scope.launch { if (!Sync.sync(app.ctx)) app.say("Couldn't reach the dial") } }) { Text("Sync now") }
         Spacer(Modifier.width(8.dp))
@@ -288,7 +332,7 @@ private fun PhoneSettings(app: AppState) {
     Item(if (missing.isEmpty()) "All set" else "Missing", if (missing.isEmpty()) "Bluetooth, steps and notifications" else missing.joinToString(", "),
         if (missing.isEmpty()) null else "Allow") { ask.launch(perms) }
     Header("About")
-    Text("Deskling 1.14  •  ${s.pet.title} and the care game, travelling between your dials and this phone over Bluetooth or Wi-Fi, and to computers by link. Open source under the MIT licence: github.com/safwyls/deskling", color = Dim, fontSize = 13.sp)
+    Text("Deskling 1.15  •  ${s.pet.title} and the care game, travelling between your dials and this phone over Bluetooth or Wi-Fi, and to computers by link. Open source under the MIT licence: github.com/safwyls/deskling", color = Dim, fontSize = 13.sp)
 }
 
 /** Which companion it is, and taking one in from a link. */

@@ -6,6 +6,8 @@
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLE2902.h>
+#include "host/ble_hs.h"
+#include "services/gap/ble_svc_gap.h"
 
 #define SVC_UUID "6d7a0001-5f2b-4b6c-9e2d-3a1f0c0d5e11"
 #define RX_UUID  "6d7a0002-5f2b-4b6c-9e2d-3a1f0c0d5e11"
@@ -114,6 +116,14 @@ static bool stack_up() {
   snprintf(why, sizeof(why), "on (used %lu KB RAM)", (unsigned long)((before - fr) / 1024));
   Serial.printf("[ble] advertising as %s, internal RAM now %lu free\n", api_dial_name(), (unsigned long)fr);
   return true;
+}
+
+void ble_rename(const char *name) {
+  if (!started) return;                  // the stack comes up under api_dial_name() next time
+  ble_svc_gap_device_name_set(name);     // what a connected phone reads as the device name
+  BLEAdvertising *adv = BLEDevice::getAdvertising();
+  adv->setName(name);
+  if (!connected) { adv->stop(); BLEDevice::startAdvertising(); }   // connected: onDisconnect starts it again
 }
 
 void ble_begin() {

@@ -80,25 +80,49 @@ object Sync {
         Held.current(d.bleAddress)?.let { return it }     // the link held open to the dial: quickest, both ways
         if (d.ip.isNotBlank() && onWifi(ctx)) {
             val w = WifiLink(d.ip, d.key)
-            val ok = runCatching { w.request(JSONObject().put("op", "hello").put("key", d.key)).optBoolean("ok") }.getOrDefault(false)
-            if (ok) return w
+            val hello = runCatching { w.request(JSONObject().put("op", "hello").put("key", d.key)) }.getOrNull()
+            if (hello?.optBoolean("ok") == true) { heard(ctx, d, hello); return w }
         }
         if (!allowBle || !hasBlePermission(ctx) || Held.holding(d.bleAddress)) return null     // the held link is waiting for the dial: don't compete with it
-        ble?.let { if (it.connected && bleFor == d.name) return it; it.close() }
+        ble?.let { if (it.connected && bleFor == d.id) return it; it.close() }
         ble = null
         var address = d.bleAddress
         if (address.isBlank()) {
-            address = withTimeoutOrNull(6000) { scanDials(ctx).firstOrNull { it.name == d.name } }?.address ?: return null
+            address = withTimeoutOrNull(6000) { scanDials(ctx).firstOrNull { it.name == d.name || it.name == d.id } }?.address ?: return null
         }
         val b = runCatching { BleLink.connect(ctx, address) }.getOrNull() ?: return null
         val hello = runCatching { b.request(JSONObject().put("op", "hello").put("key", d.key).put("now", System.currentTimeMillis() / 1000)) }.getOrNull()
         if (hello?.optBoolean("ok") != true) { b.close(); _message.value = hello?.optString("err") ?: "Bluetooth hello failed"; return null }
         val store = Store.get(ctx)
         if (address != d.bleAddress) { store.updateDial(d.copy(bleAddress = address)); LinkService.update(ctx) }
-        hello.optString("ip").takeIf { it.isNotBlank() }?.let { ip -> store.dialNamed(d.name)?.let { if (it.ip != ip) store.updateDial(it.copy(ip = ip)) } }
+        hello.optString("ip").takeIf { it.isNotBlank() }?.let { ip -> store.dials.firstOrNull { it.id == d.id }?.let { if (it.ip != ip) store.updateDial(it.copy(ip = ip)) } }
+        heard(ctx, d, hello)
         ble = b
-        bleFor = d.name
+        bleFor = d.id
         return b
+    }
+
+    /** What a dial's hello says about itself: it may have been renamed since (from another phone, say). */
+    private fun heard(ctx: Context, d: DialInfo, hello: JSONObject) {
+        val name = hello.optString("name")
+        if (name.isNotBlank() && name != d.name && hello.optString("id").let { it.isBlank() || it == d.id }) Store.get(ctx).renameDial(d.id, name)
+    }
+
+    /** Longest name a dial takes (firmware DIAL_NAME_MAX). */
+    const val DIAL_NAME_MAX = 24
+
+    /**
+     * Call the current dial something else ("" gives it its id back). Null when done, else why not.
+     * Plain ASCII, as the dial's font has it; the dial tidies the spaces and has the last word.
+     */
+    suspend fun rename(ctx: Context, name: String): String? {
+        val store = Store.get(ctx)
+        val d = store.dial ?: return "No dial paired"
+        val r = call(ctx, JSONObject().put("op", "rename").put("name", name)) ?: return "Couldn't reach ${d.name}"
+        if (!r.optBoolean("ok")) return if (r.optString("err") == "unknown op") "${d.name} needs newer firmware for this (6.7 or later)"
+                                        else r.optString("err", "${d.name} said no")
+        store.renameDial(d.id, r.optString("name").ifBlank { return "${d.name} didn't say" })
+        return null
     }
 
     /** Catch up with the current dial: where the companion is, its state, settings and steps. False if it can't be reached. */
@@ -209,7 +233,7 @@ object Sync {
             store.takeIn(rec)
             // takeIn counts the move in; the dial already did, so keep its count
             store.travel = Travel(rec.cid, rec.epoch, true)
-            if (store.dial?.name != from.name) store.dial = from
+            if (store.dial?.id != from.id) store.dial = from
             return Move.Ok
         } catch (e: LinkError) { lost(l, e); return Move.Failed(e.message ?: "lost ${from.name}") }
     }
@@ -236,7 +260,7 @@ object Sync {
                            else if (dt != null && dt.cid == t.cid) Travel(t.cid, dt.epoch, false, dt.where)   // this copy was out of date
                            else Travel(t.cid, t.epoch + 1, false, to.name)
             store.dropFirst(store.pending().size)
-            if (store.dial?.name != to.name) { store.dial = to; LinkService.update(ctx) }
+            if (store.dial?.id != to.id) { store.dial = to; LinkService.update(ctx) }
             return Move.Ok
         } catch (e: LinkError) { lost(l, e); return Move.Failed(e.message ?: "lost ${to.name}") }
     }
@@ -303,7 +327,7 @@ object Sync {
         }
         if (link is BleLink) { link.close(); ble = null }      // the held link takes over from here
         val store = Store.get(ctx)
-        store.dial = DialInfo(dialName, key, dialIp, address)
+        store.dial = DialInfo(dialName, key, dialIp, address, r.optString("id").ifBlank { dialName })
         // A phone that has been looking after its own companion keeps it; otherwise it takes up with the dial's.
         val t = store.travel
         val ownsOne = t.here && t.cid.isNotEmpty() && (t.epoch > 1 || store.engine.st.xp > 0)
@@ -315,9 +339,9 @@ object Sync {
     }
 
     /** Forget a paired dial (the current one by default). */
-    fun forget(ctx: Context, name: String? = null) {
+    fun forget(ctx: Context, id: String? = null) {
         val store = Store.get(ctx)
-        val n = name ?: store.dial?.name ?: return
+        val n = id ?: store.dial?.id ?: return
         if (bleFor == n) { ble?.close(); ble = null }
         store.forgetDial(n)
         LinkService.update(ctx)
@@ -327,7 +351,7 @@ object Sync {
     /** Make a paired dial the current one. */
     fun use(ctx: Context, d: DialInfo) {
         val store = Store.get(ctx)
-        if (store.dial?.name == d.name) return
+        if (store.dial?.id == d.id) return
         store.dial = d
         store.dialSettings = org.json.JSONObject()
         _link.value = Link.NONE

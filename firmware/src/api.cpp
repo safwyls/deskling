@@ -26,7 +26,8 @@ struct Phone { uint8_t key[16]; char name[24]; };
 static Phone phones[MAX_PHONES];
 static int phoneCount = 0;
 static Preferences phonePrefs;
-static char dialName[20];
+static char dialId[16];                  // "Deskling-3456"
+static char dialName[DIAL_NAME_MAX + 1]; // the owner's name for the dial, or its id
 
 static void keys_load() {
   phonePrefs.begin("phones", false);
@@ -60,6 +61,36 @@ bool api_key_ok(const char *k) {
 int api_paired_count() { return phoneCount; }
 void api_forget_all() { phoneCount = 0; keys_save(); }
 const char *api_dial_name() { return dialName; }
+const char *api_dial_id() { return dialId; }
+
+// The dial's name: shown by the app, advertised over Bluetooth and on the network, and what the companion is "with"
+// on other devices. Plain ASCII (the dial's font), spaces tidied, at most DIAL_NAME_MAX; empty gives its id back.
+static void name_clean(const char *in, char *out) {
+  size_t n = 0;
+  bool space = false;
+  for (const char *p = in; *p && n < DIAL_NAME_MAX; p++) {
+    char c = *p;
+    if (c == ' ' || c == '\t') { space = n > 0; continue; }
+    if (c < '!' || c > '~') continue;
+    if (space && n < DIAL_NAME_MAX - 1) out[n++] = ' ';
+    space = false;
+    out[n++] = c;
+  }
+  out[n] = 0;
+}
+
+static bool mdnsUp = false;
+
+static void name_set(const char *want) {
+  char n[DIAL_NAME_MAX + 1];
+  name_clean(want, n);
+  if (!*n) strlcpy(n, dialId, sizeof(n));
+  if (!strcmp(n, dialName)) return;
+  strlcpy(dialName, n, sizeof(dialName));
+  if (strcmp(n, dialId)) phonePrefs.putString("name", n); else phonePrefs.remove("name");
+  ble_rename(dialName);
+  if (mdnsUp) { MDNS.end(); mdnsUp = false; }   // announced again under the new name by api_poll
+}
 
 // ---------- pairing ----------
 static bool pairOpen = false;
@@ -312,6 +343,7 @@ static void handle(Req *r) {
       char h[33]; hex(p.key, 16, h);
       out["key"] = h;
       out["name"] = dialName;
+      out["id"] = dialId;
       put_travel(out);
       strlcpy(lastPaired, p.name, sizeof(lastPaired));
       pairOpen = false;
@@ -321,6 +353,7 @@ static void handle(Req *r) {
     if (api_key_ok(in["key"] | "")) {
       r->authed = true;
       out["name"] = dialName;
+      out["id"] = dialId;
       out["fw"] = FW_VERSION;
       put_travel(out);
       if (WiFi.status() == WL_CONNECTED) out["ip"] = WiFi.localIP().toString();
@@ -392,6 +425,12 @@ static void handle(Req *r) {
       if (!strcmp(in["cid"] | "", care_cid())) care_set_where(in["epoch"] | 0u, in["at"] | "");
       put_travel(out);
     }
+    else if (!strcmp(op, "rename")) {
+      // {"op":"rename","name":"Kitchen"}: what the dial is called from now on ("" for its id again)
+      name_set(in["name"] | "");
+      out["name"] = dialName;
+      out["id"] = dialId;
+    }
     else if (!strcmp(op, "scan")) { net_scan(); }
     else if (!strcmp(op, "nets")) {
       ScanState st = net_scan_state();
@@ -422,13 +461,16 @@ static void handle(Req *r) {
 }
 
 // ---------- main loop ----------
-static bool mdnsUp = false;
 
 void api_begin() {
   keys_load();
   uint8_t mac[6];
   esp_read_mac(mac, ESP_MAC_WIFI_STA);          // works before Wi-Fi has started
-  snprintf(dialName, sizeof(dialName), "Deskling-%02X%02X", mac[4], mac[5]);
+  snprintf(dialId, sizeof(dialId), "Deskling-%02X%02X", mac[4], mac[5]);
+  char saved[DIAL_NAME_MAX + 1] = "";
+  phonePrefs.getString("name", saved, sizeof(saved));
+  name_clean(saved, dialName);
+  if (!*dialName) strlcpy(dialName, dialId, sizeof(dialName));
   q = xQueueCreate(4, sizeof(Req *));
 }
 
@@ -454,7 +496,8 @@ void api_poll() {
   bool up = WiFi.status() == WL_CONNECTED;
   if (up) {
     web_begin();
-    if (!mdnsUp && MDNS.begin(dialName)) {
+    if (!mdnsUp && MDNS.begin(dialId)) {          // the host name stays the id: names needn't suit DNS
+      MDNS.setInstanceName(dialName);              // what the app lists when pairing over Wi-Fi
       MDNS.addService("deskling", "tcp", 80);
       mdnsUp = true;
     }

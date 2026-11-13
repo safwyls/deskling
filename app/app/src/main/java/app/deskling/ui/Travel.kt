@@ -69,7 +69,7 @@ fun AwayScreen(app: AppState) {
         when {
             atDial != null -> {
                 val st = app.store.dialState
-                if (app.store.dial?.name == atDial.name && st.has("mood")) {
+                if (app.store.dial?.id == atDial.id && st.has("mood")) {
                     Text("${st.optString("mood")}  •  level ${st.optInt("level")}  •  ${st.optInt("happy")}% happy", color = Dim, fontSize = 14.sp)
                     Spacer(Modifier.height(4.dp))
                 }

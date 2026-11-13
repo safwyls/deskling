@@ -12,4 +12,5 @@ const char *ble_detail();
 // setup network is up. ble_resume() brings it back once that memory is free again (call it again if it can't yet).
 void ble_pause();
 void ble_resume();
-bool ble_paused();       // for About: whether it started, and the RAM it took or lacked
+bool ble_paused();
+void ble_rename(const char *name);   // advertise under a new name (straight away, or once the phone disconnects)       // for About: whether it started, and the RAM it took or lacked
